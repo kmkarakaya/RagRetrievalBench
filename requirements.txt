@@ -1,3 +1,5 @@
 chromadb
 google-genai
 sentence_transformers
+pymupdf
+langchain-text-splitters
