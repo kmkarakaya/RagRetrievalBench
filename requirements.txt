@@ -1,2 +1,3 @@
 chromadb
 google-genai
+sentence_transformers
