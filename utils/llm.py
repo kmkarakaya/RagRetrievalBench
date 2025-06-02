@@ -35,24 +35,34 @@ def initialize_genai_client():
     
     return genai.Client(api_key=api_key)
 
-client = initialize_genai_client()
+# Initialize the client once at module level
+_client = None
 
-def generate_content(prompt: str, max_output_tokens: int = 500, temperature: float = 0.1):
+def get_client():
     """
-    Generates content using the Google GenAI client.
+    Get or initialize the Gemini client.
+    """
+    global _client
+    if _client is None:
+        _client = initialize_genai_client()
+    return _client
+
+def generate_content(prompt: str, max_output_tokens: int = 500, temperature: float = 0.1) -> str:
+    """
+    Generate content using the Gemini API.
     
     Args:
-        prompt (str): The input prompt for content generation.
-        max_output_tokens (int): Maximum number of tokens in the output.
-        temperature (float): Sampling temperature for generation.
-        
+        prompt (str): The input prompt for content generation
+        max_output_tokens (int, optional): Maximum number of tokens in output. Defaults to 500.
+        temperature (float, optional): Sampling temperature. Defaults to 0.1.
+    
     Returns:
-        str: The generated content.
+        str: The generated content text
     """
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[prompt],
-        config=types.GenerateContentConfig(
+    client = get_client()
+    response = client.generate_content(
+        prompt,
+        generation_config=genai.types.GenerationConfig(
             max_output_tokens=max_output_tokens,
             temperature=temperature
         )
@@ -62,7 +72,7 @@ def generate_content(prompt: str, max_output_tokens: int = 500, temperature: flo
 # Example usage
 if __name__ == "__main__":    
    try:
-        prompt = "What is the capital of France?" # Example prompt    
+        prompt = "What is the capital of France?"
         generated_content = generate_content(prompt)
         print("Generated Content:", generated_content)
    except ValueError as e:

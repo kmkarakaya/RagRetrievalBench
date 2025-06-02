@@ -9,32 +9,23 @@ A Python-based RAG (Retrieval Augmented Generation) benchmarking toolkit that pr
 - Vector storage using ChromaDB with sentence transformer embeddings
 - Google's Gemini API integration for language model capabilities
 
-## Project Structure
+## Installation
 
-```
-RagRetrievalBench/
-├── backend/
-│   ├── config.py          # Configuration settings
-│   ├── create_KB.py       # Knowledge base creation utilities
-│   └── rag_kmk.py         # RAG implementation
-├── utils/
-│   ├── chromadb_utils.py  # ChromaDB helper functions
-│   ├── document_loader.py # Document loading utilities
-│   └── text_spitter.py   # Text chunking functionality
-└── requirements.txt      # Project dependencies
-```
+See [setup.md](setup.md) for detailed setup instructions.
 
-## Setup
-
-1. Create a Conda environment:
+Quick start:
 ```bash
 conda create -n ragbenchmark python=3.10
 conda activate ragbenchmark
+pip install -r requirements.txt
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
+## Environment Configuration
+
+1. Create a `.env` file in the project root directory
+2. Add your Gemini API key:
+```
+GEMINI_API_KEY=your_key_here
 ```
 
 ## Core Components
@@ -54,30 +45,95 @@ pip install -r requirements.txt
 - Sentence Transformer embedding support
 - Collection management with add/delete capabilities
 
-### Environment Configuration
-- Supports `.env` file for API key management
-- Configurable embedding models
-- Flexible collection naming and management
+### LLM Integration
+- Google's Gemini API integration
+- Configurable generation parameters
+- Environment-based API key management
 
-## Dependencies
+## Development
 
+### Project Structure
+```
+RagRetrievalBench/
+├── backend/           # Core RAG implementation
+├── utils/            # Utility functions and helpers
+├── tests/           # Test suite
+└── requirements.txt # Project dependencies
+```
+
+### Testing
+
+The project uses pytest for testing. To run tests:
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_document_loader.py
+
+# Run integration tests only
+pytest -m integration
+
+# Run unit tests only
+pytest -m "not integration"
+```
+
+Test categories:
+- Unit tests for core components
+- Integration tests for ChromaDB operations
+- Integration tests for Gemini API
+- Text processing validation tests
+
+### Dependencies
+
+Core dependencies:
 - chromadb
 - google-genai
 - sentence_transformers
 - pymupdf
 - langchain-text-splitters
+- python-dotenv
 
-## Usage
+Development dependencies:
+- pytest
+- black (code formatting)
+- isort (import sorting)
 
-Basic example of document processing:
+## Basic Usage
 
 ```python
 from utils.document_loader import load_document
 from utils.text_spitter import split_text
+from utils.chromadb_utils import create_chroma_collection
+from utils.llm import generate_content
 
-# Load a PDF document
+# Load and process a document
 doc = load_document("path/to/your/document.pdf")
-
-# Split into chunks
 chunks = split_text(doc, chunk_size=1000, chunk_overlap=200)
+
+# Create a vector store
+collection = create_chroma_collection(
+    "my_collection",
+    "all-MiniLM-L6-v2",
+    [chunks],
+    from_scratch=True
+)
+
+# Generate content using Gemini
+response = generate_content("Your prompt here", max_output_tokens=500)
+print(response)
 ```
+
+## Contributing
+
+1. Fork the repository
+2. Create a new branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+## License
+
+[Add your license information here]

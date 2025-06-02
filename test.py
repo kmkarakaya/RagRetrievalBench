@@ -2,13 +2,14 @@ from utils.document_loader import load_document
 from utils.text_spitter import split_text
 from utils.chromadb_utils import create_chroma_collection, list_collections, get_random_chunks
 import chromadb
+import os
 
-# Use pathlib.Path
-file_path = "C:/Users/murat.karakaya/CODES/RagRetrievalBench/utils/pdfs/Proje Önerisi.pdf"
-doc = load_document(file_path)  # Convert Path object to string when calling load_document
+# Use OS path join for better cross-platform compatibility
+file_path = os.path.join("utils", "pdfs", "SamplePdf.pdf")
+doc = load_document(file_path)
 
 embedding_models = ["all-MiniLM-L6-v2",
-                    "distiluse-base-multilingual-cased-v1"
+                   "distiluse-base-multilingual-cased-v1"
 ]
 
 # split the document into chunks
@@ -16,16 +17,18 @@ chunks = split_text(doc, chunk_size=1000, chunk_overlap=200)
 print("Number of chunks:", len(chunks))
 
 # Initialize ChromaDB client
-client = chromadb.PersistentClient(path="utils/chromadb_collections")
+client = chromadb.PersistentClient(path=os.path.join("utils", "chromadb_collections"))
 
 # Create or retrieve a ChromaDB collection and add the chunks to it
-for model in embedding_models:
-    print(f"Creating collection for model: {model}")
-    # Create or retrieve the collection
-    collection = create_chroma_collection("test_collection", 
-                         model, 
-                         [chunks], 
-                         from_scratch=True)
+for i, model in enumerate(embedding_models):
+    collection_name = f"test_collection_{i+1}"  # Unique collection name for each model
+    print(f"Creating collection '{collection_name}' with model: {model}")
+    collection = create_chroma_collection(
+        collection_name=collection_name,
+        embedding_model=model,
+        sentences=[chunks],
+        from_scratch=True
+    )
 
 collections = list_collections(client)
 print("Collections in ChromaDB:") 

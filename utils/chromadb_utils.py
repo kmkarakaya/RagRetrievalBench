@@ -1,11 +1,12 @@
 import chromadb
 from chromadb.utils import embedding_functions
 import random
+import os
 
 def create_chroma_collection(collection_name: str, 
-                             embedding_model: str, 
-                             sentences: list[list[str]], 
-                             from_scratch: bool = True) -> chromadb.Collection:
+                           embedding_model: str, 
+                           sentences: list[list[str]], 
+                           from_scratch: bool = True) -> chromadb.Collection:
     """
     Creates or retrieves a ChromaDB collection and adds sentence embeddings to it.
     Args:
@@ -15,19 +16,14 @@ def create_chroma_collection(collection_name: str,
         from_scratch (bool, optional): If True, deletes existing collection before creating new one. Defaults to True.
     Returns:
         chromadb.Collection: ChromaDB collection object containing the added sentences and embeddings
-    Raises:
-        Exception: If there is an error creating/retrieving the collection unrelated to collection existence
-    Example:
-        >>> sentences = [["Hello world", "Hi there"], ["Good morning", "Good evening"]]
-        >>> collection = create_chroma_collection("my_collection", "all-MiniLM-L6-v2", sentences)
     """
-    client = client = chromadb.PersistentClient(path="utils\chromadb_collections")
-    collection_name = embedding_model  # Use the embedding model name as the collection name
+    client = chromadb.PersistentClient(path=os.path.join("utils", "chromadb_collections"))
+    
     # Initialize the embedding function using the specified model
     embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name=embedding_model)
 
-    if (from_scratch):
+    if from_scratch:
         # Delete the collection if it exists
         try:
             client.delete_collection(name=collection_name)
@@ -38,36 +34,38 @@ def create_chroma_collection(collection_name: str,
 
     # Create a new chroma collection or get the existing one
     try:
-        collection = client.create_collection(name=collection_name,
-                                              embedding_function=embedding_function)
+        collection = client.create_collection(
+            name=collection_name,
+            embedding_function=embedding_function
+        )
         print(f"Collection '{collection_name}' created successfully.")
-        start_id=0
-    except Exception as e: # Catch a broader exception and check the error message
+        start_id = 0
+    except Exception as e:  # Catch a broader exception and check the error message
         if "already exists" in str(e):
-            collection = client.get_collection(name=collection_name,
-                                              embedding_function=embedding_function)
+            collection = client.get_collection(
+                name=collection_name,
+                embedding_function=embedding_function
+            )
             print(f"Collection '{collection_name}' already exists. Using existing collection.")
-            start_id=collection.count() # Get the current count of documents in the collection
+            start_id = collection.count()  # Get the current count of documents in the collection
         else:
-            raise e # Re-raise the exception if it's not related to collection existence
+            raise e  # Re-raise the exception if it's not related to collection existence
 
-    if(sentences):
+    if sentences:
         # Add your sentences and embeddings to the collection
         sentences_to_add = []
-        embeddings_to_add = []
         ids_to_add = [] # Create a list to store unique IDs for each document
-        print("Starting adding new documents from start_id: ",start_id)
+        print("Starting adding new documents from start_id: ", start_id)
         for i, pair in enumerate(sentences):
             sentences_to_add.extend(pair)
-            #print('sentences_to_add: ', sentences_to_add)
-            ids_to_add.extend([str(i * 2 + j+start_id) for j in range(len(pair))]) # Generate unique IDs, e.g., "0", "1", "2", "3"...
+            ids_to_add.extend([str(i * 2 + j + start_id) for j in range(len(pair))]) # Generate unique IDs
 
         collection.add(
             documents=sentences_to_add,
-            ids=ids_to_add # Add the 'ids' argument
+            ids=ids_to_add
         )
 
-        end_id=collection.count()
+        end_id = collection.count()
         print(f"Added {end_id-start_id} documents to the collection.")
     return collection
 
