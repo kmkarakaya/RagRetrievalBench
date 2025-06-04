@@ -1,14 +1,11 @@
-from google import genai
-from google.genai import types
-import os 
+import google.generativeai as genai
+from google.generativeai.types import GenerationConfig
+import os
 
 def initialize_genai_client():
     """
-    Initializes the Google GenAI client with the provided API key.
+    Initializes the Google GenAI configuration with the provided API key.
     Checks for API key in environment variables or .env file.
-    
-    Returns:
-        genai.Client: An instance of the GenAI client.
     
     Raises:
         ValueError: If GEMINI_API_KEY is not found in environment variables or .env file.
@@ -33,19 +30,19 @@ def initialize_genai_client():
             "2. Set GEMINI_API_KEY as an environment variable"
         )
     
-    return genai.Client(api_key=api_key)
+    # Configure the Gemini API
+    genai.configure(api_key=api_key)
 
-# Initialize the client once at module level
-_client = None
-
-def get_client():
+def list_available_models():
     """
-    Get or initialize the Gemini client.
+    Fetches the list of available models and their supported methods.
+    
+    Returns:
+        list: A list of model names.
     """
-    global _client
-    if _client is None:
-        _client = initialize_genai_client()
-    return _client
+    initialize_genai_client()
+    models = genai.list_models()
+    return [model.name for model in models]
 
 def generate_content(prompt: str, max_output_tokens: int = 500, temperature: float = 0.1) -> str:
     """
@@ -59,21 +56,31 @@ def generate_content(prompt: str, max_output_tokens: int = 500, temperature: flo
     Returns:
         str: The generated content text
     """
-    client = get_client()
-    response = client.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+    initialize_genai_client()
+    
+    # Use the gemini-2.0-flash model
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",
+        generation_config=GenerationConfig(
             max_output_tokens=max_output_tokens,
             temperature=temperature
         )
     )
+    
+    # Generate the response
+    response = model.generate_content(prompt)
+    
+    # Check if the response generation was blocked
+    if response.prompt_feedback.block_reason:
+        raise ValueError(f"Response was blocked: {response.prompt_feedback.block_reason}")
+    
     return response.text
 
 # Example usage
 if __name__ == "__main__":    
-   try:
+    try:
         prompt = "What is the capital of France?"
         generated_content = generate_content(prompt)
         print("Generated Content:", generated_content)
-   except ValueError as e:
+    except ValueError as e:
         print("Error:", e)

@@ -1,9 +1,8 @@
 import pytest
-from utils.llm import initialize_genai_client, generate_content, get_client
+from utils.llm import initialize_genai_client, generate_content
 import os
 from unittest.mock import patch, MagicMock
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 def test_initialize_genai_client_no_key():
     # Mock os.environ and dotenv.load_dotenv to ensure no key is present
@@ -15,9 +14,9 @@ def test_initialize_genai_client_no_key():
 def test_initialize_genai_client_with_env():
     test_key = "test_api_key"
     with patch.dict(os.environ, {"GEMINI_API_KEY": test_key}), \
-         patch('google.genai.Client') as mock_client:
+         patch('google.generativeai.configure') as mock_configure:
         initialize_genai_client()
-        mock_client.assert_called_once_with(api_key=test_key)
+        mock_configure.assert_called_once_with(api_key=test_key)
 
 @pytest.mark.integration
 def test_generate_content():
@@ -36,14 +35,16 @@ def test_generate_content_params():
     # Create a mock response
     mock_response = MagicMock()
     mock_response.text = test_response
+    mock_response.prompt_feedback = MagicMock()
+    mock_response.prompt_feedback.block_reason = None
     
-    # Create a mock client
-    mock_client = MagicMock()
-    mock_client.generate_content.return_value = mock_response
+    # Create a mock model
+    mock_model = MagicMock()
+    mock_model.generate_content.return_value = mock_response
     
     with patch.dict(os.environ, {"GEMINI_API_KEY": test_key}), \
-         patch('google.genai.Client', return_value=mock_client), \
-         patch('utils.llm._client', None):  # Reset the cached client
+         patch('google.generativeai.configure') as mock_configure, \
+         patch('google.generativeai.GenerativeModel', return_value=mock_model):
         
         response = generate_content(
             "Test prompt",
@@ -52,10 +53,24 @@ def test_generate_content_params():
         )
         
         assert response == test_response
-        mock_client.generate_content.assert_called_once_with(
-            "Test prompt",
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=100,
-                temperature=0.5
-            )
-        )
+        mock_configure.assert_called_once_with(api_key=test_key)
+        mock_model.generate_content.assert_called_once_with("Test prompt")
+
+def test_generate_content_blocked():
+    test_key = "test_api_key"
+    
+    # Create a mock response with blocked content
+    mock_response = MagicMock()
+    mock_response.prompt_feedback = MagicMock()
+    mock_response.prompt_feedback.block_reason = "SAFETY"
+    
+    # Create a mock model
+    mock_model = MagicMock()
+    mock_model.generate_content.return_value = mock_response
+    
+    with patch.dict(os.environ, {"GEMINI_API_KEY": test_key}), \
+         patch('google.generativeai.configure'), \
+         patch('google.generativeai.GenerativeModel', return_value=mock_model):
+        
+        with pytest.raises(ValueError, match="Response was blocked: SAFETY"):
+            generate_content("Test prompt")

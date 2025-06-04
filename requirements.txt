@@ -1,5 +1,5 @@
 chromadb
-google-genai
+google-generativeai
 sentence_transformers
 pymupdf
 langchain-text-splitters
