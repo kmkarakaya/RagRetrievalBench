@@ -1,11 +1,3 @@
 chromadb
-google-generativeai
+google-genai
 sentence_transformers
-pymupdf
-langchain-text-splitters
-python-dotenv
-
-# Development dependencies
-pytest
-black
-isort

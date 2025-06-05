@@ -1,139 +1,103 @@
-# RagRetrievalBench
+# Benchmarking Pipeline for Retrieval Performance
 
-A Python-based RAG (Retrieval Augmented Generation) benchmarking toolkit that provides utilities for document processing, text chunking, and vector storage operations.
+## Overview
+The `benchmark.py` script provides a comprehensive benchmarking pipeline for evaluating retrieval performance of embedding models using multiple metrics including Mean Average Precision (MAP), Precision, Recall, NDCG, and MRR. It supports comparing different SentenceTransformer models against a corpus of documents using both ChromaDB for vector storage and direct tensor-based similarity calculations for consistent evaluation.
 
-## Features
+## Input Files
+1. **`corpus.jsonl`**: Contains the corpus of documents in JSON Lines format. Each line represents a document chunk.
+2. **`queries.jsonl`**: Contains the queries in JSON Lines format. Each line represents a query.
+3. **`qrels.tsv`**: Contains the relevance mappings between queries and document chunks in TSV format. Each line specifies a query ID, document ID, and relevance score.
 
-- PDF document loading and text extraction with smart whitespace handling
-- Intelligent text chunking with configurable size and overlap
-- Vector storage using ChromaDB with sentence transformer embeddings
-- Google's Gemini API integration for language model capabilities
+## Configuration
+The script uses a configuration file (`benchmark_config.py`) to manage parameters such as:
+- Paths to input files (`corpus_file`, `queries_file`, `qrels_file`)
+- Model configurations (model names and corresponding collection names)
+- Evaluation parameters:
+  - `map_at_k`: Cutoff for MAP calculation
+  - `mrr_at_k`: Cutoff for Mean Reciprocal Rank
+  - `precision_recall_at_k`: Cutoff for Precision and Recall
+  - `ndcg_at_k`: Cutoff for Normalized Discounted Cumulative Gain
+- ChromaDB settings:
+  - `reinitialize_collections`: Whether to rebuild ChromaDB collections
+  - `show_progress_bar`: Display progress during evaluation
+  - `batch_size`: Batch size for model inference
 
-## Installation
+## Workflow
+1. **Data Loading**:
+   - Loads the corpus, queries, and relevance mappings from the specified input files.
+2. **Embedding Generation**:
+   - Generates embeddings for the corpus and queries using the specified models.
+3. **Retrieval**:
+   - Computes similarity scores between query embeddings and document embeddings.
+   - Retrieves the top-k most relevant documents for each query.
+4. **Evaluation**:
+   - Calculates multiple metrics at specified cutoffs:
+     - Mean Average Precision (MAP@k)
+     - Precision and Recall@k
+     - Normalized Discounted Cumulative Gain (NDCG@k)
+     - Mean Reciprocal Rank (MRR@k)
+   - Performs per-query performance analysis
+   - Compares different MAP calculation methods
+5. **Report Generation**:
+   - Generates a detailed report including:
+     - Summary metrics for each model
+     - Statistical significance analysis
+     - Per-query performance breakdown
+     - Detailed MAP calculation methodology
+   - Saves the report with timestamp in the `reports` folder
 
-See [setup.md](setup.md) for detailed setup instructions.
+## Outputs
+- A comprehensive report file in the `reports` folder, named with a timestamp (e.g., `report_2025_06_05_02_01.txt`).
+- The report includes:
+  - Summary metrics (MAP@k, Recall@k, Precision@k, NDCG@k, MRR@k) for each model
+  - Statistical significance analysis of differences between models
+  - Per-query performance analysis with detailed metrics
+  - Comparison of different MAP calculation methods
+  - Explanation of the evaluation methodology and ranking approach
+  - Notes about potential differences between ChromaDB and evaluator rankings
 
-Quick start:
+## MAP Calculation Methodology
+This project includes a detailed investigation into how Mean Average Precision (MAP) is calculated in the SentenceTransformer evaluator. Our key findings:
+
+1. **Normalization Factor**: The evaluator divides the sum of precisions by min(k, len(relevant_docs)), not simply by len(relevant_docs)
+2. **Ranking Method**: The evaluator uses tensor-based cosine similarity (util.pytorch_cos_sim) which may produce different rankings than ChromaDB's vector search
+3. **Averaging Method**: The evaluator calculates MAP as the simple macro-average (mean) of per-query AP values, not weighted by the number of relevant docs for each query
+
+We've consolidated all MAP calculation approaches into `benchmark.py`:
+- Weighted average MAP calculation (traditional approach)
+- Exact replica of the evaluator's calculation that matches its results
+- Simple macro-average (the evaluator's method)
+
+For a comprehensive explanation of our MAP calculation findings, see:
+- [MAP_CALCULATION_SUMMARY.md](MAP_CALCULATION_SUMMARY.md): Detailed documentation of our findings
+
+The benchmark.py script now includes all MAP calculation methods and ensures that per-query metrics use the same ranking method as the evaluator, providing consistency between summary and per-query metrics.
+
+## How to Run
+1. Ensure the input files (`corpus.jsonl`, `queries.jsonl`, `qrels.tsv`) are correctly formatted and placed in the appropriate directory.
+2. Configure the parameters in `benchmark_config.py` as needed.
+3. Run the script using the following command:
+   ```bash
+   python benchmark.py
+   ```
+4. Check the `reports` folder for the generated report.
+
+## Dependencies
+This project requires the following main dependencies:
+- `sentence_transformers`: For embedding generation and evaluation
+- `chromadb`: For vector storage and retrieval
+- `numpy`: For numerical computations
+- `torch`: For tensor operations
+
+Install all dependencies by running:
 ```bash
-conda create -n ragbenchmark python=3.10
-conda activate ragbenchmark
 pip install -r requirements.txt
 ```
 
-## Environment Configuration
-
-1. Create a `.env` file in the project root directory
-2. Add your Gemini API key:
-```
-GEMINI_API_KEY=your_key_here
-```
-
-## Core Components
-
-### Document Loading
-- Supports PDF document loading with improved text extraction
-- Handles whitespace and formatting cleanup
-- Uses PyMuPDF for reliable PDF processing
-
-### Text Splitting
-- Implements recursive character text splitting
-- Configurable chunk size and overlap
-- Optimized for RAG applications
-
-### Vector Storage
-- ChromaDB integration for efficient vector storage
-- Sentence Transformer embedding support
-- Collection management with add/delete capabilities
-
-### LLM Integration
-- Google's Gemini API integration
-- Configurable generation parameters
-- Environment-based API key management
-
-## Development
-
-### Project Structure
-```
-RagRetrievalBench/
-├── backend/           # Core RAG implementation
-├── utils/            # Utility functions and helpers
-├── tests/           # Test suite
-└── requirements.txt # Project dependencies
-```
-
-### Testing
-
-The project uses pytest for testing. To run tests:
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_document_loader.py
-
-# Run integration tests only
-pytest -m integration
-
-# Run unit tests only
-pytest -m "not integration"
-```
-
-Test categories:
-- Unit tests for core components
-- Integration tests for ChromaDB operations
-- Integration tests for Gemini API
-- Text processing validation tests
-
-### Dependencies
-
-Core dependencies:
-- chromadb
-- google-genai
-- sentence_transformers
-- pymupdf
-- langchain-text-splitters
-- python-dotenv
-
-Development dependencies:
-- pytest
-- black (code formatting)
-- isort (import sorting)
-
-## Basic Usage
-
-```python
-from utils.document_loader import load_document
-from utils.text_spitter import split_text
-from utils.chromadb_utils import create_chroma_collection
-from utils.llm import generate_content
-
-# Load and process a document
-doc = load_document("path/to/your/document.pdf")
-chunks = split_text(doc, chunk_size=1000, chunk_overlap=200)
-
-# Create a vector store
-collection = create_chroma_collection(
-    "my_collection",
-    "all-MiniLM-L6-v2",
-    [chunks],
-    from_scratch=True
-)
-
-# Generate content using Gemini
-response = generate_content("Your prompt here", max_output_tokens=500)
-print(response)
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a new branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-[Add your license information here]
+## Notes
+- The script ensures consistent evaluation by using the same tensor-based similarity calculations across all metrics
+- All metrics use the evaluator's internal ranking method to maintain consistency between summary and per-query results
+- The ChromaDB rankings in production may differ slightly from the evaluation results due to differences in similarity calculation methods
+- The implementation supports both traditional weighted MAP and the evaluator's macro-average approach
+- Each evaluated model gets its own ChromaDB collection for vector storage
+- The code is modular and can be extended to support additional metrics or embedding models
