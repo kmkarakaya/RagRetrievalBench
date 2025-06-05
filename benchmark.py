@@ -1,6 +1,7 @@
 from sentence_transformers import SentenceTransformer, evaluation, util
 from chromadb import Client
 from chromadb.errors import NotFoundError
+import chromadb  # Add this import
 import json
 import benchmark_config as cfg
 import os
@@ -367,95 +368,113 @@ def initialize_collections(corpus, model_name, collection_name):
 
 # ---------- Evaluate Metrics ----------
 def evaluate_metrics(queries: dict, corpus: dict, relevant_docs: dict, 
-                     model_name: str, collection_name: str) -> tuple[float, float, float, float, float]:
+                    model_name: str, collection_name: str) -> tuple[float, float, float, float, float]:
     """
-    Evaluate retrieval metrics using consistent tensor-based similarity calculations.
-    
-    This function uses the SentenceTransformer evaluator while ensuring consistency by:
-    1. Using our centralized embedding calculation
-    2. Applying the same tensor-based similarity method throughout
-    3. Using consistent normalization in metric calculations
-    
-    Args:
-        queries: Dict mapping query_id -> query_text
-        corpus: Dict mapping doc_id -> doc_text
-        relevant_docs: Dict mapping query_id -> set of relevant doc_ids
-        model_name: Name of the SentenceTransformer model to evaluate
-        collection_name: Name of the ChromaDB collection (for logging)
-        
-    Returns:
-        tuple containing:
-        - map_score: Mean Average Precision at k
-        - recall_score: Recall at k
-        - precision_score: Precision at k
-        - ndcg_score: Normalized Discounted Cumulative Gain at k
-        - mrr_score: Mean Reciprocal Rank at k
+    Evaluate retrieval performance using ChromaDB rankings with the SentenceTransformer evaluator.
     """
-    print(f"Evaluating metrics for model: {model_name}, collection: {collection_name}...")
+    print(f"\nEvaluating {model_name} using ChromaDB rankings...")
     
-    # Get embeddings using our centralized function
-    embeddings_data = calculate_embeddings(model_name, queries, corpus)
+    # Get ChromaDB rankings and scores for all queries
+    db = chromadb.Client().get_collection(collection_name)
     
-    # Set up the evaluator with our pre-calculated embeddings
+    # Create model for query encoding
+    model = SentenceTransformer(model_name)
+    
+    # DEBUG: Print evaluator's internal query IDs list
     evaluator = evaluation.InformationRetrievalEvaluator(
         queries=queries,
         corpus=corpus,
         relevant_docs=relevant_docs,
-        mrr_at_k=cfg.mrr_at_k,
-        precision_recall_at_k=cfg.precision_recall_at_k,
-        map_at_k=cfg.map_at_k,
-        ndcg_at_k=cfg.ndcg_at_k,
-        name=f"{model_name}-{collection_name}",
-        show_progress_bar=cfg.show_progress_bar,
-        batch_size=cfg.batch_size
+        mrr_at_k=[cfg.k],
+        ndcg_at_k=[cfg.k],
+        accuracy_at_k=[cfg.k],
+        precision_recall_at_k=[cfg.k],
+        map_at_k=[cfg.k],
+        show_progress_bar=False,
+        name=f"{model_name}-chromadb"
     )
     
-    # We reuse the same model and embeddings for consistency
-    evaluator.corpus_embeddings = embeddings_data['corpus_embeddings']
-    evaluator.model = embeddings_data['model']
+    print("\nDEBUG: Evaluator's query_ids ordering:")
+    for i, qid in enumerate(evaluator.queries_ids):
+        print(f"  Index {i} -> Query ID: {qid}")
     
-    # Print evaluator's rankings for comparison
-    print("Evaluator's corpus-query retrieval comparison:")
+    # Initialize result list with exact length matching evaluator's queries_ids
+    queries_result_list = [[] for _ in range(len(evaluator.queries_ids))]
+    
+    # Map query IDs to their index in evaluator.queries_ids
+    query_id_to_idx = {qid: i for i, qid in enumerate(evaluator.queries_ids)}
+    
+    print("\nDEBUG: Query ID to index mapping:")
+    for qid, idx in query_id_to_idx.items():
+        print(f"  Query ID {qid} -> Index {idx}")
+    
     for qid, query_text in queries.items():
-        if qid not in relevant_docs:
+        if qid not in relevant_docs or qid not in query_id_to_idx:
+            print(f"DEBUG: Skipping query {qid} - not in relevant_docs or not in evaluator.queries_ids")
             continue
             
-        # Get similarity scores using utility function
-        similarities = calculate_similarities(embeddings_data, qid)
-        metrics = calculate_metrics(similarities, embeddings_data['corpus_ids'], relevant_docs[qid], cfg.k)
+        # Get the query index from the evaluator's queries_ids list
+        query_idx = query_id_to_idx[qid]
         
-        # Print top k similar documents
-        print(f"\nQuery {qid} (evaluator's internal ranking):")
-        print(f"Relevant docs: {relevant_docs.get(qid, set())}")
+        # Encode query using the model
+        query_embedding = model.encode(query_text, convert_to_tensor=True)
+        
+        # Get rankings from ChromaDB
+        results = db.query(
+            query_embeddings=[query_embedding.cpu().numpy()],
+            n_results=100  # Get more results to ensure we have enough
+        )
+        
+        # Store the ranked document IDs and scores in evaluator format
+        for doc_id, distance in zip(results['ids'][0], results['distances'][0]):
+            # Convert distance to similarity score (higher is better)
+            similarity = 1.0 / (1.0 + float(distance))
+            queries_result_list[query_idx].append({
+                "corpus_id": doc_id,
+                "score": similarity
+            })
+        
+        # Debug output for top k
+        print(f"\nQuery {qid} (ChromaDB ranking):")
+        print(f"Relevant docs: {relevant_docs[qid]}")
         print(f"Top {cfg.k} retrieved docs:")
-        for i, (doc_id, sim) in enumerate(zip(metrics['retrieved_docs'], metrics['similarities'])):
-            is_relevant = doc_id in relevant_docs.get(qid, set())
+        for i, doc_score in enumerate(queries_result_list[query_idx][:cfg.k]):
+            doc_id = doc_score["corpus_id"]
+            is_relevant = doc_id in relevant_docs[qid]
             rel_marker = " (REL)" if is_relevant else ""
-            print(f"  {i+1}. {doc_id} - similarity: {sim:.6f}{rel_marker}")
+            print(f"  {i+1}. {doc_id} (score: {doc_score['score']:.4f}){rel_marker}")
     
-    # Run the evaluator
-    scores = evaluator(embeddings_data['model'])
-    print(f"Available score keys: {list(scores.keys())}")
-
+    # DEBUG: Check what's in the queries_result_list
+    print("\nDEBUG: Final queries_result_list structure:")
+    for i, results in enumerate(queries_result_list):
+        print(f"  Index {i}: {len(results)} results")
+        if len(results) > 0:
+            print(f"    First result: {results[0]}")
+    
+    # Calculate metrics using ChromaDB rankings
+    scores = evaluator.compute_metrics(queries_result_list)
+    
+    # Debug: Print actual keys in scores dictionary
+    print("\nAvailable keys in scores dictionary:")
+    for key in scores.keys():
+        print(f"  {key}")
+    
+    # The correct way to extract metrics
     k = cfg.k
-
-    # Extract metrics from scores dict
-    def get_metric(metric_name):
-        key = next((k_ for k_ in scores if k_.endswith(f"{metric_name}@{k}")), None)
-        return scores.get(key, None)
-
-    map_score = get_metric("map")
-    recall_score = get_metric("recall")
-    precision_score = get_metric("precision")
-    ndcg_score = get_metric("ndcg")
-    mrr_score = get_metric("mrr")
-
-    print(f"MAP@{k} for model {model_name}: {map_score}")
-    print(f"Recall@{k} for model {model_name}: {recall_score}")
-    print(f"Precision@{k} for model {model_name}: {precision_score}")
-    print(f"NDCG@{k} for model {model_name}: {ndcg_score}")
-    print(f"MRR@{k} for model {model_name}: {mrr_score}")
-
+    map_score = scores["map@k"][k]
+    recall_score = scores["recall@k"][k]
+    precision_score = scores["precision@k"][k]
+    ndcg_score = scores["ndcg@k"][k]
+    mrr_score = scores["mrr@k"][k]
+    
+    # Print metrics
+    print(f"\nMetrics for {model_name} using ChromaDB rankings:")
+    print(f"MAP@{cfg.k}: {map_score:.4f}")
+    print(f"Recall@{cfg.k}: {recall_score:.4f}")
+    print(f"Precision@{cfg.k}: {precision_score:.4f}")
+    print(f"NDCG@{cfg.k}: {ndcg_score:.4f}")
+    print(f"MRR@{cfg.k}: {mrr_score:.4f}")
+    
     return map_score, recall_score, precision_score, ndcg_score, mrr_score
 
 def test_calculate_metrics():
@@ -492,7 +511,7 @@ def compare_map_methods(queries, corpus, relevant_docs, model_retrievals, model_
     4. Macro-average MAP (simple mean of per-query AP values)
     
     Key insights about the evaluator's MAP calculation:
-    - It divides the sum of precisions by min(k, len(relevant_docs)), not by len(relevant_docs)
+    - It divides the sum of precisions by min(k, len(rel_docs)), not by len(rel_docs)
     - It uses tensor-based similarity (util.pytorch_cos_sim) which may give different rankings
       than ChromaDB's vector search
     - It calculates MAP as the simple macro-average (mean) of per-query AP values,

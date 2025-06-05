@@ -6,9 +6,11 @@ queries_file = "queries.jsonl"
 qrels_file = "qrels.tsv"
 
 # ChromaDB collection/model pairs to benchmark
-models = [
+models = [ 
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
-    {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"}
+    {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v3"},
+    {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
+    
 ]
 
 # Evaluation metrics to compute (set to True to enable)
@@ -36,3 +38,8 @@ batch_size = 32
 
 # Add this line to your benchmark_config.py file
 reinitialize_collections = True  # Set to False to skip re-embedding if collections exist
+
+# Directory containing PDF files for embedding
+pdf_dir = "utils/pdfs"  # Directory containing PDFs
+chunk_size = 1000
+chunk_overlap = 200

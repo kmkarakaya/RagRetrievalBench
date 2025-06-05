@@ -1,3 +1,8 @@
 chromadb
 google-genai
 sentence_transformers
+matplotlib
+numpy
+tabulate
+tqdm
+pymupdf
