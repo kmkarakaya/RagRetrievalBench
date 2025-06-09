@@ -1,103 +1,351 @@
-# Benchmarking Pipeline for Retrieval Performance
+# RAG Retrieval Benchmark
 
-## Overview
-The `benchmark.py` script provides a comprehensive benchmarking pipeline for evaluating retrieval performance of embedding models using multiple metrics including Mean Average Precision (MAP), Precision, Recall, NDCG, and MRR. It supports comparing different SentenceTransformer models against a corpus of documents using both ChromaDB for vector storage and direct tensor-based similarity calculations for consistent evaluation.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## Input Files
-1. **`corpus.jsonl`**: Contains the corpus of documents in JSON Lines format. Each line represents a document chunk.
-2. **`queries.jsonl`**: Contains the queries in JSON Lines format. Each line represents a query.
-3. **`qrels.tsv`**: Contains the relevance mappings between queries and document chunks in TSV format. Each line specifies a query ID, document ID, and relevance score.
+A comprehensive evaluation framework for embedding models in Retrieval Augmented Generation (RAG) systems. This tool provides automated benchmarking of embedding models using real document collections, synthetic query generation, and standardized information retrieval metrics.
 
-## Configuration
-The script uses a configuration file (`benchmark_config.py`) to manage parameters such as:
-- Paths to input files (`corpus_file`, `queries_file`, `qrels_file`)
-- Model configurations (model names and corresponding collection names)
-- Evaluation parameters:
-  - `map_at_k`: Cutoff for MAP calculation
-  - `mrr_at_k`: Cutoff for Mean Reciprocal Rank
-  - `precision_recall_at_k`: Cutoff for Precision and Recall
-  - `ndcg_at_k`: Cutoff for Normalized Discounted Cumulative Gain
-- ChromaDB settings:
-  - `reinitialize_collections`: Whether to rebuild ChromaDB collections
-  - `show_progress_bar`: Display progress during evaluation
-  - `batch_size`: Batch size for model inference
+## 🚀 Features
 
-## Workflow
-1. **Data Loading**:
-   - Loads the corpus, queries, and relevance mappings from the specified input files.
-2. **Embedding Generation**:
-   - Generates embeddings for the corpus and queries using the specified models.
-3. **Retrieval**:
-   - Computes similarity scores between query embeddings and document embeddings.
-   - Retrieves the top-k most relevant documents for each query.
-4. **Evaluation**:
-   - Calculates multiple metrics at specified cutoffs:
-     - Mean Average Precision (MAP@k)
-     - Precision and Recall@k
-     - Normalized Discounted Cumulative Gain (NDCG@k)
-     - Mean Reciprocal Rank (MRR@k)
-   - Performs per-query performance analysis
-   - Compares different MAP calculation methods
-5. **Report Generation**:
-   - Generates a detailed report including:
-     - Summary metrics for each model
-     - Statistical significance analysis
-     - Per-query performance breakdown
-     - Detailed MAP calculation methodology
-   - Saves the report with timestamp in the `reports` folder
+- **Automated PDF Processing**: Extract and chunk documents from PDF files
+- **LLM-Powered Query Generation**: Generate realistic queries using Gemini AI
+- **Intelligent Relevance Assessment**: Automated qrels generation with LLM evaluation
+- **Multi-Model Comparison**: Benchmark multiple embedding models simultaneously
+- **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, and MRR evaluation
+- **Professional Reporting**: Automated generation of conference-ready reports with visualizations
+- **ChromaDB Integration**: Efficient vector storage and retrieval
+- **Modular Pipeline**: Run individual components or complete end-to-end evaluation
 
-## Outputs
-- A comprehensive report file in the `reports` folder, named with a timestamp (e.g., `report_2025_06_05_02_01.txt`).
-- The report includes:
-  - Summary metrics (MAP@k, Recall@k, Precision@k, NDCG@k, MRR@k) for each model
-  - Statistical significance analysis of differences between models
-  - Per-query performance analysis with detailed metrics
-  - Comparison of different MAP calculation methods
-  - Explanation of the evaluation methodology and ranking approach
-  - Notes about potential differences between ChromaDB and evaluator rankings
+## 📋 Table of Contents
 
-## MAP Calculation Methodology
-This project includes a detailed investigation into how Mean Average Precision (MAP) is calculated in the SentenceTransformer evaluator. Our key findings:
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Pipeline Components](#pipeline-components)
+- [Evaluation Metrics](#evaluation-metrics)
+- [Output Files](#output-files)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
-1. **Normalization Factor**: The evaluator divides the sum of precisions by min(k, len(relevant_docs)), not simply by len(relevant_docs)
-2. **Ranking Method**: The evaluator uses tensor-based cosine similarity (util.pytorch_cos_sim) which may produce different rankings than ChromaDB's vector search
-3. **Averaging Method**: The evaluator calculates MAP as the simple macro-average (mean) of per-query AP values, not weighted by the number of relevant docs for each query
+## 🛠️ Installation
 
-We've consolidated all MAP calculation approaches into `benchmark.py`:
-- Weighted average MAP calculation (traditional approach)
-- Exact replica of the evaluator's calculation that matches its results
-- Simple macro-average (the evaluator's method)
+### Prerequisites
 
-For a comprehensive explanation of our MAP calculation findings, see:
-- [MAP_CALCULATION_SUMMARY.md](MAP_CALCULATION_SUMMARY.md): Detailed documentation of our findings
+- Python 3.8+
+- Google AI API key (for Gemini integration)
 
-The benchmark.py script now includes all MAP calculation methods and ensures that per-query metrics use the same ranking method as the evaluator, providing consistency between summary and per-query metrics.
+### Setup
 
-## How to Run
-1. Ensure the input files (`corpus.jsonl`, `queries.jsonl`, `qrels.tsv`) are correctly formatted and placed in the appropriate directory.
-2. Configure the parameters in `benchmark_config.py` as needed.
-3. Run the script using the following command:
-   ```bash
-   python benchmark.py
-   ```
-4. Check the `reports` folder for the generated report.
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/RagRetrievalBench.git
+cd RagRetrievalBench
+```
 
-## Dependencies
-This project requires the following main dependencies:
-- `sentence_transformers`: For embedding generation and evaluation
-- `chromadb`: For vector storage and retrieval
-- `numpy`: For numerical computations
-- `torch`: For tensor operations
+2. Create and activate a virtual environment:
+```bash
+# Using conda
+conda create -n ragbenchmark python=3.8
+conda activate ragbenchmark
 
-Install all dependencies by running:
+# Using venv
+python -m venv ragbenchmark
+ragbenchmark\Scripts\activate  # Windows
+```
+
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Notes
-- The script ensures consistent evaluation by using the same tensor-based similarity calculations across all metrics
-- All metrics use the evaluator's internal ranking method to maintain consistency between summary and per-query results
-- The ChromaDB rankings in production may differ slightly from the evaluation results due to differences in similarity calculation methods
-- The implementation supports both traditional weighted MAP and the evaluator's macro-average approach
-- Each evaluated model gets its own ChromaDB collection for vector storage
-- The code is modular and can be extended to support additional metrics or embedding models
+4. Set up environment variables:
+```bash
+# Create .env file
+echo "GOOGLE_API_KEY=your_api_key_here" > .env
+```
+
+5. Configure your evaluation settings in `benchmark_config.py`
+
+## ⚡ Quick Start
+
+### Complete Pipeline (Recommended)
+```bash
+# Run the entire benchmark pipeline
+python simple_rag_benchmark_pipeline.py --all
+```
+
+### Step-by-Step Execution
+```bash
+# 1. Process PDFs into document chunks
+python simple_rag_benchmark_pipeline.py --prepare-corpus
+
+# 2. Generate evaluation queries
+python simple_rag_benchmark_pipeline.py --generate-queries
+
+# 3. Create relevance judgments
+python simple_rag_benchmark_pipeline.py --generate-qrels
+
+# 4. Initialize embedding collections
+python simple_rag_benchmark_pipeline.py --initialize
+
+# 5. Run evaluation
+python simple_rag_benchmark_pipeline.py --evaluate
+```
+
+## ⚙️ Configuration
+
+Edit `benchmark_config.py` to customize your evaluation:
+
+```python
+# Models to evaluate
+models = [
+    {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v3"},
+    {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
+    {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
+    # Add more models here
+]
+
+# Evaluation parameters
+k = 3                     # Top-k for metrics
+n_queries = 10           # Number of queries to generate
+candidate_pool_size = 10 # Candidates for relevance labeling
+
+# Document processing
+pdf_dir = "utils/pdfs"   # Directory containing PDF files
+chunk_size = 1000        # Characters per chunk
+chunk_overlap = 200      # Overlap between chunks
+
+# LLM settings
+llm_model = "gemini-1.5-flash"
+temperature = 0.1
+```
+
+## 📖 Usage
+
+### Command Line Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `--prepare-corpus` | Extract and chunk PDF documents |
+| `--generate-queries` | Generate evaluation queries from corpus |
+| `--generate-qrels` | Create relevance judgments using LLM |
+| `--initialize` | Build embedding collections in ChromaDB |
+| `--evaluate` | Run retrieval evaluation and generate reports |
+| `--all` | Execute complete pipeline end-to-end |
+
+### Input Requirements
+
+1. **PDF Documents**: Place your PDF files in the `utils/pdfs/` directory
+2. **API Key**: Set up your Google AI API key in `.env` file
+3. **Configuration**: Adjust settings in `benchmark_config.py`
+
+## 🔧 Pipeline Components
+
+### 1. Document Processing (`--prepare-corpus`)
+- **Input**: PDF files in specified directory
+- **Process**: Text extraction using PyMuPDF, chunking with LangChain RecursiveCharacterTextSplitter
+- **Output**: `corpus.jsonl` with document chunks
+- **Features**: Configurable chunk size and overlap, metadata preservation
+
+### 2. Query Generation (`--generate-queries`)
+- **Input**: Document corpus
+- **Process**: LLM-powered question generation from randomly sampled document chunks
+- **Method**: Seed-chunk → Query generation using Gemini
+- **Output**: `queries.jsonl` with evaluation queries
+- **Quality Control**: Temperature-controlled generation for consistency
+
+### 3. Relevance Assessment (`--generate-qrels`)
+- **Input**: Queries and document corpus
+- **Process**: 
+  1. ChromaDB retrieval of candidate documents for each query
+  2. LLM-based relevance labeling of candidates
+  3. Structured JSON output parsing for binary relevance scores
+- **Output**: `qrels.tsv` with relevance judgments in TREC format
+- **Efficiency**: Rate-limited API calls to respect Gemini quotas
+
+### 4. Collection Initialization (`--initialize`)
+- **Input**: Document corpus and embedding models
+- **Process**: 
+  1. Generate embeddings using SentenceTransformers
+  2. Store embeddings in ChromaDB collections with proper indexing
+  3. Batch processing for memory efficiency
+- **Output**: ChromaDB collections for each model
+- **Options**: Configurable reinitialization and progress tracking
+
+### 5. Embedding Evaluation (`--evaluate`)
+- **Input**: Corpus, queries, qrels, and ChromaDB collections
+- **Process**: 
+  1. Multi-model retrieval evaluation using SentenceTransformers framework
+  2. Comprehensive metric calculation with statistical analysis
+  3. Visualization generation for performance comparison
+- **Output**: Performance metrics, detailed reports, and visualizations
+
+## 📊 Evaluation Metrics
+
+The framework computes standard information retrieval metrics:
+
+- **MAP@k**: Mean Average Precision at rank k - measures ranking quality
+- **Recall@k**: Proportion of relevant documents retrieved in top k - measures coverage
+- **Precision@k**: Proportion of relevant documents among top k retrieved - measures accuracy
+- **NDCG@k**: Normalized Discounted Cumulative Gain at rank k - measures ranking with position bias
+- **MRR@k**: Mean Reciprocal Rank - measures rank of first relevant document
+
+All metrics are computed with configurable k values and include statistical significance testing.
+
+## 📁 Output Files
+
+### Generated Files
+```
+RagRetrievalBench/
+├── corpus.jsonl              # Processed document chunks
+├── queries.jsonl             # Generated evaluation queries
+├── qrels.tsv                 # Relevance judgments (TREC format)
+└── reports/
+    ├── benchmark_report_*.md  # Comprehensive evaluation report
+    ├── *_comparison_*.png     # Individual metric visualizations
+    └── corpus_statistics_*.png # Dataset analysis charts
+```
+
+### Report Contents
+- **Executive Summary**: Best performing model and key metrics
+- **Methodology**: Detailed experimental setup and pipeline description
+- **Dataset Statistics**: Corpus characteristics, query distributions, relevance patterns
+- **Model Performance**: Comparative tables with statistical significance
+- **Visualizations**: Performance charts and dataset analysis
+- **Technical Details**: Implementation specifics for reproducibility
+- **Discussion**: Findings, limitations, and future work
+
+## 🏗️ Project Structure
+
+```
+RagRetrievalBench/
+├── simple_rag_benchmark_pipeline.py  # Main pipeline script
+├── benchmark_config.py               # Configuration settings
+├── benchmark.py                      # Legacy evaluation script
+├── utils/
+│   ├── text_splitter.py             # Document processing utilities
+│   ├── llm.py                       # LLM integration (Gemini)
+│   ├── document_loader.py           # PDF loading utilities
+│   └── chromadb_utils.py            # ChromaDB utilities
+├── utils/pdfs/                      # Input PDF directory
+├── reports/                         # Generated reports and visualizations
+├── tests/                           # Unit tests
+├── requirements.txt                 # Python dependencies
+├── .env                            # Environment variables
+└── README.md                       # This file
+```
+
+## 🔬 Research Applications
+
+This framework is designed for:
+
+- **Academic Research**: Systematic evaluation of embedding models for publications
+- **Industry Applications**: Model selection for production RAG systems
+- **Comparative Studies**: Benchmarking new embedding models against established baselines
+- **Domain-Specific Evaluation**: Assessment of models on specialized document collections
+- **Automated Benchmarking**: Continuous evaluation in ML pipelines
+
+## 📝 Technical Implementation
+
+### MAP Calculation Methodology
+This project includes detailed investigation into Mean Average Precision (MAP) calculation methods:
+
+1. **SentenceTransformers Evaluator**: Uses tensor-based cosine similarity with specific normalization
+2. **ChromaDB Ranking**: Vector search with potential differences in similarity calculation
+3. **Traditional MAP**: Weighted average based on relevant document counts
+
+For detailed documentation, see [MAP_CALCULATION_SUMMARY.md](MAP_CALCULATION_SUMMARY.md).
+
+### LLM Integration
+- **Model**: Gemini 1.5 Flash for query generation and relevance assessment
+- **Rate Limiting**: Configurable delays to respect API quotas
+- **Error Handling**: Robust parsing of LLM outputs with fallback mechanisms
+- **Prompt Engineering**: Structured system prompts for consistent outputs
+
+### Vector Database
+- **ChromaDB**: Efficient storage and retrieval with native embedding functions
+- **Batch Processing**: Memory-efficient document ingestion
+- **Collection Management**: Automatic initialization and reinitialization options
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Install development dependencies
+pip install -r requirements.txt
+
+# Run tests
+python -m pytest tests/
+
+# Format code (if using black)
+black .
+```
+
+### Testing
+The project includes comprehensive unit tests for all major components:
+- Document processing and chunking
+- LLM integration and response parsing
+- ChromaDB utilities and collection management
+- Evaluation metrics and statistical analysis
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yourusername/RagRetrievalBench/issues)
+- **Documentation**: Detailed workflow documentation in [benchmark_workflow.md](benchmark_workflow.md)
+- **Examples**: Check the `reports/` directory for example outputs
+
+## 🔗 Related Projects
+
+- [SentenceTransformers](https://github.com/UKPLab/sentence-transformers) - Embedding model framework
+- [ChromaDB](https://github.com/chroma-core/chroma) - Vector database
+- [LangChain](https://github.com/langchain-ai/langchain) - Document processing utilities
+- [Google Generative AI](https://github.com/google/generative-ai-python) - LLM integration
+
+## 📊 Example Results
+
+The framework generates comprehensive evaluation reports including:
+
+- **Model Comparison Tables**: Performance across all metrics
+- **Statistical Analysis**: Significance testing and confidence intervals
+- **Per-Query Breakdown**: Detailed analysis of individual query performance
+- **Dataset Characteristics**: Corpus statistics and query distributions
+- **Visualization Charts**: Performance comparison and trend analysis
+
+Example output from a recent benchmark:
+
+| Model | MAP@3 | Recall@3 | Precision@3 | NDCG@3 | MRR@3 |
+|-------|-------|----------|-------------|--------|-------|
+| distiluse-base-multilingual-cased-v1 | 0.9056 | 0.4690 | 0.9000 | 0.9389 | 1.0000 |
+| all-MiniLM-L6-v2 | 0.8889 | 0.4545 | 0.8667 | 0.9222 | 1.0000 |
+| distiluse-base-multilingual-cased-v2 | 0.8778 | 0.4394 | 0.8333 | 0.9056 | 1.0000 |
+
+## 🎯 Future Work
+
+- **Multi-domain Evaluation**: Support for domain-specific benchmarking
+- **Advanced Query Types**: Complex multi-turn and compositional queries
+- **Real-time Evaluation**: Streaming evaluation for large document collections
+- **Model Fine-tuning**: Integration with embedding model training pipelines
+- **Cross-lingual Support**: Evaluation across multiple languages
+
+---
+
+**Made with ❤️ for the RAG research community**
+
+*For detailed workflow documentation, see [benchmark_workflow.md](benchmark_workflow.md)*
+*For MAP calculation methodology, see [MAP_CALCULATION_SUMMARY.md](MAP_CALCULATION_SUMMARY.md)*

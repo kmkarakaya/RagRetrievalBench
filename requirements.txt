@@ -6,3 +6,5 @@ numpy
 tabulate
 tqdm
 pymupdf
+pandoc
+markdown2pdf
