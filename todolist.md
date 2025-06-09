@@ -23,6 +23,6 @@
      3. Use the tuned LLM to auto-label relevant chunks for new queries across the corpus.
    - Summary
     1. (seed→retrieve→label) is easiest to keep “comprehensive” qrels.
-    2. (cluster→one-shot) scales to very large corpora but needs good clustering.
+    . (cluster→one-shot) scales to very large corpora but needs good clustering.
     3. (few manual → auto-expand) yields highest fidelity but needs seed curation.
     Choose based on your corpus size, API budget, and required qrels quality.

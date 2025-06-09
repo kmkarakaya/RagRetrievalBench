@@ -1,3 +1,4 @@
+import random
 from sentence_transformers import SentenceTransformer, evaluation
 import chromadb
 from chromadb import Client
@@ -5,13 +6,18 @@ from chromadb.errors import NotFoundError
 from chromadb.utils import embedding_functions
 import json
 import os
-import datetime
-import benchmark_config as cfg
+import time , datetime
+import re
+
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 from tabulate import tabulate
 import argparse
+
+
+import benchmark_config as cfg
+from utils.llm import generate_content
 
 def prepare_corpus_from_pdfs():
     """
@@ -52,6 +58,143 @@ def prepare_corpus_from_pdfs():
 
     # Ensure the function is not called multiple times
     return
+
+
+
+def generate_queries_from_corpus() -> dict[str,str]:
+
+    print("Selecting seed chunks from corpus...")
+    
+    # Import here to avoid circular imports
+    import sys
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.append(parent_dir)
+
+    corpus = load_corpus()
+    print(f"Loaded {len(corpus)} corpus chunks.")
+    all_ids = list(corpus.keys())
+    seed_ids = random.sample(all_ids, cfg.n_queries * cfg.chunks_per_query)
+    print(f"Selected {len(seed_ids)} seed chunks for query generation ({cfg.n_queries,cfg.chunks_per_query}) .")
+    
+    
+    # Generate and save queries in same loop
+    print(f"Generating and saving queries to {cfg.queries_file}...")
+    with open(cfg.queries_file, 'w', encoding='utf-8') as f:
+        for i, seed_id in enumerate(seed_ids):
+            prompt = f"Generate a search query for the following document:\n\n{corpus[seed_id]}\n\nQuery:"
+            print(f"\nGenerating query {i+1}/{len(seed_ids)} for seed chunk {seed_id}...")
+            
+            # Generate query using the LLM
+            generated_query = generate_content(cfg.generate_query_system_instruction,prompt)
+            print(f"Generated query: {generated_query}")
+            
+            # Save query immediately
+            query_id = f"q{i+1}_seedChunk_{seed_id}"
+            f.write(json.dumps({"query_id": query_id, "text": generated_query}) + "\n")
+            
+    print("Query generation and saving complete. Queries saved to", cfg.queries_file)
+ 
+def generate_qrels():
+    corpus = load_corpus()
+    # Initialize collection
+    collection_name = "test_collection"
+    initialize_collection(corpus, cfg.models[0]["model_name"], collection_name)
+    # Get ChromaDB collection
+    client = chromadb.Client()
+    try:
+        collection = client.get_collection(collection_name)
+    except Exception as e:
+        print(f"Error: Collection {collection_name} not found. Did you run initialization?")
+        raise e
+    print(f"Collection {collection_name} initialized successfully.")
+    
+    # Load queries
+    queries = load_queries()
+    print(f"Loaded {len(queries)} queries.")
+
+    print("Generating qrels file...")
+    # Create qrels file outside the loop
+    with open(cfg.qrels_file, 'w', encoding='utf-8') as f:
+        for query_id, query_text in queries.items():
+            print(f"Query ID: {query_id}, Query Text: {query_text}")
+            # Retrieve candidates for labeling related to a query from chromadb
+            # Query ChromaDB directly with text - the embedding function will handle conversion
+            results = collection.query(
+                query_texts=[query_text],
+                n_results=cfg.candidate_pool_size  # Get more results than needed to ensure we have enough
+            )
+            print(f"Retrieved {len(results['ids'][0])} documents for query {query_id}.")
+            # Build prompt with query and retrieved chunks
+            
+            for i, (doc_id, text) in enumerate(zip(results['ids'][0], results['documents'][0])):
+                prompt = f"Question: {query_text}\n"
+                prompt += f"{i+1}. [{doc_id}] \"{text}\"\n\n"
+                print(f"Generated prompt for query {query_id}:\n{prompt}")
+                # Send prompt to LLM to get relevance judgments
+                relevance = generate_content(cfg.generate_qrels_system_instruction, prompt)
+                print(f"Relevance judgment for {doc_id}: {relevance}")
+                try:
+                    # Look for JSON pattern in the response
+                    json_pattern = r'({[\s\S]*?})'
+                    match = re.search(json_pattern, relevance)
+                    if match:
+                        json_str = match.group(1)
+                        relevance_json = json.loads(json_str)
+                        rel_score = relevance_json.get("relevance", 0)
+                        print(f"Relevance score extracted: {rel_score}")
+                    else:
+                        # If no JSON pattern found, try direct parsing
+                        relevance_json = json.loads(relevance)
+                        rel_score = relevance_json.get("relevance", 0)
+                        print(f"Relevance score extracted: {rel_score}")
+                except json.JSONDecodeError:
+                    print(f"*** Error parsing relevance JSON for {doc_id}, using default score of 0 ****")
+                    rel_score = 0
+
+                # Write results to qrels file
+                if rel_score > 0:  # Only write relevant documents
+                    print(f"Writing to qrels: {query_id}, {doc_id}, {rel_score}")
+                    # Write in TREC format: query_id, doc_id, rel_score
+                    f.write(f"{query_id}\t{doc_id}\t{rel_score}\n")
+                # wait for a short time to avoid hitting API limits
+                time.sleep(cfg.llm_timeout)
+
+    print(f"Generated qrels file at {cfg.qrels_file} with {len(queries)} queries.")
+    # Ensure the qrels file is created
+    if not os.path.exists(cfg.qrels_file):
+        print(f"Error: Qrels file {cfg.qrels_file} was not created.")
+    else:
+        print(f"Created qrels file: {cfg.qrels_file}")
+
+    return
+
+def load_corpus() -> dict[str,str]:
+    corpus = {}
+    with open(cfg.corpus_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            j = json.loads(line)
+            corpus[j['doc_id']] = j['text']
+    
+    if not corpus:
+        print(f"Warning: No documents found in {cfg.corpus_file}. Please check the file format.")
+    else:
+        print(f"Successfully loaded {len(corpus)} documents from {cfg.corpus_file}.")
+        print(len(corpus), list(corpus.keys())[:5])
+    return corpus
+
+def load_queries() -> dict[str,str]:
+    queries = {}
+    with open(cfg.queries_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            j = json.loads(line)
+            queries[j['query_id']] = j['text']
+    if not queries:
+        print(f"Warning: No queries found in {cfg.queries_file}. Please check the file format.")
+    else:
+        print(f"Successfully loaded {len(queries)} queries from {cfg.queries_file}.")
+        print(len(queries), list(queries.keys())[:5])
+    return queries
 
 def load_ground_truth():
     """
@@ -646,6 +789,7 @@ def initialize_collection(corpus, model_name, collection_name):
     
     # Initialize SentenceTransformer embedding function
     from chromadb.utils import embedding_functions
+
     sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name=model_name
     )
@@ -1132,10 +1276,22 @@ def generate_visualizations(model_results, output_dir, timestamp):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--prepare-corpus", action="store_true", help="Prepare corpus.jsonl from PDFs")
+    parser.add_argument("--load-corpus", action="store_true", help="Load corpus.jsonl, queries.jsonl, and qrels.txt")
+    parser.add_argument("--generate-queries", action="store_true", help="Generate queries from the loaded corpus")
+    parser.add_argument("--generate-qrels", action="store_true", help="Generate qrels.txt from the loaded corpus")
     args = parser.parse_args()
 
     if args.prepare_corpus:
         prepare_corpus_from_pdfs()
+        return
+    if args.load_corpus:
+        load_corpus()
+        return 
+    if args.generate_queries:
+        generate_queries_from_corpus()
+        return
+    if args.generate_qrels:
+        generate_qrels()
         return
 
     """Main function to run the benchmark."""
