@@ -6,10 +6,8 @@ from tabulate import tabulate
 from sentence_transformers import SentenceTransformer
 import os
 
-
-def generate_benchmark_report(model_results, queries, corpus, relevant_docs, output_dir="reports"):
-    """Generate a comprehensive benchmark report suitable for a conference paper."""
-    # Create output directory if it doesn't exist
+def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports"):
+    """Generate a comprehensive benchmark report suitable for a conference paper."""   # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
     # Generate timestamp for the report
@@ -335,7 +333,53 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, out
                 
                 f.write(tabulate(diff_matrix, headers=["Model"] + model_names, tablefmt="pipe"))
                 f.write("\n\n*Note: Values marked with * indicate potentially significant differences (>0.05).*\n\n")
-        
+        # Add timing analysis section if timing data is provided
+        if timing_results:
+            f.write("## Performance Analysis\n\n")
+            f.write("### 6.1 Embedding Performance Metrics\n\n")
+            f.write("This section analyzes the computational efficiency of different embedding models ")
+            f.write("during the corpus initialization phase, measuring the time required to embed ")
+            f.write(f"and index {len(corpus)} documents.\n\n")
+            
+            # Create timing table
+            timing_headers = ["Model", "Embedding Time (s)", "Docs/Second", "Avg Time/Doc (ms)"]
+            timing_rows = []
+            
+            for model_name, timing_data in timing_results:
+                timing_rows.append([
+                    model_name,
+                    f"{timing_data['embedding_time']:.2f}",
+                    f"{timing_data['docs_per_second']:.2f}",
+                    f"{timing_data['avg_time_per_doc']*1000:.2f}"
+                ])
+            
+            # Sort by docs per second (fastest first)
+            timing_rows.sort(key=lambda x: float(x[2]), reverse=True)
+            
+            f.write("#### Embedding Speed Comparison\n\n")
+            f.write(tabulate(timing_rows, headers=timing_headers, tablefmt="pipe"))
+            f.write("\n\n")
+            
+            # Find fastest and slowest models
+            fastest_model = timing_rows[0]
+            slowest_model = timing_rows[-1]
+            
+            f.write("#### Performance Insights\n\n")
+            f.write(f"- **Fastest embedding model**: `{fastest_model[0]}` at {fastest_model[2]} docs/second\n")
+            f.write(f"- **Slowest embedding model**: `{slowest_model[0]}` at {slowest_model[2]} docs/second\n")
+            
+            # Calculate speedup
+            if float(slowest_model[2]) > 0:
+                speedup = float(fastest_model[2]) / float(slowest_model[2])
+                f.write(f"- **Performance ratio**: {speedup:.2f}x speed difference between fastest and slowest\n")
+            
+            # Add timing visualization reference
+            timing_viz_file = f"timing_comparison_{timestamp}.png"
+            f.write(f"\n![Embedding Speed Comparison]({timing_viz_file})\n\n")
+            
+            # Generate timing visualization
+            generate_timing_visualization(timing_results, output_dir, timestamp)
+
         # Technical implementation details
         f.write("## Technical Implementation\n\n")
         f.write("### 6.1 Pipeline Architecture\n\n")
@@ -587,6 +631,56 @@ def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distr
     
     return viz_files
 
+
+
+def generate_timing_visualization(timing_results, output_dir, timestamp):
+    """Generate visualization for embedding timing performance."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    # Extract data for plotting
+    models = [result[0].replace('sentence-transformers/', '') for result, _ in timing_results]
+    docs_per_second = [result[1]['docs_per_second'] for result in timing_results]
+    embedding_times = [result[1]['embedding_time'] for result in timing_results]
+    
+    # Create figure with subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Plot 1: Documents per second (throughput)
+    bars1 = ax1.bar(range(len(models)), docs_per_second, color='skyblue', alpha=0.8)
+    ax1.set_xlabel('Embedding Models')
+    ax1.set_ylabel('Documents per Second')
+    ax1.set_title('Embedding Throughput Comparison')
+    ax1.set_xticks(range(len(models)))
+    ax1.set_xticklabels(models, rotation=45, ha='right')
+    
+    # Add value labels on bars
+    for bar, value in zip(bars1, docs_per_second):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5, 
+                f'{value:.1f}', ha='center', va='bottom')
+    
+    # Plot 2: Embedding time
+    bars2 = ax2.bar(range(len(models)), embedding_times, color='lightcoral', alpha=0.8)
+    ax2.set_xlabel('Embedding Models')
+    ax2.set_ylabel('Embedding Time (seconds)')
+    ax2.set_title('Embedding Time Comparison')
+    ax2.set_xticks(range(len(models)))
+    ax2.set_xticklabels(models, rotation=45, ha='right')
+    
+    # Add value labels on bars
+    for bar, value in zip(bars2, embedding_times):
+        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, 
+                f'{value:.1f}s', ha='center', va='bottom')
+    
+    plt.tight_layout()
+    
+    # Save the plot
+    viz_file = os.path.join(output_dir, f"timing_comparison_{timestamp}.png")
+    plt.savefig(viz_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Timing visualization saved: {viz_file}")
+    return viz_file
 
 
 

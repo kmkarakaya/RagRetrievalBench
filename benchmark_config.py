@@ -6,10 +6,13 @@ queries_file = "queries.jsonl"
 qrels_file = "qrels.tsv"
 
 # ChromaDB collection/model pairs to benchmark
+# for more info, visit https://www.sbert.net/docs/sentence_transformer/pretrained_models.html
+# Multilingual Models -  Semantic Similarity Models 
 embedding_models = [ 
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
-    {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v3"},
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
+    {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
+    {"model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2", "collection_name": "coll_v4"},
     
 ]
 
@@ -32,10 +35,11 @@ precision_recall_at_k = [k]
 map_at_k = [k]
 ndcg_at_k = [k]
 
-# Other options
+# Creating collections and embedding settings for each embedding model
+# Set to True to show progress bars during embedding and evaluation
 show_progress_bar = True
-batch_size = 32
-
+# Batch size for embedding documents
+document_batch_size = 32
 # Add this line to your benchmark_config.py file
 reinitialize_collections = True  # Set to False to skip re-embedding if collections exist
 

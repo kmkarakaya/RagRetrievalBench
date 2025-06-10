@@ -2,121 +2,228 @@ import chromadb
 from chromadb.utils import embedding_functions
 import random
 import os
+from tqdm import tqdm
+from sentence_transformers import evaluation
+import time
 
-def create_chroma_collection(collection_name: str, 
-                           embedding_model: str, 
-                           sentences: list[list[str]], 
-                           from_scratch: bool = True) -> chromadb.Collection:
-    """
-    Creates or retrieves a ChromaDB collection and adds sentence embeddings to it.
-    Args:
-        collection_name (str): Name of the collection to create or retrieve
-        embedding_model (str): Name of the sentence transformer model to use for embeddings
-        sentences (list[list[str]]): List of sentence pairs to add to collection. Each inner list contains 2 sentences.
-        from_scratch (bool, optional): If True, deletes existing collection before creating new one. Defaults to True.
-    Returns:
-        chromadb.Collection: ChromaDB collection object containing the added sentences and embeddings
-    """
+
+import benchmark_config as cfg
+
+
+def get_chromadb_client():
+    """Get a persistent ChromaDB client that saves data to disk"""
+    import chromadb
+    import os
+    
+    # Ensure the directory exists (same path as your chromadb_utils)
+    os.makedirs(os.path.join("utils", "chromadb_collections"), exist_ok=True)
+    
+    # Create persistent client
     client = chromadb.PersistentClient(path=os.path.join("utils", "chromadb_collections"))
+    return client
+
+def initialize_collection(corpus, model_name, collection_name):
+    """Initialize a ChromaDB collection with document embeddings."""
+    print(f"Initializing ChromaDB collection: {collection_name} with model: {model_name}...")
     
-    # Initialize the embedding function using the specified model
-    embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=embedding_model)
-
-    if from_scratch:
-        # Delete the collection if it exists
-        try:
-            client.delete_collection(name=collection_name)
-            print(f"Existing Collection '{collection_name}' found & deleted successfully.")
-        except Exception as e:
-            print(f"Collection '{collection_name}' does not exist...")
-
-
-    # Create a new chroma collection or get the existing one
+    # Get ChromaDB client
+    client = get_chromadb_client()
+    
+    # Check if collection exists
     try:
-        collection = client.create_collection(
-            name=collection_name,
-            embedding_function=embedding_function
-        )
-        print(f"Collection '{collection_name}' created successfully.")
-        start_id = 0
-    except Exception as e:  # Catch a broader exception and check the error message
-        if "already exists" in str(e):
-            collection = client.get_collection(
-                name=collection_name,
-                embedding_function=embedding_function
-            )
-            print(f"Collection '{collection_name}' already exists. Using existing collection.")
-            start_id = collection.count()  # Get the current count of documents in the collection
-        else:
-            raise e  # Re-raise the exception if it's not related to collection existence
-
-    if sentences:
-        # Add your sentences and embeddings to the collection
-        sentences_to_add = []
-        ids_to_add = [] # Create a list to store unique IDs for each document
-        print("Starting adding new documents from start_id: ", start_id)
-        for i, pair in enumerate(sentences):
-            sentences_to_add.extend(pair)
-            ids_to_add.extend([str(i * 2 + j + start_id) for j in range(len(pair))]) # Generate unique IDs
-
-        collection.add(
-            documents=sentences_to_add,
-            ids=ids_to_add
-        )
-
-        end_id = collection.count()
-        print(f"Added {end_id-start_id} documents to the collection.")
-    return collection
-
-def list_collections(client: chromadb.PersistentClient) -> list:
-    """
-    Lists all collections in the ChromaDB client.
+        collection = client.get_collection(collection_name)
+        if not cfg.reinitialize_collections:
+            print(f"Collection {collection_name} already exists and reinitialize_collections=False. Skipping initialization.")
+            return 0.0  # Return 0 time if skipped
+        # Delete existing collection if reinitialization is enabled
+        client.delete_collection(collection_name)
+        print(f"Deleted existing collection: {collection_name}")
+    except Exception:
+        print(f"Collection {collection_name} does not exist. Creating a new one...")
     
-    Args:
-        client (chromadb.PersistentClient): The ChromaDB client instance.
-        
-    Returns:
-        list: A list of collection names.
-    """
-    return client.list_collections()
-
-def get_random_chunks(client: chromadb.PersistentClient, 
-                     collection_name: str, 
-                     n_chunks: int = 5) -> list:
-    """
-    Retrieves a random selection of chunks from the specified collection.
-    
-    Args:
-        client (chromadb.PersistentClient): The ChromaDB client instance
-        collection_name (str): Name of the collection to retrieve chunks from
-        n_chunks (int, optional): Number of chunks to retrieve. Defaults to 5.
-        
-    Returns:
-        list: A list of randomly selected chunks (documents)
-        
-    Raises:
-        ValueError: If n_chunks is greater than the total number of documents in the collection
-    """
-    # Get the collection
-    collection = client.get_collection(name=collection_name)
-    
-    # Get total number of documents in collection
-    total_docs = collection.count()
-    
-    if n_chunks > total_docs:
-        raise ValueError(f"Requested {n_chunks} chunks but collection only has {total_docs} documents")
-    
-    # Generate random indices
-    random_indices = random.sample(range(total_docs), n_chunks)
-    
-    # Convert indices to string IDs (since we store IDs as strings)
-    random_ids = [str(idx) for idx in random_indices]
-    
-    # Retrieve the random chunks
-    result = collection.get(
-        ids=random_ids,
-        include=['documents']
+    # Initialize SentenceTransformer embedding function
+    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name=model_name
     )
     
-    return result['documents']
+    # Create new collection
+    collection = client.create_collection(
+        name=collection_name,
+        embedding_function=sentence_transformer_ef
+    )
+    print(f"Created new collection: {collection_name}")
+    
+    # Start timing for embedding process only
+    embedding_start_time = time.time()
+    
+    # Add documents to collection in batches
+    batch_size = cfg.document_batch_size  # Use document_batch_size from benchmark_config
+    corpus_ids = list(corpus.keys())
+    corpus_texts = list(corpus.values())
+    
+    iterator = tqdm(range(0, len(corpus_ids), batch_size), desc=f"Embedding docs with {model_name}") if cfg.show_progress_bar else range(0, len(corpus_ids), batch_size)
+    for i in iterator:
+        batch_ids = corpus_ids[i:i+batch_size]
+        batch_texts = corpus_texts[i:i+batch_size]
+        collection.add(
+            ids=batch_ids,
+            documents=batch_texts,
+            metadatas=[{"text": text} for text in batch_texts]
+        )
+    
+    # Calculate embedding time and performance metrics
+    embedding_time = time.time() - embedding_start_time
+    docs_per_second = len(corpus_ids) / embedding_time
+    avg_time_per_doc = embedding_time / len(corpus_ids)
+    
+    print(f"Finished initializing collection: {collection_name}")
+    print(f"Embedding performance:")
+    print(f"  Embedding time: {embedding_time:.2f} seconds")
+    print(f"  Documents processed: {len(corpus_ids)}")
+    print(f"  Documents per second: {docs_per_second:.2f}")
+    print(f"  Average time per document: {avg_time_per_doc:.4f} seconds")
+    
+    return {
+        "embedding_time": embedding_time,
+        "docs_processed": len(corpus_ids),
+        "docs_per_second": docs_per_second,
+        "avg_time_per_doc": avg_time_per_doc
+    }
+
+
+
+
+def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collection_name):
+    """Evaluate retrieval performance using ChromaDB and SentenceTransformer evaluator."""
+    print(f"\nEvaluating {model_name} using ChromaDB rankings...")
+    
+    # Use persistent client instead of chromadb.Client()
+    client = get_chromadb_client()
+    
+    # Add debug info storage
+    model_rankings = {}
+    
+    try:
+        collection = client.get_collection(collection_name)
+    except Exception as e:
+        print(f"Error: Collection {collection_name} not found. Did you run initialization?")
+        raise e
+    
+    # Set up evaluator with all config parameters
+    evaluator = evaluation.InformationRetrievalEvaluator(
+        queries=queries,
+        corpus=corpus,
+        relevant_docs=relevant_docs,
+        mrr_at_k=cfg.mrr_at_k,
+        ndcg_at_k=cfg.ndcg_at_k,
+        accuracy_at_k=[cfg.k],  # Use k as a fallback if not in config
+        precision_recall_at_k=cfg.precision_recall_at_k,
+        map_at_k=cfg.map_at_k,
+        show_progress_bar=cfg.show_progress_bar,
+        batch_size=cfg.batch_size,
+        name=f"{model_name}-chromadb"
+    )
+    
+    # Get mapping from query ID to index
+    query_id_to_idx = {qid: idx for idx, qid in enumerate(evaluator.queries_ids)}
+    
+    # Initialize results list for evaluator
+    queries_result_list = [[] for _ in range(len(evaluator.queries_ids))]
+    
+    # Process each query
+    query_iterator = tqdm(queries.items()) if cfg.show_progress_bar else queries.items()
+    for qid, query_text in query_iterator:
+        if qid not in relevant_docs or qid not in query_id_to_idx:
+            continue
+            
+        # Get query index for evaluator
+        query_idx = query_id_to_idx[qid]
+        
+        # Query ChromaDB directly with text - the embedding function will handle conversion
+        results = collection.query(
+            query_texts=[query_text],
+            n_results=100  # Get more results than needed to ensure we have enough
+        )
+        
+        # Store rankings for debugging
+        model_rankings[qid] = results['ids'][0]
+        
+        # Store results in evaluator format
+        for doc_id, distance in zip(results['ids'][0], results['distances'][0]):
+            # Convert distance to similarity score (higher is better)
+            similarity = 1.0 / (1.0 + float(distance))
+            queries_result_list[query_idx].append({
+                "corpus_id": doc_id,
+                "score": similarity
+            })
+        
+        # Show top results for this query
+        print(f"\nQuery {qid}: {query_text}")
+        print(f"Relevant docs: {relevant_docs[qid]}")
+        print(f"Top {cfg.k} retrieved docs:")
+        for i, doc_score in enumerate(queries_result_list[query_idx][:cfg.k]):
+            doc_id = doc_score["corpus_id"]
+            is_relevant = doc_id in relevant_docs[qid]
+            rel_marker = " (REL)" if is_relevant else ""
+            print(f"  {i+1}. {doc_id} (score: {doc_score['score']:.4f}){rel_marker}")
+    
+    # Print detailed rankings for debugging
+    print(f"\nDEBUG - Full rankings for {model_name}:")
+    for qid, ranking in model_rankings.items():
+        print(f"  Query {qid}:")
+        print(f"    Top 5 docs: {ranking[:5]}")
+    
+    # Calculate metrics using ChromaDB rankings
+    scores = evaluator.compute_metrics(queries_result_list)
+    
+    # Extract metrics based on config settings
+    k = cfg.k
+    metrics = {}
+    
+    if cfg.compute_map:
+        metrics["map"] = scores["map@k"][k]
+    else:
+        metrics["map"] = 0.0
+        
+    if cfg.compute_recall:
+        metrics["recall"] = scores["recall@k"][k]
+    else:
+        metrics["recall"] = 0.0
+        
+    if cfg.compute_precision:
+        metrics["precision"] = scores["precision@k"][k]
+    else:
+        metrics["precision"] = 0.0
+        
+    if cfg.compute_ndcg:
+        metrics["ndcg"] = scores["ndcg@k"][k]
+    else:
+        metrics["ndcg"] = 0.0
+        
+    if cfg.compute_mrr:
+        metrics["mrr"] = scores["mrr@k"][k]
+    else:
+        metrics["mrr"] = 0.0
+    
+    # Print metrics
+    print(f"\nMetrics for {model_name} using ChromaDB rankings:")
+    if cfg.compute_map:
+        print(f"MAP@{k}: {metrics['map']:.4f}")
+    if cfg.compute_recall:
+        print(f"Recall@{k}: {metrics['recall']:.4f}")
+    if cfg.compute_precision:
+        print(f"Precision@{k}: {metrics['precision']:.4f}")
+    if cfg.compute_ndcg:
+        print(f"NDCG@{k}: {metrics['ndcg']:.4f}")
+    if cfg.compute_mrr:
+        print(f"MRR@{k}: {metrics['mrr']:.4f}")
+    
+    return (
+        metrics["map"],
+        metrics["recall"],
+        metrics["precision"],
+        metrics["ndcg"],
+        metrics["mrr"]
+    )
+
+
