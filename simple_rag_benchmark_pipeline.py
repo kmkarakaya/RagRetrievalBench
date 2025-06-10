@@ -378,6 +378,7 @@ def print_results_summary(model_results):
             print(f"Recall@{cfg.k} - Best: {max(recall_scores):.4f}, Worst: {min(recall_scores):.4f}, Avg: {np.mean(recall_scores):.4f}")
     
     print("="*80)
+    
 
 
 def print_report_info(report_files):
