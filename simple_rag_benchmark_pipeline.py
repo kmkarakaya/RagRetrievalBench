@@ -324,7 +324,7 @@ def main():
 
 
 def print_results_summary(model_results):
-    """Print benchmark results summary table with proper formatting."""
+    """Print benchmark results summary table."""
     print("\n" + "="*80)
     print("BENCHMARK RESULTS SUMMARY")
     print("="*80)
@@ -359,6 +359,24 @@ def print_results_summary(model_results):
     
     # Print formatted table
     print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    
+    # Add summary statistics
+    print("\n" + "="*80)
+    print("SUMMARY STATISTICS")
+    print("="*80)
+    
+    if cfg.compute_map and len(table_data) > 0:
+        map_scores = [float(row[1]) for row in table_data]
+        print(f"MAP@{cfg.k} - Best: {max(map_scores):.4f}, Worst: {min(map_scores):.4f}, Avg: {np.mean(map_scores):.4f}")
+    
+    if cfg.compute_recall and len(table_data) > 0:
+        recall_idx = 1
+        if cfg.compute_map:
+            recall_idx = 2
+        if recall_idx < len(table_data[0]):
+            recall_scores = [float(row[recall_idx]) for row in table_data]
+            print(f"Recall@{cfg.k} - Best: {max(recall_scores):.4f}, Worst: {min(recall_scores):.4f}, Avg: {np.mean(recall_scores):.4f}")
+    
     print("="*80)
 
 

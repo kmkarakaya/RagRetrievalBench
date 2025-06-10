@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning, module='numpy')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import benchmark_config as cfg
@@ -9,13 +12,13 @@ import os
 def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports"):
     """Generate a comprehensive benchmark report suitable for a conference paper."""   # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # Debug: Check if timing data is received
-    print(f"DEBUG: timing_results received: {timing_results}")
-    if timing_results:
-        print(f"DEBUG: Number of timing entries: {len(timing_results)}")
-        for model_name, timing_data in timing_results:
-            print(f"DEBUG: {model_name} - {timing_data}")
+    # print(f"DEBUG: timing_results received: {timing_results}")
+    # if timing_results:
+    #     print(f"DEBUG: Number of timing entries: {len(timing_results)}")
+    #     for model_name, timing_data in timing_results:
+    #         print(f"DEBUG: {model_name} - {timing_data}")
 
     # Generate timestamp for the report
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

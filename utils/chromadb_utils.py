@@ -174,10 +174,10 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
             print(f"  {i+1}. {doc_id} (score: {doc_score['score']:.4f}){rel_marker}")
     
     # Print detailed rankings for debugging
-    print(f"\nDEBUG - Full rankings for {model_name}:")
-    for qid, ranking in model_rankings.items():
-        print(f"  Query {qid}:")
-        print(f"    Top 5 docs: {ranking[:5]}")
+    # print(f"\nDEBUG - Full rankings for {model_name}:")
+    # for qid, ranking in model_rankings.items():
+    #     print(f"  Query {qid}:")
+    #     print(f"    Top 5 docs: {ranking[:5]}")
     
     # Calculate metrics using ChromaDB rankings
     scores = evaluator.compute_metrics(queries_result_list)
