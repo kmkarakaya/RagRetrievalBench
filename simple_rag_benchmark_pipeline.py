@@ -102,7 +102,7 @@ def generate_qrels():
     corpus = load_corpus()
     # Initialize collection
     collection_name = "test_collection"
-    initialize_collection(corpus, cfg.embedding_models[0]["model_name"], collection_name)
+    timing_data = initialize_collection(corpus, cfg.embedding_models[0]["model_name"], collection_name)
     # Use persistent client instead of chromadb.Client()
     client = get_chromadb_client()
     try:
