@@ -840,60 +840,41 @@ if __name__ == "__main__":
 
 def print_results_summary(model_results):
     """Print benchmark results summary table."""
-    print("\n" + "="*80)
-    print("BENCHMARK RESULTS SUMMARY")
-    print("="*80)
-    
-    # Use tabulate for proper table formatting
     from tabulate import tabulate
-    
+
     # Build headers
     headers = ["Model"]
-    if cfg.compute_map:
-        headers.append(f"MAP@{cfg.k}")
-    if cfg.compute_recall:
-        headers.append(f"Recall@{cfg.k}")
-    if cfg.compute_precision:
-        headers.append(f"Prec@{cfg.k}")
-    if cfg.compute_ndcg:
-        headers.append(f"NDCG@{cfg.k}")
-    if cfg.compute_mrr:
-        headers.append(f"MRR@{cfg.k}")
-    
+    if cfg.compute_map:       headers.append(f"MAP@{cfg.k}")
+    if cfg.compute_recall:    headers.append(f"Recall@{cfg.k}")
+    if cfg.compute_precision: headers.append(f"Prec@{cfg.k}")
+    if cfg.compute_ndcg:      headers.append(f"NDCG@{cfg.k}")
+    if cfg.compute_mrr:       headers.append(f"MRR@{cfg.k}")
+
     # Build table rows
     table_data = []
-    for result in model_results:
-        model_name = result[0].split('/')[-1]  # Shorten model name
-        metrics = result[1:]
-        
-        row = [model_name]
-        for metric in metrics:
-            row.append(f"{metric:.4f}")
-        
+    for model_name, *metrics in model_results:
+        short_name = model_name.split("/")[-1]
+        row = [short_name] + [f"{m:.4f}" for m in metrics]
         table_data.append(row)
-    
-    # Print formatted table
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
-    
-    # Add summary statistics
-    print("\n" + "="*80)
-    print("SUMMARY STATISTICS")
-    print("="*80)
-    
-    if cfg.compute_map and len(table_data) > 0:
-        map_scores = [float(row[1]) for row in table_data]
-        print(f"MAP@{cfg.k} - Best: {max(map_scores):.4f}, Worst: {min(map_scores):.4f}, Avg: {np.mean(map_scores):.4f}")
-    
-    if cfg.compute_recall and len(table_data) > 0:
-        recall_idx = 1
-        if cfg.compute_map:
-            recall_idx = 2
-        if recall_idx < len(table_data[0]):
-            recall_scores = [float(row[recall_idx]) for row in table_data]
-            print(f"Recall@{cfg.k} - Best: {max(recall_scores):.4f}, Worst: {min(recall_scores):.4f}, Avg: {np.mean(recall_scores):.4f}")
-    
-    print("="*80)
-    
+
+    # Print table
+    print("\nBenchmark Results Summary\n")
+    print(tabulate(table_data, headers=headers, tablefmt="github"))
+
+    # Summary statistics
+    # (only for metrics that exist)
+    print("\nSummary Statistics\n")
+    if cfg.compute_map:
+        map_idx = headers.index(f"MAP@{cfg.k}")
+        scores = [float(r[map_idx]) for r in table_data]
+        print(f"• MAP@{cfg.k}: Best={max(scores):.4f}, "
+              f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
+    if cfg.compute_recall:
+        rec_idx = headers.index(f"Recall@{cfg.k}")
+        scores = [float(r[rec_idx]) for r in table_data]
+        print(f"• Recall@{cfg.k}: Best={max(scores):.4f}, "
+              f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
+    print()
 
 
 def print_report_info(report_files):
