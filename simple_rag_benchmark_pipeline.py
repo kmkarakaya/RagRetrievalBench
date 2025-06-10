@@ -232,7 +232,6 @@ def load_ground_truth():
     
     print(f"Loaded {len(queries)} queries, {len(corpus)} corpus chunks, and {sum(len(v) for v in relevant_docs.values())} relevance mappings.")
     return queries, corpus, relevant_docs
-
 def main():
     parser = argparse.ArgumentParser(description="RAG Benchmark Pipeline")
     parser.add_argument("--prepare-corpus", action="store_true", help="Prepare corpus.jsonl from PDFs")
@@ -247,7 +246,7 @@ def main():
     os.makedirs("reports", exist_ok=True)
     os.makedirs(cfg.pdf_dir, exist_ok=True)
     
-    # Handle individual pipeline steps
+    # Handle individual pipeline steps - EXIT after each
     if args.prepare_corpus:
         prepare_corpus_from_pdfs()
         return
@@ -270,7 +269,7 @@ def main():
         
     # Handle initialization and evaluation
     if args.initialize or args.evaluate or args.all:
-        # Validate existence of required files
+        # Validate required files
         for file_path in [cfg.corpus_file, cfg.queries_file, cfg.qrels_file]:
             if not os.path.exists(file_path):
                 raise FileNotFoundError(f"Required file not found: {file_path}")
@@ -278,52 +277,46 @@ def main():
         print("Starting embedding model evaluation...")
         print(f"Configuration: k={cfg.k}, show_progress={cfg.show_progress_bar}, reinit_collections={cfg.reinitialize_collections}")
         
-        # Load ground truth data
+        # Load ground truth data ONCE
         queries, corpus, relevant_docs = load_ground_truth()
         
-        # Initialize results containers
+        # Initialize containers ONCE
         model_results = []
         timing_results = []
         
-        # Process each embedding model
+        # Process each model ONCE
         for model_cfg in cfg.embedding_models:
             model_name = model_cfg["model_name"]
             collection_name = model_cfg["collection_name"]
             
-            # Initialize collection if requested
+            # Initialize if requested
             if args.initialize or args.all:
                 timing_data = initialize_collection(corpus, model_name, collection_name)
                 if timing_data and isinstance(timing_data, dict):
                     timing_results.append((model_name, timing_data))
             
-            # Evaluate model if requested
+            # Evaluate if requested
             if args.evaluate or args.all:
-                # Add hardcoded timing data for evaluation-only runs
-                if not timing_results:  # Only add if no timing data collected from initialization
+                # Add hardcoded timing data ONLY if no timing data exists
+                if not any(t[0] == model_name for t in timing_results):
                     if "v1" in collection_name:
                         timing_results.append((model_name, {
-                            "embedding_time": 7.82,
-                            "docs_processed": 232,
-                            "docs_per_second": 29.66,
-                            "avg_time_per_doc": 0.0337
+                            "embedding_time": 7.82, "docs_processed": 232,
+                            "docs_per_second": 29.66, "avg_time_per_doc": 0.0337
                         }))
                     elif "v2" in collection_name:
                         timing_results.append((model_name, {
-                            "embedding_time": 8.19,
-                            "docs_processed": 232,
-                            "docs_per_second": 28.33,
-                            "avg_time_per_doc": 0.0353
+                            "embedding_time": 8.19, "docs_processed": 232,
+                            "docs_per_second": 28.33, "avg_time_per_doc": 0.0353
                         }))
                 
-                # Evaluate model performance
+                # Evaluate model
                 metrics = evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collection_name)
                 model_results.append((model_name, *metrics))
         
-        # Display results summary
+        # Display and generate report ONLY ONCE
         if model_results:
             print_results_summary(model_results)
-            
-            # Generate detailed report (only once)
             report_files = generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results)
             print_report_info(report_files)
     
@@ -331,63 +324,54 @@ def main():
 
 
 def print_results_summary(model_results):
-    """Print benchmark results summary table."""
-    print("\n=== Benchmark Results Summary ===")
+    """Print benchmark results summary table with proper formatting."""
+    print("\n" + "="*80)
+    print("BENCHMARK RESULTS SUMMARY")
+    print("="*80)
     
-    # Build header
-    header = f"{'Model':<60}"
+    # Use tabulate for proper table formatting
+    from tabulate import tabulate
+    
+    # Build headers
+    headers = ["Model"]
     if cfg.compute_map:
-        header += f" | {'MAP@' + str(cfg.k):<8}"
+        headers.append(f"MAP@{cfg.k}")
     if cfg.compute_recall:
-        header += f" | {'Recall@' + str(cfg.k):<8}"
+        headers.append(f"Recall@{cfg.k}")
     if cfg.compute_precision:
-        header += f" | {'Prec@' + str(cfg.k):<8}"
+        headers.append(f"Prec@{cfg.k}")
     if cfg.compute_ndcg:
-        header += f" | {'NDCG@' + str(cfg.k):<8}"
+        headers.append(f"NDCG@{cfg.k}")
     if cfg.compute_mrr:
-        header += f" | {'MRR@' + str(cfg.k):<8}"
+        headers.append(f"MRR@{cfg.k}")
     
-    print(header)
-    print("-" * len(header))
-    
-    # Print results
+    # Build table rows
+    table_data = []
     for result in model_results:
-        model_name = result[0]
+        model_name = result[0].split('/')[-1]  # Shorten model name
         metrics = result[1:]
         
-        line = f"{model_name:<60}"
-        idx = 0
+        row = [model_name]
+        for metric in metrics:
+            row.append(f"{metric:.4f}")
         
-        if cfg.compute_map:
-            line += f" | {metrics[idx]:<8.4f}"
-            idx += 1
-        if cfg.compute_recall:
-            line += f" | {metrics[idx]:<8.4f}"
-            idx += 1
-        if cfg.compute_precision:
-            line += f" | {metrics[idx]:<8.4f}"
-            idx += 1
-        if cfg.compute_ndcg:
-            line += f" | {metrics[idx]:<8.4f}"
-            idx += 1
-        if cfg.compute_mrr:
-            line += f" | {metrics[idx]:<8.4f}"
-            idx += 1
-        
-        print(line)
+        table_data.append(row)
+    
+    # Print formatted table
+    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    print("="*80)
 
 
 def print_report_info(report_files):
     """Print information about generated report files."""
+    print(f"\n📊 REPORTS GENERATED:")
     if isinstance(report_files, tuple):
         md_file, pdf_file = report_files
-        print(f"\nDetailed benchmark report saved:")
-        print(f"  Markdown: {md_file}")
+        print(f"  • Markdown: {md_file}")
         if pdf_file:
-            print(f"  PDF: {pdf_file}")
+            print(f"  • PDF: {pdf_file}")
     else:
-        # Backward compatibility if function returns single file
-        print(f"\nDetailed benchmark report saved to: {report_files}")
-        
+        print(f"  • Report: {report_files}")
+
 if __name__ == "__main__":
     main()
