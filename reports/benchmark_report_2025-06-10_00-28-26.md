@@ -11,6 +11,7 @@ This paper presents a systematic evaluation framework for embedding models in Re
 This report presents a comparative analysis of embedding models for retrieval augmented generation (RAG). The models were evaluated on their ability to retrieve relevant documents using ChromaDB as the vector database. The benchmark used **232 documents** and **10 queries** with **49 relevant document mappings**.
 
 **Best performing model:** `sentence-transformers/distiluse-base-multilingual-cased-v1`
+
 * MAP@3: **0.6111**
 * Recall@3: **0.3445**
 * Precision@3: **0.6667**
@@ -49,6 +50,7 @@ The chunking process uses LangChain's `RecursiveCharacterTextSplitter` to mainta
 - **Candidate pool size**: 10 chunks per query
 
 Queries were generated using the following systematic approach:
+
 1. Random sampling of seed chunks from the corpus
 2. LLM-based question generation targeting specific chunks
 3. Retrieval-based candidate identification using ChromaDB
@@ -58,36 +60,36 @@ Queries were generated using the following systematic approach:
 
 #### 3.1 Corpus Characteristics
 
-| Metric                       |   Value |
-|:-----------------------------|--------:|
-| Total Documents              |   232   |
-| Average Chunk Length (words) |   124.5 |
-| Median Chunk Length (words)  |   121   |
-| Min Chunk Length (words)     |    91   |
-| Max Chunk Length (words)     |   179   |
-| Standard Deviation           |    17   |
+| Metric                       | Value |
+| :--------------------------- | ----: |
+| Total Documents              |   232 |
+| Average Chunk Length (words) | 124.5 |
+| Median Chunk Length (words)  |   121 |
+| Min Chunk Length (words)     |    91 |
+| Max Chunk Length (words)     |   179 |
+| Standard Deviation           |    17 |
 
 #### 3.2 Query Characteristics
 
-| Metric                       |   Value |
-|:-----------------------------|--------:|
-| Total Queries                |    10   |
-| Average Query Length (words) |    19.7 |
-| Median Query Length (words)  |    20.5 |
-| Min Query Length (words)     |    12   |
-| Max Query Length (words)     |    27   |
-| Standard Deviation           |     5.2 |
+| Metric                       | Value |
+| :--------------------------- | ----: |
+| Total Queries                |    10 |
+| Average Query Length (words) |  19.7 |
+| Median Query Length (words)  |  20.5 |
+| Min Query Length (words)     |    12 |
+| Max Query Length (words)     |    27 |
+| Standard Deviation           |   5.2 |
 
 #### 3.3 Relevance Distribution
 
-| Metric                          | Value   |
-|:--------------------------------|:--------|
-| Total Relevance Judgments       | 49      |
-| Average Relevant Docs per Query | 4.9     |
-| Median Relevant Docs per Query  | 5.0     |
-| Min Relevant Docs               | 1       |
-| Max Relevant Docs               | 9       |
-| Coverage Ratio                  | 21.12%  |
+| Metric                          | Value  |
+| :------------------------------ | :----- |
+| Total Relevance Judgments       | 49     |
+| Average Relevant Docs per Query | 4.9    |
+| Median Relevant Docs per Query  | 5.0    |
+| Min Relevant Docs               | 1      |
+| Max Relevant Docs               | 9      |
+| Coverage Ratio                  | 21.12% |
 
 ### 4. Experimental Setup
 
@@ -101,16 +103,16 @@ Queries were generated using the following systematic approach:
 
 #### 4.2 Evaluated Models
 
-| Model Name                                                 | Collection   |   Dimensions | Type                 |
-|:-----------------------------------------------------------|:-------------|-------------:|:---------------------|
-| sentence-transformers/distiluse-base-multilingual-cased-v1 | coll_v1      |          512 | Sentence Transformer |
-| sentence-transformers/all-MiniLM-L6-v2                     | coll_v3      |          384 | Sentence Transformer |
-| sentence-transformers/distiluse-base-multilingual-cased-v2 | coll_v2      |          512 | Sentence Transformer |
+| Model Name                                                 | Collection | Dimensions | Type                 |
+| :--------------------------------------------------------- | :--------- | ---------: | :------------------- |
+| sentence-transformers/distiluse-base-multilingual-cased-v1 | coll_v1    |        512 | Sentence Transformer |
+| sentence-transformers/all-MiniLM-L6-v2                     | coll_v3    |        384 | Sentence Transformer |
+| sentence-transformers/distiluse-base-multilingual-cased-v2 | coll_v2    |        512 | Sentence Transformer |
 
 #### 4.3 Evaluation Metrics
 
 | Metric      | Description                                 | Measures                   |
-|:------------|:--------------------------------------------|:---------------------------|
+| :---------- | :------------------------------------------ | :------------------------- |
 | MAP@k       | Mean Average Precision at rank k            | Ranking quality            |
 | Recall@k    | Proportion of relevant docs in top k        | Coverage                   |
 | Precision@k | Proportion of relevant docs among retrieved | Accuracy                   |
@@ -119,15 +121,15 @@ Queries were generated using the following systematic approach:
 
 #### 4.4 Representative Query Examples
 
-| Query ID                           | Query Text                                                                                              |   # Relevant Docs |
-|:-----------------------------------|:--------------------------------------------------------------------------------------------------------|------------------:|
-| q1_seedChunk_SamplePdf_chunk89     | İş Paketi 2 (565893) için bulut, DevOps, mikroservis mimarisi, ölçeklenebilirlik, veri işleme optimi... |                 5 |
-| q2_seedChunk_SamplePdf_chunk62     | Here's a search query in Turkish, reflecting the main topics of the provided document:                  |                 7 |
-|                                    |                                                                                                         |                   |
-|                                    | "Yapay zeka ...                                                                                         |                   |
-| q3_seedChunk_eajm-54-3-248_chunk38 | What are the most common pre-trained models (e.g., U-Net, DeepLabv3) used in a recent competition, a... |                 4 |
-| q4_seedChunk_SamplePdf_chunk80     | Yapay zeka tabanlı teslim evrakı doğrulama, operasyon optimizasyonu ve raporlama sistemlerinin geliş... |                 9 |
-| q5_seedChunk_SamplePdf_chunk84     | Veri tabanı optimizasyonu, büyük veri işleme altyapısı ve güvenli bulut depolama çözümleri içeren bi... |                 6 |
+| Query ID                           | Query Text                                                                                                         | # Relevant Docs |
+| :--------------------------------- | :----------------------------------------------------------------------------------------------------------------- | --------------: |
+| q1_seedChunk_SamplePdf_chunk89     | İş Paketi 2 (565893) için bulut, DevOps, mikroservis mimarisi, ölçeklenebilirlik, veri işleme optimi...      |               5 |
+| q2_seedChunk_SamplePdf_chunk62     | Here's a search query in Turkish, reflecting the main topics of the provided document:                             |               7 |
+|                                    |                                                                                                                    |                 |
+|                                    | "Yapay zeka ...                                                                                                    |                 |
+| q3_seedChunk_eajm-54-3-248_chunk38 | What are the most common pre-trained models (e.g., U-Net, DeepLabv3) used in a recent competition, a...            |               4 |
+| q4_seedChunk_SamplePdf_chunk80     | Yapay zeka tabanlı teslim evrakı doğrulama, operasyon optimizasyonu ve raporlama sistemlerinin geliş...        |               9 |
+| q5_seedChunk_SamplePdf_chunk84     | Veri tabanı optimizasyonu, büyük veri işleme altyapısı ve güvenli bulut depolama çözümleri içeren bi... |               6 |
 
 ## Results
 
@@ -135,11 +137,11 @@ Queries were generated using the following systematic approach:
 
 **Table: Comprehensive Model Performance Results**
 
-| Model                                                      |   MAP@3 |   Recall@3 |   Precision@3 |   NDCG@3 |   MRR@3 |
-|:-----------------------------------------------------------|--------:|-----------:|--------------:|---------:|--------:|
-| sentence-transformers/distiluse-base-multilingual-cased-v1 |  0.6111 |     0.3445 |        0.6667 |   0.6531 |  0.7    |
-| sentence-transformers/distiluse-base-multilingual-cased-v2 |  0.6111 |     0.3269 |        0.6333 |   0.6469 |  0.7333 |
-| sentence-transformers/all-MiniLM-L6-v2                     |  0.15   |     0.1237 |        0.2333 |   0.2408 |  0.45   |
+| Model                                                      |  MAP@3 | Recall@3 | Precision@3 | NDCG@3 |  MRR@3 |
+| :--------------------------------------------------------- | -----: | -------: | ----------: | -----: | -----: |
+| sentence-transformers/distiluse-base-multilingual-cased-v1 | 0.6111 |   0.3445 |      0.6667 | 0.6531 |    0.7 |
+| sentence-transformers/distiluse-base-multilingual-cased-v2 | 0.6111 |   0.3269 |      0.6333 | 0.6469 | 0.7333 |
+| sentence-transformers/all-MiniLM-L6-v2                     |   0.15 |   0.1237 |      0.2333 | 0.2408 |   0.45 |
 
 ### 5.2 Performance Analysis
 
@@ -189,51 +191,51 @@ The following tables show absolute differences between model pairs. Differences 
 
 #### MAP@3 Pairwise Differences
 
-| Model                                | distiluse-base-multilingual-cased-v1   | distiluse-base-multilingual-cased-v2   | all-MiniLM-L6-v2   |
-|:-------------------------------------|:---------------------------------------|:---------------------------------------|:-------------------|
-| distiluse-base-multilingual-cased-v1 | —                                      | 0.0000                                 | 0.4611*            |
-| distiluse-base-multilingual-cased-v2 | 0.0000                                 | —                                      | 0.4611*            |
-| all-MiniLM-L6-v2                     | 0.4611*                                | 0.4611*                                | —                  |
+| Model                                | distiluse-base-multilingual-cased-v1 | distiluse-base-multilingual-cased-v2 | all-MiniLM-L6-v2 |
+| :----------------------------------- | :----------------------------------- | :----------------------------------- | :--------------- |
+| distiluse-base-multilingual-cased-v1 | —                                   | 0.0000                               | 0.4611*          |
+| distiluse-base-multilingual-cased-v2 | 0.0000                               | —                                   | 0.4611*          |
+| all-MiniLM-L6-v2                     | 0.4611*                              | 0.4611*                              | —               |
 
 *Note: Values marked with * indicate potentially significant differences (>0.05).*
 
 #### Recall@3 Pairwise Differences
 
-| Model                                | distiluse-base-multilingual-cased-v1   | distiluse-base-multilingual-cased-v2   | all-MiniLM-L6-v2   |
-|:-------------------------------------|:---------------------------------------|:---------------------------------------|:-------------------|
-| distiluse-base-multilingual-cased-v1 | —                                      | 0.0176                                 | 0.2208*            |
-| distiluse-base-multilingual-cased-v2 | 0.0176                                 | —                                      | 0.2032*            |
-| all-MiniLM-L6-v2                     | 0.2208*                                | 0.2032*                                | —                  |
+| Model                                | distiluse-base-multilingual-cased-v1 | distiluse-base-multilingual-cased-v2 | all-MiniLM-L6-v2 |
+| :----------------------------------- | :----------------------------------- | :----------------------------------- | :--------------- |
+| distiluse-base-multilingual-cased-v1 | —                                   | 0.0176                               | 0.2208*          |
+| distiluse-base-multilingual-cased-v2 | 0.0176                               | —                                   | 0.2032*          |
+| all-MiniLM-L6-v2                     | 0.2208*                              | 0.2032*                              | —               |
 
 *Note: Values marked with * indicate potentially significant differences (>0.05).*
 
 #### Precision@3 Pairwise Differences
 
-| Model                                | distiluse-base-multilingual-cased-v1   | distiluse-base-multilingual-cased-v2   | all-MiniLM-L6-v2   |
-|:-------------------------------------|:---------------------------------------|:---------------------------------------|:-------------------|
-| distiluse-base-multilingual-cased-v1 | —                                      | 0.0333                                 | 0.4333*            |
-| distiluse-base-multilingual-cased-v2 | 0.0333                                 | —                                      | 0.4000*            |
-| all-MiniLM-L6-v2                     | 0.4333*                                | 0.4000*                                | —                  |
+| Model                                | distiluse-base-multilingual-cased-v1 | distiluse-base-multilingual-cased-v2 | all-MiniLM-L6-v2 |
+| :----------------------------------- | :----------------------------------- | :----------------------------------- | :--------------- |
+| distiluse-base-multilingual-cased-v1 | —                                   | 0.0333                               | 0.4333*          |
+| distiluse-base-multilingual-cased-v2 | 0.0333                               | —                                   | 0.4000*          |
+| all-MiniLM-L6-v2                     | 0.4333*                              | 0.4000*                              | —               |
 
 *Note: Values marked with * indicate potentially significant differences (>0.05).*
 
 #### NDCG@3 Pairwise Differences
 
-| Model                                | distiluse-base-multilingual-cased-v1   | distiluse-base-multilingual-cased-v2   | all-MiniLM-L6-v2   |
-|:-------------------------------------|:---------------------------------------|:---------------------------------------|:-------------------|
-| distiluse-base-multilingual-cased-v1 | —                                      | 0.0061                                 | 0.4123*            |
-| distiluse-base-multilingual-cased-v2 | 0.0061                                 | —                                      | 0.4061*            |
-| all-MiniLM-L6-v2                     | 0.4123*                                | 0.4061*                                | —                  |
+| Model                                | distiluse-base-multilingual-cased-v1 | distiluse-base-multilingual-cased-v2 | all-MiniLM-L6-v2 |
+| :----------------------------------- | :----------------------------------- | :----------------------------------- | :--------------- |
+| distiluse-base-multilingual-cased-v1 | —                                   | 0.0061                               | 0.4123*          |
+| distiluse-base-multilingual-cased-v2 | 0.0061                               | —                                   | 0.4061*          |
+| all-MiniLM-L6-v2                     | 0.4123*                              | 0.4061*                              | —               |
 
 *Note: Values marked with * indicate potentially significant differences (>0.05).*
 
 #### MRR@3 Pairwise Differences
 
-| Model                                | distiluse-base-multilingual-cased-v1   | distiluse-base-multilingual-cased-v2   | all-MiniLM-L6-v2   |
-|:-------------------------------------|:---------------------------------------|:---------------------------------------|:-------------------|
-| distiluse-base-multilingual-cased-v1 | —                                      | 0.0333                                 | 0.2500*            |
-| distiluse-base-multilingual-cased-v2 | 0.0333                                 | —                                      | 0.2833*            |
-| all-MiniLM-L6-v2                     | 0.2500*                                | 0.2833*                                | —                  |
+| Model                                | distiluse-base-multilingual-cased-v1 | distiluse-base-multilingual-cased-v2 | all-MiniLM-L6-v2 |
+| :----------------------------------- | :----------------------------------- | :----------------------------------- | :--------------- |
+| distiluse-base-multilingual-cased-v1 | —                                   | 0.0333                               | 0.2500*          |
+| distiluse-base-multilingual-cased-v2 | 0.0333                               | —                                   | 0.2833*          |
+| all-MiniLM-L6-v2                     | 0.2500*                              | 0.2833*                              | —               |
 
 *Note: Values marked with * indicate potentially significant differences (>0.05).*
 
@@ -292,9 +294,7 @@ python simple_rag_benchmark_pipeline.py --all
 ### 7.1 Key Findings
 
 1. **Model Performance Hierarchy**: sentence-transformers/distiluse-base-multilingual-cased-v1 emerged as the top performer, achieving superior results across multiple evaluation metrics.
-
 2. **Performance Gaps**: The performance difference between the best and second-best models (0.0000 MAP@3) suggests that model selection significantly impacts retrieval quality.
-
 3. **Automated Evaluation Viability**: The LLM-assisted query and relevance generation process demonstrates the feasibility of automated benchmark creation for domain-specific document collections.
 
 ### 7.2 Limitations and Future Work

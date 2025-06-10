@@ -69,6 +69,18 @@ echo "GOOGLE_API_KEY=your_api_key_here" > .env
 
 5. Configure your evaluation settings in `benchmark_config.py`
 
+### Additional Requirements for PDF Report Generation
+
+To generate reports in PDF format, you need to install the following tools:
+
+1. **Pandoc**:
+   - Pandoc is a universal document converter. You can download it from [Pandoc's official website](https://pandoc.org/installing.html).
+
+2. **LaTeX Distribution**:
+   - A LaTeX distribution like MikTeX is required for PDF generation. You can download MikTeX from [MikTeX's official website](https://miktex.org/download).
+
+After installing these tools, the framework will be able to generate PDF reports seamlessly.
+
 ## ⚡ Quick Start
 
 ### Complete Pipeline (Recommended)
