@@ -204,12 +204,12 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write(tabulate(metrics_desc, headers=["Metric", "Description", "Measures"], tablefmt="pipe"))
         f.write("\n\n")
         
-        # Add example queries
+        # Representative Query Examples
         f.write("### Representative Query Examples\n\n")
         headers = ["Query ID", "Query Text", "# Relevant Docs"]
         rep_rows = []
         for qid in list(queries)[:5]:
-            # wrap long IDs at ~20 chars with HTML line breaks
+            # wrap long IDs at ~20 chars with HTML line breaks for clean table layout
             wrapped_qid = "<br/>".join(textwrap.wrap(qid, width=20))
             rep_rows.append([wrapped_qid, queries[qid], len(relevant_docs[qid])])
         f.write(tabulate(rep_rows, headers=headers, tablefmt="pipe"))
