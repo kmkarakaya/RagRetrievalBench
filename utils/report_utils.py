@@ -834,3 +834,75 @@ if __name__ == "__main__":
             print("✗ PDF conversion failed")
     
     print("=== Test Complete ===")
+
+
+
+
+def print_results_summary(model_results):
+    """Print benchmark results summary table."""
+    print("\n" + "="*80)
+    print("BENCHMARK RESULTS SUMMARY")
+    print("="*80)
+    
+    # Use tabulate for proper table formatting
+    from tabulate import tabulate
+    
+    # Build headers
+    headers = ["Model"]
+    if cfg.compute_map:
+        headers.append(f"MAP@{cfg.k}")
+    if cfg.compute_recall:
+        headers.append(f"Recall@{cfg.k}")
+    if cfg.compute_precision:
+        headers.append(f"Prec@{cfg.k}")
+    if cfg.compute_ndcg:
+        headers.append(f"NDCG@{cfg.k}")
+    if cfg.compute_mrr:
+        headers.append(f"MRR@{cfg.k}")
+    
+    # Build table rows
+    table_data = []
+    for result in model_results:
+        model_name = result[0].split('/')[-1]  # Shorten model name
+        metrics = result[1:]
+        
+        row = [model_name]
+        for metric in metrics:
+            row.append(f"{metric:.4f}")
+        
+        table_data.append(row)
+    
+    # Print formatted table
+    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    
+    # Add summary statistics
+    print("\n" + "="*80)
+    print("SUMMARY STATISTICS")
+    print("="*80)
+    
+    if cfg.compute_map and len(table_data) > 0:
+        map_scores = [float(row[1]) for row in table_data]
+        print(f"MAP@{cfg.k} - Best: {max(map_scores):.4f}, Worst: {min(map_scores):.4f}, Avg: {np.mean(map_scores):.4f}")
+    
+    if cfg.compute_recall and len(table_data) > 0:
+        recall_idx = 1
+        if cfg.compute_map:
+            recall_idx = 2
+        if recall_idx < len(table_data[0]):
+            recall_scores = [float(row[recall_idx]) for row in table_data]
+            print(f"Recall@{cfg.k} - Best: {max(recall_scores):.4f}, Worst: {min(recall_scores):.4f}, Avg: {np.mean(recall_scores):.4f}")
+    
+    print("="*80)
+    
+
+
+def print_report_info(report_files):
+    """Print information about generated report files."""
+    print(f"\n📊 REPORTS GENERATED:")
+    if isinstance(report_files, tuple):
+        md_file, pdf_file = report_files
+        print(f"  • Markdown: {md_file}")
+        if pdf_file:
+            print(f"  • PDF: {pdf_file}")
+    else:
+        print(f"  • Report: {report_files}")

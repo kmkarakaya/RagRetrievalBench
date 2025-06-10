@@ -208,11 +208,27 @@ llm_timeout = 4
 
 ### 5. Embedding Evaluation (`--evaluate`)
 - **Input**: Corpus, queries, qrels, and ChromaDB collections
-- **Process**: 
+- **Process**:
   1. Multi-model retrieval evaluation using SentenceTransformers framework
   2. Comprehensive metric calculation with statistical analysis
   3. Visualization generation for performance comparison
 - **Output**: Performance metrics, detailed reports, and visualizations
+
+### 6. Report Generation
+- **Triggered by**: `--evaluate` (automatically generates reports)
+- **Process**:
+  1. Compile evaluation results and timing data into markdown
+  2. Convert markdown to PDF via Pandoc and LaTeX
+  3. Embed high-quality charts (performance, timing, corpus stats)
+- **Output**: `reports/benchmark_report_*.md` and `*.pdf` in `reports/`
+
+## 🛠️ System Utilities
+
+- **Configuration Validation**: Ensures all config parameters are valid before pipeline execution
+- **Progress Monitoring**: Displays progress bars and ETA for long-running tasks
+- **Checkpointing & Resume**: Saves intermediate state to resume interrupted runs
+- **Result Caching**: Avoids recomputation by caching embeddings and evaluations
+- **Error Handling & Logging**: Comprehensive logs with per-query error tracking
 
 ## 📊 Evaluation Metrics
 
@@ -223,6 +239,7 @@ The framework computes standard information retrieval metrics:
 - **Precision@k**: Proportion of relevant documents among top k retrieved - measures accuracy
 - **NDCG@k**: Normalized Discounted Cumulative Gain at rank k - measures ranking with position bias
 - **MRR@k**: Mean Reciprocal Rank - measures rank of first relevant document
+- **Time Metrics**: Embedding throughput (docs/sec), average time per document, end-to-end pipeline latency
 
 All metrics are computed with configurable k values and include statistical significance testing.
 
