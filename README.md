@@ -112,27 +112,46 @@ python simple_rag_benchmark_pipeline.py --evaluate
 Edit `benchmark_config.py` to customize your evaluation:
 
 ```python
-# Models to evaluate
-models = [
-    {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v3"},
+# Embedding models to evaluate
+embedding_models = [
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
     # Add more models here
 ]
 
-# Evaluation parameters
-k = 3                     # Top-k for metrics
-n_queries = 10           # Number of queries to generate
-candidate_pool_size = 10 # Candidates for relevance labeling
+# Metrics toggles (enable/disable specific metrics)
+compute_map = True       # Mean Average Precision (MAP)
+compute_recall = True    # Recall@K
+compute_precision = True # Precision@K
+compute_mrr = True       # Mean Reciprocal Rank (MRR)
+compute_ndcg = True      # Normalized Discounted Cumulative Gain (NDCG@K)
+
+# Cutoff settings
+k = 3
+mrr_at_k = [k]
+precision_recall_at_k = [k]
+map_at_k = [k]
+ndcg_at_k = [k]
+
+# Embedding collection settings
+show_progress_bar = True
+document_batch_size = 32
+reinitialize_collections = True
 
 # Document processing
-pdf_dir = "utils/pdfs"   # Directory containing PDF files
-chunk_size = 1000        # Characters per chunk
-chunk_overlap = 200      # Overlap between chunks
+pdf_dir = "utils/pdfs"
+chunk_size = 1000
+chunk_overlap = 200
+
+# Query generation
+n_queries = 10
+chunks_per_query = 1
+candidate_pool_size = 10
 
 # LLM settings
 llm_model = "gemini-1.5-flash"
 temperature = 0.1
+llm_timeout = 4
 ```
 
 ## 📖 Usage
