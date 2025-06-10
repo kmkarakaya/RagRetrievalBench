@@ -8,6 +8,7 @@ import time , datetime
 from tabulate import tabulate
 from sentence_transformers import SentenceTransformer
 import os
+import textwrap
 
 def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports"):
     """Generate a comprehensive benchmark report suitable for a conference paper."""   # Create output directory if it doesn't exist
@@ -80,7 +81,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Methodology
         f.write("## Methodology\n\n")
-        f.write("### 1. Automated Pipeline Overview\n\n")
+        f.write("### Automated Pipeline Overview\n\n")
         f.write("Our evaluation framework consists of five main stages:\n\n")
         f.write("1. **PDF Processing**: Document ingestion and chunking\n")
         f.write("2. **Corpus Generation**: Creation of standardized document chunks\n")
@@ -88,8 +89,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("4. **Relevance Assessment**: Automated qrels generation\n")
         f.write("5. **Embedding Evaluation**: Multi-model performance comparison\n\n")
         
-        f.write("### 2. Document Processing Pipeline\n\n")
-        f.write("#### 2.1 PDF Extraction and Chunking\n\n")
+        f.write("### Document Processing Pipeline\n\n")
+        f.write("#### PDF Extraction and Chunking\n\n")
         f.write(f"- **Source documents**: PDF files from `{cfg.pdf_dir}` directory\n")
         f.write(f"- **Chunking strategy**: Recursive character text splitting\n")
         f.write(f"- **Chunk size**: {cfg.chunk_size} characters\n")
@@ -99,7 +100,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("The chunking process uses LangChain's `RecursiveCharacterTextSplitter` to ")
         f.write("maintain semantic coherence while ensuring manageable chunk sizes for embedding models.\n\n")
         
-        f.write("#### 2.2 Query Generation Process\n\n")
+        f.write("#### Query Generation Process\n\n")
         f.write(f"- **LLM Model**: {cfg.llm_model}\n")
         f.write(f"- **Number of queries generated**: {len(queries)}\n")
         f.write(f"- **Generation strategy**: Seed-chunk → Query → Retrieval → Label\n")
@@ -112,10 +113,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("4. LLM-based relevance labeling for comprehensive qrels\n\n")
         
         # Dataset statistics
-        f.write("### 3. Dataset Statistics\n\n")
+        f.write("## Dataset Statistics\n\n")
         
         # Corpus statistics table
-        f.write("#### 3.1 Corpus Characteristics\n\n")
+        f.write("#### Corpus Characteristics\n\n")
         corpus_stats = [
             ["Total Documents", f"{len(corpus):,}"],
             ["Average Chunk Length (words)", f"{np.mean(chunk_lengths):.1f}"],
@@ -128,7 +129,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("\n\n")
         
         # Query statistics table
-        f.write("#### 3.2 Query Characteristics\n\n")
+        f.write("#### Query Characteristics\n\n")
         query_stats = [
             ["Total Queries", f"{len(queries)}"],
             ["Average Query Length (words)", f"{np.mean(query_lengths):.1f}"],
@@ -141,7 +142,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("\n\n")
         
         # Relevance statistics
-        f.write("#### 3.3 Relevance Distribution\n\n")
+        f.write("#### Relevance Distribution\n\n")
         relevance_stats = [
             ["Total Relevance Judgments", f"{sum(relevance_distribution)}"],
             ["Average Relevant Docs per Query", f"{np.mean(relevance_distribution):.1f}"],
@@ -154,15 +155,15 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("\n\n")
         
         # Benchmark configuration
-        f.write("### 4. Experimental Setup\n\n")
-        f.write("#### 4.1 Evaluation Framework\n\n")
+        f.write("## Experimental Setup\n\n")
+        f.write("### Evaluation Framework\n\n")
         f.write("- **Vector Database**: ChromaDB\n")
         f.write("- **Evaluation Library**: SentenceTransformers InformationRetrievalEvaluator\n")
         f.write(f"- **Retrieval Depth (k)**: {cfg.k}\n")
         f.write(f"- **Batch Size**: {cfg.document_batch_size}\n")
         f.write(f"- **Collection Reinitialization**: {cfg.reinitialize_collections}\n\n")
         
-        f.write("#### 4.2 Evaluated Models\n\n")
+        f.write("### Evaluated Models\n\n")
         model_info_table = []
         for model_cfg in cfg.embedding_models:
             try:
@@ -187,7 +188,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                         tablefmt="pipe"))
         f.write("\n\n")
         
-        f.write("#### 4.3 Evaluation Metrics\n\n")
+        f.write("### Evaluation Metrics\n\n")
         metrics_desc = []
         if cfg.compute_map:
             metrics_desc.append(["MAP@k", "Mean Average Precision at rank k", "Ranking quality"])
@@ -204,23 +205,21 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("\n\n")
         
         # Add example queries
-        f.write("#### 4.4 Representative Query Examples\n\n")
-        query_sample = list(queries.items())[:5]
-        query_table = []
-        for qid, text in query_sample:
-            rel_count = len(relevant_docs.get(qid, set()))
-            # Truncate long queries for display
-            display_text = text[:100] + "..." if len(text) > 100 else text
-            query_table.append([qid, display_text, rel_count])
-        
-        f.write(tabulate(query_table, headers=["Query ID", "Query Text", "# Relevant Docs"], tablefmt="pipe"))
+        f.write("### Representative Query Examples\n\n")
+        headers = ["Query ID", "Query Text", "# Relevant Docs"]
+        rep_rows = []
+        for qid in list(queries)[:5]:
+            # wrap long IDs at ~20 chars with HTML line breaks
+            wrapped_qid = "<br/>".join(textwrap.wrap(qid, width=20))
+            rep_rows.append([wrapped_qid, queries[qid], len(relevant_docs[qid])])
+        f.write(tabulate(rep_rows, headers=headers, tablefmt="pipe"))
         f.write("\n\n")
         
         # Results section
         f.write("## Results\n\n")
         
         # Comparative results table
-        f.write("### 5.1 Model Performance Comparison\n\n")
+        f.write("### Model Performance Comparison\n\n")
         
         # Prepare headers based on which metrics are computed
         headers = ["Model"]
@@ -262,7 +261,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("\n\n")
         
         # Performance analysis
-        f.write("### 5.2 Performance Analysis\n\n")
+        f.write("### Performance Analysis\n\n")
         if len(sorted_results) > 1:
             best_model = sorted_results[0]
             worst_model = sorted_results[-1]
@@ -282,22 +281,22 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Add visualizations section if there are any
         if viz_files:
-            f.write("### 5.3 Visual Analysis\n\n")
+            f.write("### Visual Analysis\n\n")
             
             # Add main comparison chart
             if 'overview' in viz_files:
-                f.write("#### 5.3.1 Overall Performance Comparison\n\n")
+                f.write("#### 6.3.1 Overall Performance Comparison\n\n")
                 f.write(f"![Model Performance Overview]({os.path.basename(viz_files['overview'])})\n\n")
                 f.write("*Figure: Comprehensive comparison of all embedding models across evaluation metrics.*\n\n")
             
             # Add corpus statistics visualizations
             if 'corpus_stats' in viz_files:
-                f.write("#### 5.3.2 Dataset Characteristics\n\n")
+                f.write("#### 6.3.2 Dataset Characteristics\n\n")
                 f.write(f"![Corpus Statistics]({os.path.basename(viz_files['corpus_stats'])})\n\n")
                 f.write("*Figure: Distribution of chunk lengths, query lengths, and relevance patterns in the evaluation dataset.*\n\n")
             
             # Add individual metric charts
-            f.write("#### 5.3.3 Individual Metric Analysis\n\n")
+            f.write("#### 6.3.3 Individual Metric Analysis\n\n")
             for metric_name, file_path in viz_files.items():
                 if metric_name not in ['overview', 'corpus_stats']:
                     f.write(f"##### {metric_name.upper()}@{cfg.k} Results\n\n")
@@ -305,7 +304,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Statistical significance analysis
         if len(model_results) >= 2:
-            f.write("### 5.4 Statistical Significance Analysis\n\n")
+            f.write("### Statistical Significance Analysis\n\n")
             f.write("The following tables show absolute differences between model pairs. ")
             f.write("Differences greater than 0.05 may indicate practically significant improvements ")
             f.write("for real-world applications.\n\n")
@@ -345,8 +344,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 f.write("\n\n*Note: Values marked with * indicate potentially significant differences (>0.05).*\n\n")
         # Add timing analysis section if timing data is provided
         if timing_results:
-            f.write("## Performance Analysis\n\n")
-            f.write("### 6.1 Embedding Performance Metrics\n\n")
+            f.write("## Embedding Performance Metrics\n\n")
             f.write("This section analyzes the computational efficiency of different embedding models ")
             f.write("during the corpus initialization phase, measuring the time required to embed ")
             f.write(f"and index {len(corpus)} documents.\n\n")
@@ -383,16 +381,13 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 speedup = float(fastest_model[2]) / float(slowest_model[2])
                 f.write(f"- **Performance ratio**: {speedup:.2f}x speed difference between fastest and slowest\n")
             
-            # Add timing visualization reference
+            # Add timing visualization reference (with caption)
             timing_viz_file = f"timing_comparison_{timestamp}.png"
-            f.write(f"\n![Embedding Speed Comparison]({timing_viz_file})\n\n")
-            
-            # Generate timing visualization
-            generate_timing_visualization(timing_results, output_dir, timestamp)
-
-        # Technical implementation details
+            f.write(f"![Figure: Embedding Speed Comparison]({timing_viz_file})\n\n")
+ 
+         # Technical implementation details
         f.write("## Technical Implementation\n\n")
-        f.write("### 6.1 Pipeline Architecture\n\n")
+        f.write("### Pipeline Architecture\n\n")
         f.write("The benchmark pipeline implements a modular architecture with the following components:\n\n")
         f.write("- **Document Processing Module**: PDF extraction and chunking using PyMuPDF and LangChain\n")
         f.write("- **LLM Integration**: Gemini API for query generation and relevance assessment\n")
@@ -400,7 +395,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("- **Evaluation Engine**: SentenceTransformers evaluation framework\n")
         f.write("- **Reporting System**: Automated report generation with visualizations\n\n")
         
-        f.write("### 6.2 Reproducibility\n\n")
+        f.write("### Reproducibility\n\n")
         f.write("All experiments can be reproduced using the following commands:\n\n")
         f.write("```bash\n")
         f.write("# 1. Process PDFs into chunks\n")
@@ -412,7 +407,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("```\n\n")
         
         # Embedding model details
-        f.write("### 6.3 Embedding Model Specifications\n\n")
+        f.write("### Embedding Model Specifications\n\n")
         for model_name, collection_name in [(m["model_name"], m["collection_name"]) for m in cfg.embedding_models]:
             f.write(f"#### {model_name}\n\n")
             f.write(f"- **Collection identifier**: `{collection_name}`\n")
@@ -428,7 +423,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Discussion and limitations
         f.write("## Discussion\n\n")
-        f.write("### 7.1 Key Findings\n\n")
+        f.write("### Key Findings\n\n")
         
         best_model_name = sorted_results[0][0]
         f.write(f"1. **Model Performance Hierarchy**: {best_model_name} emerged as the top performer, ")
@@ -446,7 +441,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("process demonstrates the feasibility of automated benchmark creation for domain-specific ")
         f.write("document collections.\n\n")
         
-        f.write("### 7.2 Limitations and Future Work\n\n")
+        f.write("### Limitations and Future Work\n\n")
         f.write("- **Single-domain evaluation**: Current results are specific to the evaluated document collection\n")
         f.write("- **LLM bias**: Query generation and relevance judgments may reflect biases of the generative model\n")
         f.write("- **Limited query diversity**: Future work should explore multi-turn queries and complex information needs\n")
