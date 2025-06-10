@@ -6,7 +6,7 @@ queries_file = "queries.jsonl"
 qrels_file = "qrels.tsv"
 
 # ChromaDB collection/model pairs to benchmark
-models = [ 
+embedding_models = [ 
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
     {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v3"},
     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},

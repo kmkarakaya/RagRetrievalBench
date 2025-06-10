@@ -102,7 +102,7 @@ def generate_qrels():
     corpus = load_corpus()
     # Initialize collection
     collection_name = "test_collection"
-    initialize_collection(corpus, cfg.models[0]["model_name"], collection_name)
+    initialize_collection(corpus, cfg.embedding_models[0]["model_name"], collection_name)
     # Use persistent client instead of chromadb.Client()
     client = get_chromadb_client()
     try:
@@ -975,7 +975,7 @@ def main():
         # Process each model
         model_results = []
         
-        for model_cfg in cfg.models:
+        for model_cfg in cfg.embedding_models:
             model_name = model_cfg["model_name"]
             collection_name = model_cfg["collection_name"]
             

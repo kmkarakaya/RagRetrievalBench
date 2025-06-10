@@ -735,7 +735,7 @@ if __name__ == "__main__":
     model_scores = []
     model_retrievals = {}  # Dictionary to store retrieval results for each model
     
-    for model_cfg in cfg.models:
+    for model_cfg in cfg.embedding_models:
         model_name = model_cfg["model_name"]
         collection_name = model_cfg["collection_name"]
         if cfg.reinitialize_collections:
@@ -760,12 +760,12 @@ if __name__ == "__main__":
         queries, 
         corpus, 
         relevant_docs, 
-        [model_cfg["model_name"] for model_cfg in cfg.models]
+        [model_cfg["model_name"] for model_cfg in cfg.embedding_models]
     )
       # Include per-query results in the report
     generate_report(model_scores, k, corpus, queries, per_query_results)    # Compare different MAP calculation methods
     print("\n=== MAP Calculation Methods Comparison ===")
-    for model_name in [cfg["model_name"] for cfg in cfg.models]:
+    for model_name in [cfg["model_name"] for cfg in cfg.embedding_models]:
         # Calculate MAP using different methods
         evaluator_map = next(score[1] for score in model_scores if score[0] == model_name)
         weighted_map = weighted_average_map(model_name, queries, corpus, relevant_docs, cfg.k)

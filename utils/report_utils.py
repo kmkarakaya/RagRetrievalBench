@@ -156,7 +156,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, out
         
         f.write("#### 4.2 Evaluated Models\n\n")
         model_info_table = []
-        for model_cfg in cfg.models:
+        for model_cfg in cfg.embedding_models:
             try:
                 model = SentenceTransformer(model_cfg["model_name"])
                 dimensions = model.get_sentence_embedding_dimension()
@@ -359,7 +359,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, out
         
         # Embedding model details
         f.write("### 6.3 Embedding Model Specifications\n\n")
-        for model_name, collection_name in [(m["model_name"], m["collection_name"]) for m in cfg.models]:
+        for model_name, collection_name in [(m["model_name"], m["collection_name"]) for m in cfg.embedding_models]:
             f.write(f"#### {model_name}\n\n")
             f.write(f"- **Collection identifier**: `{collection_name}`\n")
             
