@@ -10,6 +10,13 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     """Generate a comprehensive benchmark report suitable for a conference paper."""   # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
+    # Debug: Check if timing data is received
+    print(f"DEBUG: timing_results received: {timing_results}")
+    if timing_results:
+        print(f"DEBUG: Number of timing entries: {len(timing_results)}")
+        for model_name, timing_data in timing_results:
+            print(f"DEBUG: {model_name} - {timing_data}")
+
     # Generate timestamp for the report
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_file = os.path.join(output_dir, f"benchmark_report_{timestamp}.md")
@@ -149,7 +156,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("- **Vector Database**: ChromaDB\n")
         f.write("- **Evaluation Library**: SentenceTransformers InformationRetrievalEvaluator\n")
         f.write(f"- **Retrieval Depth (k)**: {cfg.k}\n")
-        f.write(f"- **Batch Size**: {cfg.batch_size}\n")
+        f.write(f"- **Batch Size**: {cfg.document_batch_size}\n")
         f.write(f"- **Collection Reinitialization**: {cfg.reinitialize_collections}\n\n")
         
         f.write("#### 4.2 Evaluated Models\n\n")

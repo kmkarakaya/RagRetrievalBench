@@ -61,7 +61,9 @@ def initialize_collection(corpus, model_name, collection_name):
     corpus_ids = list(corpus.keys())
     corpus_texts = list(corpus.values())
     
-    iterator = tqdm(range(0, len(corpus_ids), batch_size), desc=f"Embedding docs with {model_name}") if cfg.show_progress_bar else range(0, len(corpus_ids), batch_size)
+    # Fixed (shorter, cleaner description):
+    short_model_name = model_name.split('/')[-1]  # Get just the model name part
+    iterator = tqdm(range(0, len(corpus_ids), batch_size), desc=f"Embedding with {short_model_name}") if cfg.show_progress_bar else range(0, len(corpus_ids), batch_size)
     for i in iterator:
         batch_ids = corpus_ids[i:i+batch_size]
         batch_texts = corpus_texts[i:i+batch_size]
@@ -83,12 +85,16 @@ def initialize_collection(corpus, model_name, collection_name):
     print(f"  Documents per second: {docs_per_second:.2f}")
     print(f"  Average time per document: {avg_time_per_doc:.4f} seconds")
     
-    return {
+    timing_data = {
         "embedding_time": embedding_time,
         "docs_processed": len(corpus_ids),
         "docs_per_second": docs_per_second,
         "avg_time_per_doc": avg_time_per_doc
     }
+    
+
+    
+    return timing_data
 
 
 
@@ -120,7 +126,7 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
         precision_recall_at_k=cfg.precision_recall_at_k,
         map_at_k=cfg.map_at_k,
         show_progress_bar=cfg.show_progress_bar,
-        batch_size=cfg.batch_size,
+        batch_size=cfg.document_batch_size,
         name=f"{model_name}-chromadb"
     )
     
