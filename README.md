@@ -65,8 +65,12 @@ pip install -r requirements.txt
 
 4. Set up environment variables:
 ```bash
-# Create .env file
-echo "GOOGLE_API_KEY=your_api_key_here" > .env
+# Copy the template
+cp .env.template .env
+
+# Edit .env with your editor and replace 'your_api_key_here'
+notepad .env  # Windows
+nano .env     # Linux/macOS
 ```
 
 5. Configure your evaluation settings in `benchmark_config.py`
