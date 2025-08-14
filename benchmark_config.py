@@ -59,23 +59,24 @@ chunk_overlap = 200
 
 #QUERY GENERATION SETTINGS
 # How many benchmark queries (seeds) to generate
-n_queries = 50
+n_queries = 5
 
 # How many chunks to sample per seed (usually 1)
 chunks_per_query = 1
 
 # How many candidates to retrieve for labeling
-candidate_pool_size = 10
+candidate_pool_size = 5
 
 # LLM settings
-llm_model = "gemini-2.0-flash"
+llm_model = "gemini-2.5-flash-lite"
 
 # Requests per minute (RPM) 
 # Tokens per minute (TPM)
 # Requests per day (RPD)
-# Gemini 1.5 Flash	15 RPM    250,000 TPM   500 RPD
-# Gemini 2.0 Flash	15 RPM 	1,000,000 TPM 1,500 RPD
-llm_timeout = 5   #  wait for a short time in seconds to avoid hitting API limits
+# Gemini 2.0 Flash-Lite	30 RPM	1,000,000 TPM	200 RPD
+# Gemini 2.0 Flash	    15 RPM 	1,000,000 TPM   200 RPD
+# Gemini 2.5 Flash-Lite	15 RPM	  250,000 TPM 1,000 RPD
+llm_timeout = (60/15) + 1    #  wait for a short time in seconds to avoid hitting API limits
 
 
 

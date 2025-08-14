@@ -1,5 +1,5 @@
 import pytest
-from utils.text_spitter import split_text
+from utils.text_splitter import split_text
 
 def test_split_text_basic():
     text = "This is a test document. " * 50  # Create text longer than chunk size

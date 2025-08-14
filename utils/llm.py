@@ -19,6 +19,9 @@ def initialize_genai_client():
         load_dotenv(env_path)
     else:
         print("Warning: .env file not found at", env_path)
+        # For testing, raise exception instead of exit
+        if 'pytest' in sys.modules:
+            raise ValueError("GEMINI_API_KEY not found")
         exit(1)
     
     # Get API key from environment variables
@@ -27,6 +30,9 @@ def initialize_genai_client():
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             print("Error: No API key found in environment variables")
+            # For testing, raise exception instead of exit
+            if 'pytest' in sys.modules:
+                raise ValueError("GEMINI_API_KEY not found")
             exit(1)
     
     if not api_key:

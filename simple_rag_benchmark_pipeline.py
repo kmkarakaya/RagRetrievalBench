@@ -10,65 +10,36 @@ import benchmark_config as cfg
 from utils.llm import generate_content
 from utils.chromadb_utils import get_chromadb_client, initialize_collection, evaluate_with_chromadb
 from utils.report_utils import generate_benchmark_report, print_results_summary, print_report_info
+from utils.document_loader import prepare_corpus_from_pdfs
+from utils.document_loader import load_corpus as load_corpus_from_file
+from utils.document_loader import load_queries as load_queries_from_file  
+from utils.document_loader import load_ground_truth
 
-def prepare_corpus_from_pdfs():
+def prepare_corpus_from_pdfs_wrapper():
     """
-    Loads all PDFs from cfg.pdf_dir, splits them into chunks using the utility,
-    and saves the chunks as JSONL to cfg.corpus_file.
+    Wrapper function that calls the refactored prepare_corpus_from_pdfs with config values.
+    This maintains backward compatibility with the pipeline interface.
     """
-    print("Executing prepare_corpus_from_pdfs()...")
-
-    # Import here to avoid circular imports
-    import sys
-    # Add the parent directory to sys.path if needed
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if parent_dir not in sys.path:
-        sys.path.append(parent_dir)
-
-    try:
-        from utils.text_splitter import split_pdfs_to_chunks
-    except ImportError:
-        print("Error: Could not import split_pdfs_to_chunks from utils.text_splitter")
-        print(f"Current directory: {os.getcwd()}")
-        print(f"Python path: {sys.path}")
-        raise
-
-    pdf_dir = cfg.pdf_dir
-    chunk_size = cfg.chunk_size
-    chunk_overlap = cfg.chunk_overlap
-    corpus_file = cfg.corpus_file
-
-    
-    chunks = split_pdfs_to_chunks(pdf_dir, chunk_size, chunk_overlap)
-
-    print(f"Saving {len(chunks)} chunks to {corpus_file}...")
-    with open(corpus_file, "w", encoding="utf-8") as f:
-        for chunk in chunks:
-            # Each chunk should have at least 'doc_id' and 'text'
-            f.write(json.dumps({"doc_id": chunk.doc_id, "text": chunk.page_content}) + "\n")
-    print("Corpus preparation complete.")
-
-    # Ensure the function is not called multiple times
-    return
+    result = prepare_corpus_from_pdfs(
+        pdf_dir=cfg.pdf_dir,
+        chunk_size=cfg.chunk_size,
+        chunk_overlap=cfg.chunk_overlap,
+        corpus_file=cfg.corpus_file
+    )
+    print(f"Corpus preparation complete: {result['chunks_created']} chunks created")
+    return result
 
 
 
 def generate_queries_from_corpus() -> dict[str,str]:
-
     print("Selecting seed chunks from corpus...")
     
-    # Import here to avoid circular imports
-    import sys
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if parent_dir not in sys.path:
-        sys.path.append(parent_dir)
-
-    corpus = load_corpus()
+    # Use the refactored load_corpus function
+    corpus = load_corpus_from_file(cfg.corpus_file)
     print(f"Loaded {len(corpus)} corpus chunks.")
     all_ids = list(corpus.keys())
     seed_ids = random.sample(all_ids, cfg.n_queries * cfg.chunks_per_query)
     print(f"Selected {len(seed_ids)} seed chunks for query generation ({cfg.n_queries,cfg.chunks_per_query}) .")
-    
     
     # Generate and save queries in same loop
     print(f"Generating and saving queries to {cfg.queries_file}...")
@@ -88,10 +59,17 @@ def generate_queries_from_corpus() -> dict[str,str]:
     print("Query generation and saving complete. Queries saved to", cfg.queries_file)
  
 def generate_qrels():
-    corpus = load_corpus()
-    # Initialize collection
-    collection_name = "test_collection"
-    timing_data = initialize_collection(corpus, cfg.embedding_models[0]["model_name"], collection_name)
+    # Use refactored load_corpus function
+    corpus = load_corpus_from_file(cfg.corpus_file)
+    # Use the first configured model and collection for qrels generation
+    first_model = cfg.embedding_models[0]
+    model_name = first_model["model_name"]
+    collection_name = first_model["collection_name"] + "_qrels"  # Avoid conflict with benchmark collections
+    
+    print(f"Generating qrels using model: {model_name}")
+    print(f"Using temporary collection: {collection_name}")
+    
+    initialize_collection(corpus, model_name, collection_name)
     # Use persistent client instead of chromadb.Client()
     client = get_chromadb_client()
     try:
@@ -101,8 +79,8 @@ def generate_qrels():
         raise e
     print(f"Collection {collection_name} initialized successfully.")
     
-    # Load queries
-    queries = load_queries()
+    # Load queries using refactored function
+    queries = load_queries_from_file(cfg.queries_file)
     print(f"Loaded {len(queries)} queries.")
 
     print("Generating qrels file...")
@@ -161,66 +139,23 @@ def generate_qrels():
 
     return
 
-def load_corpus() -> dict[str,str]:
-    corpus = {}
-    with open(cfg.corpus_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            j = json.loads(line)
-            corpus[j['doc_id']] = j['text']
-    
-    if not corpus:
-        print(f"Warning: No documents found in {cfg.corpus_file}. Please check the file format.")
-    else:
-        print(f"Successfully loaded {len(corpus)} documents from {cfg.corpus_file}.")
-        print(len(corpus), list(corpus.keys())[:5])
-    return corpus
-
 def load_queries() -> dict[str,str]:
-    queries = {}
-    with open(cfg.queries_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            j = json.loads(line)
-            queries[j['query_id']] = j['text']
-    if not queries:
-        print(f"Warning: No queries found in {cfg.queries_file}. Please check the file format.")
-    else:
-        print(f"Successfully loaded {len(queries)} queries from {cfg.queries_file}.")
-        print(len(queries), list(queries.keys())[:5])
-    return queries
-
-def load_ground_truth():
     """
-    Load ground truth data files (corpus, queries, relevance judgments).
-    
-    Returns:
-        tuple of (queries, corpus, relevant_docs)
+    DEPRECATED: Use utils.document_loader.load_queries() instead.
+    Kept for backward compatibility.
     """
-    print("Loading ground-truth files...")
-    
-    # Load queries
-    with open(cfg.queries_file) as qf:
-        queries = {j["query_id"]: j["text"] for j in map(json.loads, qf)}
+    print("Warning: Using deprecated load_queries(). Use utils.document_loader.load_queries() instead.")
+    from utils.document_loader import load_queries as new_load_queries
+    return new_load_queries(cfg.queries_file)
 
-    # Load corpus
-    with open(cfg.corpus_file) as cf:
-        corpus = {j["doc_id"]: j["text"] for j in map(json.loads, cf)}
-
-    # Load relevance judgments
-    relevant_docs = {}
-    with open(cfg.qrels_file, 'r', encoding='utf-8') as rf:
-        for line in rf:
-            parts = line.strip().split()
-            if len(parts) == 3:
-                qid, doc_id, rel = parts
-                try:
-                    rel_int = int(rel)
-                    if rel_int > 0:
-                        relevant_docs.setdefault(qid, set()).add(doc_id)
-                except ValueError:
-                    continue
-    
-    print(f"Loaded {len(queries)} queries, {len(corpus)} corpus chunks, and {sum(len(v) for v in relevant_docs.values())} relevance mappings.")
-    return queries, corpus, relevant_docs
+def load_corpus() -> dict[str,str]:
+    """
+    DEPRECATED: Use utils.document_loader.load_corpus() instead.
+    Kept for backward compatibility.
+    """
+    print("Warning: Using deprecated load_corpus(). Use utils.document_loader.load_corpus() instead.")
+    from utils.document_loader import load_corpus as new_load_corpus
+    return new_load_corpus(cfg.corpus_file)
 def main():
     parser = argparse.ArgumentParser(description="RAG Benchmark Pipeline")
     parser.add_argument("--prepare-corpus", action="store_true", help="Prepare corpus.jsonl from PDFs")
@@ -237,7 +172,7 @@ def main():
     
     # Handle individual pipeline steps - EXIT after each
     if args.prepare_corpus:
-        prepare_corpus_from_pdfs()
+        prepare_corpus_from_pdfs_wrapper()
         return
         
     if args.generate_queries:
@@ -251,7 +186,7 @@ def main():
     # Handle complete pipeline
     if args.all:
         print("Starting complete RAG benchmark pipeline...")
-        prepare_corpus_from_pdfs()
+        prepare_corpus_from_pdfs_wrapper()
         generate_queries_from_corpus()
         generate_qrels()
         # Continue to evaluation section below
@@ -266,8 +201,8 @@ def main():
         print("Starting embedding model evaluation...")
         print(f"Configuration: k={cfg.k}, show_progress={cfg.show_progress_bar}, reinit_collections={cfg.reinitialize_collections}")
         
-        # Load ground truth data ONCE
-        queries, corpus, relevant_docs = load_ground_truth()
+        # Load ground truth data ONCE using refactored function
+        queries, corpus, relevant_docs = load_ground_truth(cfg.corpus_file, cfg.queries_file, cfg.qrels_file)
         
         # Initialize containers ONCE
         model_results = []
@@ -286,18 +221,18 @@ def main():
             
             # Evaluate if requested
             if args.evaluate or args.all:
-                # Add hardcoded timing data ONLY if no timing data exists
+                # If no timing data exists, we need to initialize first or skip timing in report
                 if not any(t[0] == model_name for t in timing_results):
-                    if "v1" in collection_name:
-                        timing_results.append((model_name, {
-                            "embedding_time": 7.82, "docs_processed": 232,
-                            "docs_per_second": 29.66, "avg_time_per_doc": 0.0337
-                        }))
-                    elif "v2" in collection_name:
-                        timing_results.append((model_name, {
-                            "embedding_time": 8.19, "docs_processed": 232,
-                            "docs_per_second": 28.33, "avg_time_per_doc": 0.0353
-                        }))
+                    print(f"⚠️  Warning: No timing data available for {model_name}")
+                    print(f"   Run with --initialize first to get accurate timing metrics")
+                    # Add empty timing data to indicate missing measurements
+                    timing_results.append((model_name, {
+                        "embedding_time": None, 
+                        "docs_processed": len(corpus),
+                        "docs_per_second": None, 
+                        "avg_time_per_doc": None,
+                        "note": "Timing data unavailable - run --initialize first"
+                    }))
                 
                 # Evaluate model
                 metrics = evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collection_name)

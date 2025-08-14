@@ -1,50 +1,5 @@
-{"query_id": "q1_for_Attention_chunk31", "text": "What are the effects of varying Transformer architecture parameters on English-to-German translation performance (BLEU score and perplexity)?\n"}
-{"query_id": "q2_for_Gemma_chunk8", "text": "What is the architecture and training of the Gemma vision encoder, including its handling of non-square aspect ratios and high-resolution images?\n"}
-{"query_id": "q3_for_DeepSeek_chunk69", "text": "How does redundant expert deployment achieve load balancing in Mixture of Experts (MoE) models, and what considerations are involved in its implementation?\n"}
-{"query_id": "q4_for_Qwen_chunk83", "text": "What is the Phi-3 technical report about a language model for phones?\n"}
-{"query_id": "q5_for_DeepSeek_chunk75", "text": "GPU co-processor for offloading communication tasks between InfiniBand and NVLink.\n"}
-{"query_id": "q6_for_LLaMA_chunk1", "text": "What are the performance characteristics of the LLaMA family of language models compared to other large language models like GPT-3, Chinchilla, and PaLM?\n"}
-{"query_id": "q7_for_Gemma_chunk31", "text": "What are the memorization risks and privacy concerns associated with large language models?\n"}
-{"query_id": "q8_for_Qwen_chunk58", "text": "What is the performance comparison of different language models, including GPT-4o, Claude3.5, Qwen2, and Llama-3.1, on coding, math, and reasoning tasks?\n"}
-{"query_id": "q9_for_LLaMA_chunk3", "text": "What are the trade-offs between model size, training compute, and inference cost when training large language models?\n"}
-{"query_id": "q10_for_DeepSeek_chunk130", "text": "How does knowledge distillation from reasoning models improve performance in LiveCodeBench and MATH-500 benchmarks?\n"}
-{"query_id": "q11_for_Qwen_chunk19", "text": "How does Qwen2.5 use scaling laws and a two-phase pre-training approach to optimize MoE models and long-context learning?\n"}
-{"query_id": "q12_for_Mistral_chunk20", "text": "How do large language models respond to requests about terminating Linux processes?\n"}
-{"query_id": "q13_for_DeepSeek_chunk108", "text": "How to combine high accuracy reasoning data with clear and concise formatting for training language models?\n"}
-{"query_id": "q14_for_Qwen_chunk87", "text": "What are the technical specifications and capabilities of Anthropic's Claude 3 model family (Opus, Sonnet, Haiku) as detailed in their model card?\n"}
-{"query_id": "q15_for_Attention_chunk43", "text": "\"Research papers on sequence-to-sequence learning, attention mechanisms in neural machine translation, and parsing techniques.\"\n"}
-{"query_id": "q16_for_Qwen_chunk17", "text": "How can strategic data sampling and scaling laws for hyperparameters improve pre-training datasets for large language models?\n"}
-{"query_id": "q17_for_Qwen_chunk51", "text": "What are the evaluation results of Llama-3.1 and Qwen2.5 models on general tasks, mathematics & science, coding, and alignment tasks, including long-context capabilities and multilingualism?\n"}
-{"query_id": "q18_for_LLaMA_chunk29", "text": "What is the performance of Gopher, Chinchilla, and PaLM models on question answering and common sense benchmarks, and how does it compare to GPT-3 and LLaMA?\n"}
-{"query_id": "q19_for_Mistral_chunk22", "text": "\"What are the key dimensions to consider when optimizing model performance, training cost, and inference cost, and who provided support for this research?\"\n"}
-{"query_id": "q20_for_Attention_chunk2", "text": "What is the Transformer model and how does it perform on machine translation tasks compared to recurrent and convolutional models?\n"}
-{"query_id": "q21_for_DeepSeek_chunk159", "text": "What are the latest advancements in data formats for deep learning and mathematical reasoning in open language models?\n"}
-{"query_id": "q22_for_Attention_chunk3", "text": "What are the capabilities of the Transformer model in natural language processing tasks such as English constituency parsing?\n"}
-{"query_id": "q23_for_DeepSeek_chunk45", "text": "\"How does DualPipe reduce pipeline bubbles and manage memory consumption compared to other pipeline parallelism techniques like Chimera?\"\n"}
-{"query_id": "q24_for_LLaMA_chunk15", "text": "What optimizations are used to improve the training efficiency of transformer models, including techniques for reducing memory usage and recomputation?\n"}
-{"query_id": "q25_for_Gemma_chunk74", "text": "What is the performance of Gemma models on STEM, code, and reasoning benchmarks like MMLU, MATH, and HumanEval?\n"}
-{"query_id": "q26_for_DeepSeek_chunk37", "text": "How does Masked Token Prediction (MTP) improve language model training and inference, including loss calculation and speculative decoding?\n"}
-{"query_id": "q27_for_Mistral_chunk13", "text": "Compare the performance and efficiency of Mistral 7B and Llama 2 models, focusing on code and reasoning benchmarks.\n"}
-{"query_id": "q28_for_DeepSeek_chunk81", "text": "What data construction and pre-training strategies were used for DeepSeek-V3, including corpus composition, data processing, and the use of Fill-in-Middle (FIM)?\n"}
-{"query_id": "q29_for_Gemma_chunk10", "text": "What datasets and filtering techniques were used to train the Gemma family of models, including details on tokenization and multilingual data handling?\n"}
-{"query_id": "q30_for_Attention_chunk21", "text": "\"What are the advantages of self-attention layers compared to recurrent and convolutional layers in sequence transduction, considering computational complexity and parallelization?\"\n"}
-{"query_id": "q31_for_DeepSeek_chunk9", "text": "What are the recent advancements in open-source large language models, including the DeepSeek series and other models aiming to achieve artificial general intelligence?\n"}
-{"query_id": "q32_for_LLaMA_chunk17", "text": "What is the training throughput of the LLaMA 65B parameter model on A100 GPUs, and how does it perform on zero-shot and few-shot learning tasks compared to models like GPT-3, Gopher, and PaLM?\n"}
-{"query_id": "q33_for_LLaMA_chunk81", "text": "What are examples of questions and answers used in datasets like Natural Questions and TriviaQA, and how do different language models perform on STEM subjects in the MMLU benchmark?\n"}
-{"query_id": "q34_for_Gemma_chunk23", "text": "What is the impact of local and global attention layers, multilinguality, and decontamination techniques on the performance of language models?\n"}
-{"query_id": "q35_for_Mistral_chunk12", "text": "Compare the performance of Mistral 7B with Llama models on various benchmarks like MMLU, HellaSwag, and HumanEval.\n"}
-{"query_id": "q36_for_Gemma_chunk37", "text": "What are the safety features and risk monitoring processes associated with the release of Gemma 3 models?\n"}
-{"query_id": "q37_for_Qwen_chunk31", "text": "How to improve training data quality for instruction following and logical reasoning tasks using execution feedback, answer matching, human review, and Direct Preference Optimization (DPO)?\n"}
-{"query_id": "q38_for_Gemma_chunk61", "text": "What are some recent publications on training and scaling large language models, commonsense reasoning, and language-agnostic linguistic reasoning?\n"}
-{"query_id": "q39_for_DeepSeek_chunk6", "text": "What are the evaluation benchmarks and results for a model, including ablation studies and post-training techniques like supervised fine-tuning and reinforcement learning?\n"}
-{"query_id": "q40_for_LLaMA_chunk18", "text": "Compare the performance of LLaMA to other large language models like GPT-3, Gopher, Chinchilla, PaLM, OPT, GPT-J, and GPT-Neo on free-form generation and multiple choice tasks.\n"}
-{"query_id": "q41_for_DeepSeek_chunk179", "text": "What are the differences between Aux-Loss-Based and Aux-Loss-Free layers in DM Mathematics, specifically for layers 9 and 10?\n"}
-{"query_id": "q42_for_DeepSeek_chunk105", "text": "What are the differences between aux-loss-based and aux-loss-free layers in deep learning models, specifically regarding layer 9 and layer 18, as discussed in DM Mathematics on Github?\n"}
-{"query_id": "q43_for_Attention_chunk37", "text": "What are the advantages of using the Transformer model, based on attention mechanisms, for sequence transduction and machine translation tasks compared to recurrent or convolutional models?\n"}
-{"query_id": "q44_for_DeepSeek_chunk41", "text": "\"How does DualPipe improve model training by overlapping computation and communication in pipeline parallelism, and how does it reduce pipeline bubbles?\"\n"}
-{"query_id": "q45_for_DeepSeek_chunk12", "text": "FP8 mixed precision training and DualPipe algorithm for large-scale model training.\n"}
-{"query_id": "q46_for_DeepSeek_chunk83", "text": "How does randomly splitting combined punctuation and line break tokens during training mitigate token boundary bias in language models?\n"}
-{"query_id": "q47_for_Qwen_chunk102", "text": "\"Research papers on Mixtral of Experts, sparse attention for long-context LLMs, and pre-normalization Transformers.\"\n"}
-{"query_id": "q48_for_Qwen_chunk10", "text": "What are the architecture details of Qwen2.5 models, including dense models with GQA, SwiGLU, and RoPE, and what are the specifications of the 0.5B, 1.5B, 3B, and 7B open-weight models?\n"}
-{"query_id": "q49_for_LLaMA_chunk65", "text": "What are some influential arXiv preprints related to language models, reading comprehension, and scaling laws?\n"}
-{"query_id": "q50_for_DeepSeek_chunk146", "text": "What are the latest research papers on language models, hardware architectures for data reduction, and benchmarks for code reasoning?\n"}
+{"query_id": "q1_for_DeepSeek_chunk102", "text": "What is the performance of auxiliary-loss-free balancing compared to sequence-wise auxiliary loss?"}
+{"query_id": "q2_for_DeepSeek_chunk142", "text": "DeepSeek-AI's contributions to open-source language models and mixture-of-experts architectures"}
+{"query_id": "q3_for_DeepSeek_chunk55", "text": "How does GEMM's FP8 format impact memory consumption and operator precision requirements in DeepSeek-V3 training?"}
+{"query_id": "q4_for_DeepSeek_chunk82", "text": "What is the FIM strategy used in DeepSeek-V3 and how is it implemented?"}
+{"query_id": "q5_for_DeepSeek_chunk141", "text": "Evaluating large language models trained on code and AI reasoning challenges"}

@@ -30,23 +30,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     # ——— Fallback timing for evaluation‐only runs ———
     # if user only did --evaluate, timing_results is [] ⇒ inject hard‐coded values
     if timing_results is not None and not timing_results:
-        for m_cfg in cfg.embedding_models:
-            mn = m_cfg["model_name"]
-            coll = m_cfg["collection_name"]
-            if "v1" in coll:
-                timing_results.append((mn, {
-                    "embedding_time": 7.82,
-                    "docs_processed": len(corpus),
-                    "docs_per_second": 29.66,
-                    "avg_time_per_doc": 0.0337
-                }))
-            elif "v2" in coll:
-                timing_results.append((mn, {
-                    "embedding_time": 8.19,
-                    "docs_processed": len(corpus),
-                    "docs_per_second": 28.33,
-                    "avg_time_per_doc": 0.0353
-                }))
+        print("⚠️  Warning: No timing data available for report generation")
+        print("   To include timing analysis, run: python simple_rag_benchmark_pipeline.py --initialize")
+        print("   Report will be generated without timing performance section")
+        timing_results = None  # Clear it completely
     
     # Calculate additional statistics
     chunk_lengths = [len(text.split()) for text in corpus.values()]

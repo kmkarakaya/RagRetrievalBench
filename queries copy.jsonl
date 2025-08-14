@@ -1,3 +1,0 @@
-{"query_id": "q1", "text": "What is the Mixture of Experts (MoE) architecture and how does it enable model sparsity?"}
-{"query_id": "q2", "text": "How do gating networks and expert utilization affect the efficiency of MoE models in large language models?"}
-{"query_id": "q3", "text": "What are some real-world applications and challenges of using MoE in multilingual or large-scale transformer models?"}
