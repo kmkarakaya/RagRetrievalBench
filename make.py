@@ -60,13 +60,14 @@ def clean():
     if reports_dir.exists() and reports_dir.is_dir():
         print(f"\nCleaning reports directory: {reports_dir}")
         for item in reports_dir.iterdir():
-            if item.is_file():
-                print(f"Removing report file: {item}")
-                item.unlink()
-            elif item.is_dir():
-                print(f"Removing report subdirectory: {item}")
-                shutil.rmtree(item)
-        print("Reports directory cleaned (kept the directory itself)")
+            if item.name != '.gitkeep':  # ← PRESERVE .gitkeep
+                if item.is_file():
+                    print(f"Removing report file: {item}")
+                    item.unlink()
+                elif item.is_dir():
+                    print(f"Removing report subdirectory: {item}")
+                    shutil.rmtree(item)
+        print("Reports directory cleaned (kept the directory and .gitkeep)")
     else:
         print("No reports directory found to clean")
     
@@ -75,13 +76,16 @@ def clean():
     if chromadb_dir.exists() and chromadb_dir.is_dir():
         print(f"\nCleaning ChromaDB collections directory: {chromadb_dir}")
         for item in chromadb_dir.iterdir():
-            if item.is_file():
-                print(f"Removing ChromaDB file: {item}")
-                item.unlink()
-            elif item.is_dir():
-                print(f"Removing ChromaDB collection: {item}")
-                shutil.rmtree(item)
-        print("ChromaDB collections directory cleaned (kept the directory itself)")
+            if item.name != '.gitkeep':  # ← PRESERVE .gitkeep
+                if item.is_file():
+                    print(f"Removing ChromaDB file: {item}")
+                    item.unlink()
+                elif item.is_dir():
+                    print(f"Removing ChromaDB collection: {item}")
+                    shutil.rmtree(item)
+            else:
+                print(f"Preserving: {item}")
+        print("ChromaDB collections directory cleaned (kept the directory and .gitkeep)")
     else:
         print("No ChromaDB collections directory found to clean")
     
