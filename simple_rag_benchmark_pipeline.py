@@ -76,13 +76,13 @@ def generate_queries_from_corpus() -> dict[str,str]:
         for i, seed_id in enumerate(seed_ids):
             prompt = f"Generate a search query for the following document:\n\n{corpus[seed_id]}\n\nQuery:"
             print(f"\nGenerating query {i+1}/{len(seed_ids)} for seed chunk {seed_id}...")
-            
+            time.sleep(cfg.llm_timeout)  # Wait to avoid hitting API limits
             # Generate query using the LLM
             generated_query = generate_content(cfg.generate_query_system_instruction,prompt)
             print(f"Generated query: {generated_query}")
             
             # Save query immediately
-            query_id = f"q{i+1}_seedChunk_{seed_id}"
+            query_id = f"q{i+1}_for_{seed_id}"
             f.write(json.dumps({"query_id": query_id, "text": generated_query}) + "\n")
             
     print("Query generation and saving complete. Queries saved to", cfg.queries_file)

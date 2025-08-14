@@ -222,14 +222,6 @@ llm_timeout = 4
   3. Embed high-quality charts (performance, timing, corpus stats)
 - **Output**: `reports/benchmark_report_*.md` and `*.pdf` in `reports/`
 
-## 🛠️ System Utilities
-
-- **Configuration Validation**: Ensures all config parameters are valid before pipeline execution
-- **Progress Monitoring**: Displays progress bars and ETA for long-running tasks
-- **Checkpointing & Resume**: Saves intermediate state to resume interrupted runs
-- **Result Caching**: Avoids recomputation by caching embeddings and evaluations
-- **Error Handling & Logging**: Comprehensive logs with per-query error tracking
-
 ## 📊 Evaluation Metrics
 
 The framework computes standard information retrieval metrics:
@@ -253,7 +245,6 @@ RagRetrievalBench/
 ├── qrels.tsv                 # Relevance judgments (TREC format)
 └── reports/
     ├── benchmark_report_*.md  # Comprehensive evaluation report
-    ├── *_comparison_*.png     # Individual metric visualizations
     └── corpus_statistics_*.png # Dataset analysis charts
 ```
 
@@ -266,122 +257,13 @@ RagRetrievalBench/
 - **Technical Details**: Implementation specifics for reproducibility
 - **Discussion**: Findings, limitations, and future work
 
-## 🏗️ Project Structure
+## 🛠️ System Utilities
 
-```
-RagRetrievalBench/
-├── simple_rag_benchmark_pipeline.py  # Main pipeline script
-├── benchmark_config.py               # Configuration settings
-├── benchmark.py                      # Legacy evaluation script
-├── utils/
-│   ├── text_splitter.py             # Document processing utilities
-│   ├── llm.py                       # LLM integration (Gemini)
-│   ├── document_loader.py           # PDF loading utilities
-│   └── chromadb_utils.py            # ChromaDB utilities
-├── utils/pdfs/                      # Input PDF directory
-├── reports/                         # Generated reports and visualizations
-├── tests/                           # Unit tests
-├── requirements.txt                 # Python dependencies
-├── .env                            # Environment variables
-└── README.md                       # This file
-```
-
-## 🔬 Research Applications
-
-This framework is designed for:
-
-- **Academic Research**: Systematic evaluation of embedding models for publications
-- **Industry Applications**: Model selection for production RAG systems
-- **Comparative Studies**: Benchmarking new embedding models against established baselines
-- **Domain-Specific Evaluation**: Assessment of models on specialized document collections
-- **Automated Benchmarking**: Continuous evaluation in ML pipelines
-
-## 📝 Technical Implementation
-
-### MAP Calculation Methodology
-This project includes detailed investigation into Mean Average Precision (MAP) calculation methods:
-
-1. **SentenceTransformers Evaluator**: Uses tensor-based cosine similarity with specific normalization
-2. **ChromaDB Ranking**: Vector search with potential differences in similarity calculation
-3. **Traditional MAP**: Weighted average based on relevant document counts
-
-For detailed documentation, see [MAP_CALCULATION_SUMMARY.md](MAP_CALCULATION_SUMMARY.md).
-
-### LLM Integration
-- **Model**: Gemini 1.5 Flash for query generation and relevance assessment
-- **Rate Limiting**: Configurable delays to respect API quotas
-- **Error Handling**: Robust parsing of LLM outputs with fallback mechanisms
-- **Prompt Engineering**: Structured system prompts for consistent outputs
-
-### Vector Database
-- **ChromaDB**: Efficient storage and retrieval with native embedding functions
-- **Batch Processing**: Memory-efficient document ingestion
-- **Collection Management**: Automatic initialization and reinitialization options
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
-```bash
-# Install development dependencies
-pip install -r requirements.txt
-
-# Run tests
-python -m pytest tests/
-
-# Format code (if using black)
-black .
-```
-
-### Testing
-The project includes comprehensive unit tests for all major components:
-- Document processing and chunking
-- LLM integration and response parsing
-- ChromaDB utilities and collection management
-- Evaluation metrics and statistical analysis
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yourusername/RagRetrievalBench/issues)
-- **Documentation**: Detailed workflow documentation in [benchmark_workflow.md](benchmark_workflow.md)
-- **Examples**: Check the `reports/` directory for example outputs
-
-## 🔗 Related Projects
-
-- [SentenceTransformers](https://github.com/UKPLab/sentence-transformers) - Embedding model framework
-- [ChromaDB](https://github.com/chroma-core/chroma) - Vector database
-- [LangChain](https://github.com/langchain-ai/langchain) - Document processing utilities
-- [Google Generative AI](https://github.com/google/generative-ai-python) - LLM integration
-
-## 📊 Example Results
-
-The framework generates comprehensive evaluation reports including:
-
-- **Model Comparison Tables**: Performance across all metrics
-- **Statistical Analysis**: Significance testing and confidence intervals
-- **Per-Query Breakdown**: Detailed analysis of individual query performance
-- **Dataset Characteristics**: Corpus statistics and query distributions
-- **Visualization Charts**: Performance comparison and trend analysis
-
-Example output from a recent benchmark:
-
-| Model | MAP@3 | Recall@3 | Precision@3 | NDCG@3 | MRR@3 |
-|-------|-------|----------|-------------|--------|-------|
-| distiluse-base-multilingual-cased-v1 | 0.9056 | 0.4690 | 0.9000 | 0.9389 | 1.0000 |
-| all-MiniLM-L6-v2 | 0.8889 | 0.4545 | 0.8667 | 0.9222 | 1.0000 |
-| distiluse-base-multilingual-cased-v2 | 0.8778 | 0.4394 | 0.8333 | 0.9056 | 1.0000 |
+- **Configuration Validation**: Ensures all config parameters are valid before pipeline execution
+- **Progress Monitoring**: Displays progress bars and ETA for long-running tasks
+- **Checkpointing & Resume**: Saves intermediate state to resume interrupted runs
+- **Result Caching**: Avoids recomputation by caching embeddings and evaluations
+- **Error Handling & Logging**: Comprehensive logs with per-query error tracking
 
 ## 🎯 Future Work
 

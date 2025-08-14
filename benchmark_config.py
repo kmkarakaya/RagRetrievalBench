@@ -8,12 +8,21 @@ qrels_file = "qrels.tsv"
 # ChromaDB collection/model pairs to benchmark
 # for more info, visit https://www.sbert.net/docs/sentence_transformer/pretrained_models.html
 # Multilingual Models -  Semantic Similarity Models 
-embedding_models = [ 
-    {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
-    {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
-    #{"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
-    #{"model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2", "collection_name": "coll_v4"},
+# embedding_models = [ 
+#     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
+#     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
+#     {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
+#     {"model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2", "collection_name": "coll_v4"},
     
+# ]
+
+# Most downloaded models from https://huggingface.co/sentence-transformers
+embedding_models = [
+    {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v1"},
+    {"model_name": "sentence-transformers/all-mpnet-base-v2", "collection_name": "coll_v2"},
+    {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
+    {"model_name": "sentence-transformers/all-MiniLM-L12-v2", "collection_name": "coll_v4"},
+
 ]
 
 # Evaluation metrics to compute (set to True to enable)
@@ -26,7 +35,7 @@ compute_mrr = True         # Mean Reciprocal Rank (MRR)
 compute_ndcg = True        # Normalized Discounted Cumulative Gain (NDCG@K)
 
 # Single cutoff value for all metrics
-k = 3  # Use the same k for all metrics
+k = 10  # Use the same k for all metrics
 
 # Evaluation parameters (all metrics use the same k)
 # Note: precision_recall_at_k is a parameter that sets the cutoff k for both Precision@K and Recall@K.
@@ -48,9 +57,9 @@ pdf_dir = "utils/pdfs"  # Directory containing PDFs
 chunk_size = 1000
 chunk_overlap = 200
 
-#QUERT GENERATION SETTINGS
+#QUERY GENERATION SETTINGS
 # How many benchmark queries (seeds) to generate
-n_queries = 10
+n_queries = 50
 
 # How many chunks to sample per seed (usually 1)
 chunks_per_query = 1
@@ -59,14 +68,14 @@ chunks_per_query = 1
 candidate_pool_size = 10
 
 # LLM settings
-llm_model = "gemini-1.5-flash"
+llm_model = "gemini-2.0-flash"
 
 # Requests per minute (RPM) 
 # Tokens per minute (TPM)
 # Requests per day (RPD)
 # Gemini 1.5 Flash	15 RPM    250,000 TPM   500 RPD
 # Gemini 2.0 Flash	15 RPM 	1,000,000 TPM 1,500 RPD
-llm_timeout = 4   #  wait for a short time in seconds to avoid hitting API limits
+llm_timeout = 5   #  wait for a short time in seconds to avoid hitting API limits
 
 
 
