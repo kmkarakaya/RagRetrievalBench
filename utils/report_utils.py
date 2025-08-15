@@ -9,10 +9,25 @@ from tabulate import tabulate
 import os
 import textwrap
 
+# Import SentenceTransformer for model information
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMER_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMER_AVAILABLE = False
+    print("Warning: sentence-transformers not available. Model dimensions will show as 'N/A'")
+
+import subprocess
+
 def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports"):
-    """Generate a comprehensive benchmark report suitable for a conference paper."""   # Create output directory if it doesn't exist
+    """Generate a comprehensive benchmark report suitable for a conference paper."""   
+    # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
+    # Check if model_results is empty
+    if not model_results:
+        raise ValueError("No model results provided")
+    
     # Debug: Check if timing data is received
     # print(f"DEBUG: timing_results received: {timing_results}")
     # if timing_results:
@@ -24,8 +39,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_file = os.path.join(output_dir, f"benchmark_report_{timestamp}.md")
     
-    # Sort models by MAP score for easier comparison
-    sorted_results = sorted(model_results, key=lambda x: x[1], reverse=True)
+    # Sort models by MAP score for easier comparison (if any results exist)
+    if model_results and cfg.compute_map:
+        sorted_results = sorted(model_results, key=lambda x: x[1], reverse=True)
+    else:
+        sorted_results = model_results
     
     # ——— Fallback timing for evaluation‐only runs ———
     # if user only did --evaluate, timing_results is [] ⇒ inject hard‐coded values
@@ -73,18 +91,32 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write(f"The benchmark used **{len(corpus)} documents** and **{len(queries)} queries** with **{sum(len(v) for v in relevant_docs.values())} relevant document mappings**.\n\n")
         
         # Best model highlight
-        best_model = sorted_results[0]
-        f.write(f"**Best performing model:** `{best_model[0]}`\n")
-        if cfg.compute_map:
-            f.write(f"* MAP@{cfg.k}: **{best_model[1]:.4f}**\n")
-        if cfg.compute_recall:
-            f.write(f"* Recall@{cfg.k}: **{best_model[2]:.4f}**\n")
-        if cfg.compute_precision:
-            f.write(f"* Precision@{cfg.k}: **{best_model[3]:.4f}**\n")
-        if cfg.compute_ndcg:
-            f.write(f"* NDCG@{cfg.k}: **{best_model[4]:.4f}**\n")
-        if cfg.compute_mrr:
-            f.write(f"* MRR@{cfg.k}: **{best_model[5]:.4f}**\n\n")
+        if sorted_results:  # Check if there are any results
+            best_model = sorted_results[0]
+            f.write(f"**Best performing model:** `{best_model[0]}`\n")
+            
+            # Use dynamic indexing for metrics - only access metrics that exist in the tuple
+            metric_idx = 1
+            available_metrics = len(best_model) - 1  # Subtract 1 for model name
+            
+            if cfg.compute_map and metric_idx < len(best_model):
+                f.write(f"* MAP@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
+                metric_idx += 1
+            if cfg.compute_recall and metric_idx < len(best_model):
+                f.write(f"* Recall@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
+                metric_idx += 1
+            if cfg.compute_precision and metric_idx < len(best_model):
+                f.write(f"* Precision@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
+                metric_idx += 1
+            if cfg.compute_ndcg and metric_idx < len(best_model):
+                f.write(f"* NDCG@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
+                metric_idx += 1
+            if cfg.compute_mrr and metric_idx < len(best_model):
+                f.write(f"* MRR@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
+                metric_idx += 1
+            f.write("\n")
+        else:
+            f.write("**No model results available for comparison.**\n\n")
         
         # Methodology
         f.write("## Methodology\n\n")
@@ -173,20 +205,30 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("### Evaluated Models\n\n")
         model_info_table = []
         for model_cfg in cfg.embedding_models:
-            try:
-                model = SentenceTransformer(model_cfg["model_name"])
-                dimensions = model.get_sentence_embedding_dimension()
+            if SENTENCE_TRANSFORMER_AVAILABLE:
+                try:
+                    model = SentenceTransformer(model_cfg["model_name"])
+                    dimensions = model.get_sentence_embedding_dimension()
+                    max_seq_length = getattr(model, 'max_seq_length', 'N/A')
+                    model_info_table.append([
+                        model_cfg["model_name"],
+                        model_cfg["collection_name"],
+                        str(dimensions),
+                        "Sentence Transformer"
+                    ])
+                except Exception as e:
+                    print(f"Warning: Could not load model info for {model_cfg['model_name']}: {e}")
+                    model_info_table.append([
+                        model_cfg["model_name"],
+                        model_cfg["collection_name"],
+                        "Error loading",
+                        "N/A"
+                    ])
+            else:
                 model_info_table.append([
                     model_cfg["model_name"],
                     model_cfg["collection_name"],
-                    dimensions,
-                    "Sentence Transformer"
-                ])
-            except:
-                model_info_table.append([
-                    model_cfg["model_name"],
-                    model_cfg["collection_name"],
-                    "N/A",
+                    "N/A (import failed)",
                     "N/A"
                 ])
         
@@ -246,19 +288,19 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         for result in sorted_results:
             row = [result[0]]  # Model name
             idx = 1
-            if cfg.compute_map:
+            if cfg.compute_map and idx < len(result):
                 row.append(f"{result[idx]:.4f}")
                 idx += 1
-            if cfg.compute_recall:
+            if cfg.compute_recall and idx < len(result):
                 row.append(f"{result[idx]:.4f}")
                 idx += 1
-            if cfg.compute_precision:
+            if cfg.compute_precision and idx < len(result):
                 row.append(f"{result[idx]:.4f}")
                 idx += 1
-            if cfg.compute_ndcg:
+            if cfg.compute_ndcg and idx < len(result):
                 row.append(f"{result[idx]:.4f}")
                 idx += 1
-            if cfg.compute_mrr:
+            if cfg.compute_mrr and idx < len(result):
                 row.append(f"{result[idx]:.4f}")
             
             table_data.append(row)
@@ -279,12 +321,18 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write(f"**{((best_model[1] - worst_model[1]) / worst_model[1] * 100):.1f}% improvement**.\n\n")
             
             # Correlation analysis between metrics
-            if cfg.compute_map and cfg.compute_recall:
-                map_scores = [r[1] for r in sorted_results]
-                recall_scores = [r[2] for r in sorted_results]
-                correlation = np.corrcoef(map_scores, recall_scores)[0, 1]
-                f.write(f"**MAP-Recall Correlation**: {correlation:.3f} ")
-                f.write("(indicates how well ranking quality correlates with coverage)\n\n")
+            if cfg.compute_map and cfg.compute_recall and len(sorted_results) > 0 and len(sorted_results[0]) > 2:
+                # Find the correct indices for MAP and Recall
+                map_index = 1  # MAP is always first if enabled
+                recall_index = map_index + 1 if cfg.compute_map else 1
+                
+                # Make sure all results have the required indices
+                if all(len(result) > recall_index for result in sorted_results):
+                    map_scores = [r[map_index] for r in sorted_results]
+                    recall_scores = [r[recall_index] for r in sorted_results]
+                    correlation = np.corrcoef(map_scores, recall_scores)[0, 1]
+                    f.write(f"**MAP-Recall Correlation**: {correlation:.3f} ")
+                    f.write("(indicates how well ranking quality correlates with coverage)\n\n")
         
         # Add visualizations section if there are any
         if viz_files:
@@ -316,22 +364,29 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write("Differences greater than 0.05 may indicate practically significant improvements ")
             f.write("for real-world applications.\n\n")
             
-            # Create significance tables for each metric
-            idx_map = {
-                "MAP": 1 if cfg.compute_map else None,
-                "Recall": 2 if cfg.compute_recall else None,
-                "Precision": 3 if cfg.compute_precision else None,
-                "NDCG": 4 if cfg.compute_ndcg else None,
-                "MRR": 5 if cfg.compute_mrr else None
-            }
+            # Create significance tables for each metric - using dynamic indices
+            idx_map = {}
+            metric_index = 1
+            if cfg.compute_map:
+                idx_map["MAP"] = metric_index
+                metric_index += 1
+            if cfg.compute_recall:
+                idx_map["Recall"] = metric_index
+                metric_index += 1
+            if cfg.compute_precision:
+                idx_map["Precision"] = metric_index
+                metric_index += 1
+            if cfg.compute_ndcg:
+                idx_map["NDCG"] = metric_index
+                metric_index += 1
+            if cfg.compute_mrr:
+                idx_map["MRR"] = metric_index
+                metric_index += 1
             
             # Get model names for significance table
             model_names = [result[0].split('/')[-1] for result in sorted_results]
             
             for metric_name, metric_idx in idx_map.items():
-                if metric_idx is None:
-                    continue
-                
                 f.write(f"#### {metric_name}@{cfg.k} Pairwise Differences\n\n")
                 
                 # Create difference matrix
@@ -361,12 +416,25 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             timing_rows = []
             
             for model_name, timing_data in timing_results:
-                timing_rows.append([
-                    model_name,
-                    f"{timing_data['embedding_time']:.2f}",
-                    f"{timing_data['docs_per_second']:.2f}",
-                    f"{timing_data['avg_time_per_doc']*1000:.2f}"
-                ])
+                try:
+                    # Validate timing_data structure
+                    if not isinstance(timing_data, dict):
+                        continue  # Skip invalid data
+                        
+                    # Check for required fields
+                    required_fields = ['embedding_time', 'docs_per_second', 'avg_time_per_doc']
+                    if not all(field in timing_data for field in required_fields):
+                        continue  # Skip incomplete data
+                    
+                    timing_rows.append([
+                        model_name,
+                        f"{timing_data['embedding_time']:.2f}",
+                        f"{timing_data['docs_per_second']:.2f}",
+                        f"{timing_data['avg_time_per_doc']*1000:.2f}"
+                    ])
+                except (TypeError, KeyError, ValueError) as e:
+                    print(f"Warning: Invalid timing data for {model_name}: {e}")
+                    continue
             
             # Sort by docs per second (fastest first)
             timing_rows.sort(key=lambda x: float(x[2]), reverse=True)
@@ -376,21 +444,32 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write("\n\n")
             
             # Find fastest and slowest models
-            fastest_model = timing_rows[0]
-            slowest_model = timing_rows[-1]
-            
-            f.write("#### Performance Insights\n\n")
-            f.write(f"- **Fastest embedding model**: `{fastest_model[0]}` at {fastest_model[2]} docs/second\n")
-            f.write(f"- **Slowest embedding model**: `{slowest_model[0]}` at {slowest_model[2]} docs/second\n")
-            
-            # Calculate speedup
-            if float(slowest_model[2]) > 0:
-                speedup = float(fastest_model[2]) / float(slowest_model[2])
-                f.write(f"- **Performance ratio**: {speedup:.2f}x speed difference between fastest and slowest\n")
+            if timing_rows:  # Only proceed if there are valid timing rows
+                fastest_model = timing_rows[0]
+                slowest_model = timing_rows[-1]
+                
+                f.write("#### Performance Insights\n\n")
+                f.write(f"- **Fastest embedding model**: `{fastest_model[0]}` at {fastest_model[2]} docs/second\n")
+                f.write(f"- **Slowest embedding model**: `{slowest_model[0]}` at {slowest_model[2]} docs/second\n")
+                
+                # Calculate speedup
+                if float(slowest_model[2]) > 0:
+                    speedup = float(fastest_model[2]) / float(slowest_model[2])
+                    f.write(f"- **Performance ratio**: {speedup:.2f}x speed difference between fastest and slowest\n")
+            else:
+                f.write("#### Performance Insights\n\n")
+                f.write("- **No valid timing data available for analysis**\n")
             
             # Add timing visualization reference (with caption)
             timing_viz_file = f"timing_comparison_{timestamp}.png"
-            f.write(f"![Figure: Embedding Speed Comparison]({timing_viz_file})\n\n")
+            
+            # Generate timing visualization if timing data exists
+            try:
+                generate_timing_visualization(timing_results, output_dir, timestamp)
+                f.write(f"![Figure: Embedding Speed Comparison]({timing_viz_file})\n\n")
+                f.write("*Figure: Computational efficiency comparison showing embedding speed and processing time per document.*\n\n")
+            except Exception as e:
+                f.write(f"*Timing visualization could not be generated: {e}*\n\n")
  
          # Technical implementation details
         f.write("## Technical Implementation\n\n")
@@ -420,33 +499,40 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write(f"- **Collection identifier**: `{collection_name}`\n")
             
             # Add additional model information if available
-            try:
-                model = SentenceTransformer(model_name)
-                f.write(f"- **Embedding dimension**: {model.get_sentence_embedding_dimension()}\n")
-                f.write(f"- **Maximum sequence length**: {model.max_seq_length}\n")
-                f.write(f"- **Model architecture**: Transformer-based sentence encoder\n\n")
-            except:
-                f.write("- **Model specifications**: Not available through SentenceTransformers interface\n\n")
+            if SENTENCE_TRANSFORMER_AVAILABLE:
+                try:
+                    model = SentenceTransformer(model_name)
+                    f.write(f"- **Embedding dimension**: {model.get_sentence_embedding_dimension()}\n")
+                    max_seq_len = getattr(model, 'max_seq_length', 'Not available')
+                    f.write(f"- **Maximum sequence length**: {max_seq_len}\n")
+                    f.write(f"- **Model architecture**: Transformer-based sentence encoder\n\n")
+                except Exception as e:
+                    f.write(f"- **Model specifications**: Error loading model ({str(e)})\n\n")
+            else:
+                f.write("- **Model specifications**: SentenceTransformers library not available\n\n")
         
         # Discussion and limitations
         f.write("## Discussion\n\n")
         f.write("### Key Findings\n\n")
         
-        best_model_name = sorted_results[0][0]
-        f.write(f"1. **Model Performance Hierarchy**: {best_model_name} emerged as the top performer, ")
-        f.write(f"achieving superior results across multiple evaluation metrics.\n\n")
-        
-        if len(sorted_results) > 1:
-            second_best = sorted_results[1]
-            map_diff = sorted_results[0][1] - second_best[1]
+        if sorted_results:
+            best_model_name = sorted_results[0][0]
+            f.write(f"1. **Model Performance Hierarchy**: {best_model_name} emerged as the top performer, ")
+            f.write(f"achieving superior results across multiple evaluation metrics.\n\n")
             
-            f.write(f"2. **Performance Gaps**: The performance difference between the best and second-best ")
-            f.write(f"models ({map_diff:.4f} MAP@{cfg.k}) suggests that model selection significantly ")
-            f.write(f"impacts retrieval quality.\n\n")
-        
-        f.write("3. **Automated Evaluation Viability**: The LLM-assisted query and relevance generation ")
-        f.write("process demonstrates the feasibility of automated benchmark creation for domain-specific ")
-        f.write("document collections.\n\n")
+            if len(sorted_results) > 1:
+                second_best = sorted_results[1]
+                map_diff = sorted_results[0][1] - second_best[1]
+                
+                f.write(f"2. **Performance Gaps**: The performance difference between the best and second-best ")
+                f.write(f"models ({map_diff:.4f} MAP@{cfg.k}) suggests that model selection significantly ")
+                f.write(f"impacts retrieval quality.\n\n")
+            
+            f.write("3. **Automated Evaluation Viability**: The LLM-assisted query and relevance generation ")
+            f.write("process demonstrates the feasibility of automated benchmark creation for domain-specific ")
+            f.write("document collections.\n\n")
+        else:
+            f.write("1. **No Model Results**: This report was generated without model evaluation results.\n\n")
         
         f.write("### Limitations and Future Work\n\n")
         f.write("- **Single-domain evaluation**: Current results are specific to the evaluated document collection\n")
@@ -461,15 +547,20 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("Our automated pipeline successfully generated meaningful evaluation datasets and provided ")
         f.write("statistically robust comparisons of model performance. ")
         
-        f.write(f"The results demonstrate that **{best_model_name}** provides optimal retrieval performance ")
-        f.write(f"for the evaluated document collection, with a MAP@{cfg.k} score of {sorted_results[0][1]:.4f}. ")
-        
-        if len(sorted_results) > 1 and (sorted_results[0][1] - sorted_results[-1][1]) > 0.1:
-            f.write("The substantial performance variations across models underscore the importance of ")
-            f.write("systematic evaluation in embedding model selection for production RAG systems.")
+        if sorted_results:
+            best_model_name = sorted_results[0][0]
+            f.write(f"The results demonstrate that **{best_model_name}** provides optimal retrieval performance ")
+            f.write(f"for the evaluated document collection, with a MAP@{cfg.k} score of {sorted_results[0][1]:.4f}. ")
+            
+            if len(sorted_results) > 1 and (sorted_results[0][1] - sorted_results[-1][1]) > 0.1:
+                f.write("The substantial performance variations across models underscore the importance of ")
+                f.write("systematic evaluation in embedding model selection for production RAG systems.")
+            else:
+                f.write("While performance differences were moderate, the evaluation framework provides ")
+                f.write("valuable insights for informed model selection based on specific application requirements.")
         else:
-            f.write("While performance differences were moderate, the evaluation framework provides ")
-            f.write("valuable insights for informed model selection based on specific application requirements.")
+            f.write("The framework demonstrates the potential for automated benchmarking, though specific ")
+            f.write("performance conclusions require model evaluation results.")
         
         f.write("\n\nThe open-source nature of our evaluation framework enables researchers and practitioners ")
         f.write("to adapt the methodology for their specific domains and requirements, contributing to ")
@@ -502,15 +593,28 @@ def generate_visualizations(model_results, output_dir, timestamp):
     # Set style
     plt.style.use('ggplot')  # Use a built-in matplotlib style
     
-    # Prepare data
+    # Prepare data - Dynamic metric extraction based on config
     model_names = [result[0].split('/')[-1] for result in model_results]  # Use shorter names
-    metrics = {
-        "MAP": [result[1] for result in model_results] if cfg.compute_map else None,
-        "Recall": [result[2] for result in model_results] if cfg.compute_recall else None,
-        "Precision": [result[3] for result in model_results] if cfg.compute_precision else None,
-        "NDCG": [result[4] for result in model_results] if cfg.compute_ndcg else None,
-        "MRR": [result[5] for result in model_results] if cfg.compute_mrr else None
-    }
+    
+    # Build metrics dictionary dynamically based on configuration
+    metrics = {}
+    metric_index = 1  # Start from index 1 (index 0 is model name)
+    
+    if cfg.compute_map:
+        metrics["MAP"] = [result[metric_index] for result in model_results]
+        metric_index += 1
+    if cfg.compute_recall:
+        metrics["Recall"] = [result[metric_index] for result in model_results]
+        metric_index += 1
+    if cfg.compute_precision:
+        metrics["Precision"] = [result[metric_index] for result in model_results]
+        metric_index += 1
+    if cfg.compute_ndcg:
+        metrics["NDCG"] = [result[metric_index] for result in model_results]
+        metric_index += 1
+    if cfg.compute_mrr:
+        metrics["MRR"] = [result[metric_index] for result in model_results]
+        metric_index += 1
     
     # 1. Bar chart comparing all metrics across models
     plt.figure(figsize=(12, 8))
@@ -524,9 +628,6 @@ def generate_visualizations(model_results, output_dir, timestamp):
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     
     for i, (metric_name, metric_values) in enumerate(metrics.items()):
-        if metric_values is None:
-            continue
-        
         plt.bar(x + offset, metric_values, width, label=f"{metric_name}@{cfg.k}", 
                 color=colors[i % len(colors)])
         offset += width
@@ -548,9 +649,6 @@ def generate_visualizations(model_results, output_dir, timestamp):
     # 2. Individual metric charts if there are multiple models
     if len(model_results) > 1:
         for j, (metric_name, metric_values) in enumerate(metrics.items()):
-            if metric_values is None:
-                continue
-                
             plt.figure(figsize=(10, 6))
             color = colors[j % len(colors)]
             
@@ -582,6 +680,73 @@ def generate_visualizations(model_results, output_dir, timestamp):
             plt.close()
     
     return viz_files
+
+
+def generate_timing_visualization(timing_results, output_dir, timestamp):
+    """Generate timing performance visualization."""
+    if not timing_results:
+        return {}
+    
+    try:
+        # Extract timing data
+        models = [result[0].split('/')[-1] for result in timing_results]  # Short names
+        docs_per_second = []
+        embedding_times = []
+        avg_time_per_doc = []
+        
+        for model_name, timing_data in timing_results:
+            if timing_data.get('embedding_time') is not None:
+                embedding_times.append(timing_data['embedding_time'])
+                docs_per_second.append(timing_data['docs_per_second'])
+                avg_time_per_doc.append(timing_data['avg_time_per_doc'] * 1000)  # Convert to ms
+            else:
+                # Skip models without timing data
+                continue
+        
+        if not docs_per_second:  # No valid timing data
+            return {}
+        
+        # Create dual-axis plot
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+        
+        # Chart 1: Documents per second (throughput)
+        bars1 = ax1.bar(models, docs_per_second, color='skyblue', alpha=0.8)
+        ax1.set_xlabel('Models', fontsize=12)
+        ax1.set_ylabel('Documents per Second', fontsize=12)
+        ax1.set_title('Embedding Throughput Performance', fontsize=14, weight='bold')
+        ax1.tick_params(axis='x', rotation=45)
+        
+        # Add value labels on bars
+        for bar in bars1:
+            height = bar.get_height()
+            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.05,
+                    f'{height:.1f}', ha='center', va='bottom')
+        
+        # Chart 2: Average time per document
+        bars2 = ax2.bar(models, avg_time_per_doc, color='lightcoral', alpha=0.8)
+        ax2.set_xlabel('Models', fontsize=12)
+        ax2.set_ylabel('Average Time per Document (ms)', fontsize=12)
+        ax2.set_title('Processing Time per Document', fontsize=14, weight='bold')
+        ax2.tick_params(axis='x', rotation=45)
+        
+        # Add value labels on bars
+        for bar in bars2:
+            height = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                    f'{height:.1f}ms', ha='center', va='bottom')
+        
+        plt.tight_layout()
+        
+        # Save figure
+        timing_viz_file = os.path.join(output_dir, f"timing_comparison_{timestamp}.png")
+        plt.savefig(timing_viz_file, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        return {"timing": timing_viz_file}
+        
+    except Exception as e:
+        print(f"Error generating timing visualization: {e}")
+        return {}
 
 
 def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, output_dir, timestamp):
@@ -792,7 +957,7 @@ def print_results_summary(model_results):
     """Print benchmark results summary table."""
     from tabulate import tabulate
 
-    # Build headers
+    # Build headers dynamically
     headers = ["Model"]
     if cfg.compute_map:       headers.append(f"MAP@{cfg.k}")
     if cfg.compute_recall:    headers.append(f"Recall@{cfg.k}")
@@ -811,19 +976,20 @@ def print_results_summary(model_results):
     print("\nBenchmark Results Summary\n")
     print(tabulate(table_data, headers=headers, tablefmt="github"))
 
-    # Summary statistics
-    # (only for metrics that exist)
+    # Summary statistics - use actual metric indices from model_results
     print("\nSummary Statistics\n")
+    
+    metric_idx = 1  # Start from index 1 (0 is model name)
     if cfg.compute_map:
-        map_idx = headers.index(f"MAP@{cfg.k}")
-        scores = [float(r[map_idx]) for r in table_data]
+        scores = [result[metric_idx] for result in model_results]
         print(f"• MAP@{cfg.k}: Best={max(scores):.4f}, "
               f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
+        metric_idx += 1
     if cfg.compute_recall:
-        rec_idx = headers.index(f"Recall@{cfg.k}")
-        scores = [float(r[rec_idx]) for r in table_data]
+        scores = [result[metric_idx] for result in model_results]
         print(f"• Recall@{cfg.k}: Best={max(scores):.4f}, "
               f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
+        metric_idx += 1
     print()
 
 
