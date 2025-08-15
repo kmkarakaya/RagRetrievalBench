@@ -315,12 +315,40 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             best_model = sorted_results[0]
             worst_model = sorted_results[-1]
             
-            f.write(f"The evaluation reveals significant performance variations across embedding models. ")
-            f.write(f"**{best_model[0]}** achieved the highest MAP@{cfg.k} score of {best_model[1]:.4f}, ")
-            f.write(f"while **{worst_model[0]}** scored {worst_model[1]:.4f}, representing a ")
-            f.write(f"**{((best_model[1] - worst_model[1]) / worst_model[1] * 100):.1f}% improvement**.\n\n")
+            # Get the primary metric name and value dynamically
+            primary_metric_name = None
+            primary_metric_value_best = None
+            primary_metric_value_worst = None
             
-            # Correlation analysis between metrics
+            metric_idx = 1
+            if cfg.compute_map:
+                primary_metric_name = f"MAP@{cfg.k}"
+                primary_metric_value_best = best_model[metric_idx]
+                primary_metric_value_worst = worst_model[metric_idx]
+            elif cfg.compute_recall:
+                primary_metric_name = f"Recall@{cfg.k}"
+                primary_metric_value_best = best_model[metric_idx]
+                primary_metric_value_worst = worst_model[metric_idx]
+            elif cfg.compute_precision:
+                primary_metric_name = f"Precision@{cfg.k}"
+                primary_metric_value_best = best_model[metric_idx]
+                primary_metric_value_worst = worst_model[metric_idx]
+            elif cfg.compute_ndcg:
+                primary_metric_name = f"NDCG@{cfg.k}"
+                primary_metric_value_best = best_model[metric_idx]
+                primary_metric_value_worst = worst_model[metric_idx]
+            elif cfg.compute_mrr:
+                primary_metric_name = f"MRR@{cfg.k}"
+                primary_metric_value_best = best_model[metric_idx]
+                primary_metric_value_worst = worst_model[metric_idx]
+            
+            if primary_metric_name and primary_metric_value_best is not None:
+                f.write(f"The evaluation reveals significant performance variations across embedding models. ")
+                f.write(f"**{best_model[0]}** achieved the highest {primary_metric_name} score of {primary_metric_value_best:.4f}, ")
+                f.write(f"while **{worst_model[0]}** scored {primary_metric_value_worst:.4f}, representing a ")
+                f.write(f"**{((primary_metric_value_best - primary_metric_value_worst) / primary_metric_value_worst * 100):.1f}% improvement**.\n\n")
+            
+            # Correlation analysis between metrics - only if both MAP and Recall are enabled
             if cfg.compute_map and cfg.compute_recall and len(sorted_results) > 0 and len(sorted_results[0]) > 2:
                 # Find the correct indices for MAP and Recall
                 map_index = 1  # MAP is always first if enabled
@@ -522,11 +550,31 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             
             if len(sorted_results) > 1:
                 second_best = sorted_results[1]
-                map_diff = sorted_results[0][1] - second_best[1]
+                # Use dynamic metric detection instead of hardcoded MAP
+                primary_metric_name = None
+                primary_diff = None
                 
-                f.write(f"2. **Performance Gaps**: The performance difference between the best and second-best ")
-                f.write(f"models ({map_diff:.4f} MAP@{cfg.k}) suggests that model selection significantly ")
-                f.write(f"impacts retrieval quality.\n\n")
+                metric_idx = 1
+                if cfg.compute_map:
+                    primary_metric_name = f"MAP@{cfg.k}"
+                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
+                elif cfg.compute_recall:
+                    primary_metric_name = f"Recall@{cfg.k}"
+                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
+                elif cfg.compute_precision:
+                    primary_metric_name = f"Precision@{cfg.k}"
+                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
+                elif cfg.compute_ndcg:
+                    primary_metric_name = f"NDCG@{cfg.k}"
+                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
+                elif cfg.compute_mrr:
+                    primary_metric_name = f"MRR@{cfg.k}"
+                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
+                
+                if primary_metric_name and primary_diff is not None:
+                    f.write(f"2. **Performance Gaps**: The performance difference between the best and second-best ")
+                    f.write(f"models ({primary_diff:.4f} {primary_metric_name}) suggests that model selection significantly ")
+                    f.write(f"impacts retrieval quality.\n\n")
             
             f.write("3. **Automated Evaluation Viability**: The LLM-assisted query and relevance generation ")
             f.write("process demonstrates the feasibility of automated benchmark creation for domain-specific ")
@@ -549,15 +597,46 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         if sorted_results:
             best_model_name = sorted_results[0][0]
-            f.write(f"The results demonstrate that **{best_model_name}** provides optimal retrieval performance ")
-            f.write(f"for the evaluated document collection, with a MAP@{cfg.k} score of {sorted_results[0][1]:.4f}. ")
             
-            if len(sorted_results) > 1 and (sorted_results[0][1] - sorted_results[-1][1]) > 0.1:
-                f.write("The substantial performance variations across models underscore the importance of ")
-                f.write("systematic evaluation in embedding model selection for production RAG systems.")
+            # Get the primary metric name and score dynamically
+            primary_metric_name = None
+            primary_score = None
+            
+            metric_idx = 1
+            if cfg.compute_map:
+                primary_metric_name = f"MAP@{cfg.k}"
+                primary_score = sorted_results[0][metric_idx]
+            elif cfg.compute_recall:
+                primary_metric_name = f"Recall@{cfg.k}"
+                primary_score = sorted_results[0][metric_idx]
+            elif cfg.compute_precision:
+                primary_metric_name = f"Precision@{cfg.k}"
+                primary_score = sorted_results[0][metric_idx]
+            elif cfg.compute_ndcg:
+                primary_metric_name = f"NDCG@{cfg.k}"
+                primary_score = sorted_results[0][metric_idx]
+            elif cfg.compute_mrr:
+                primary_metric_name = f"MRR@{cfg.k}"
+                primary_score = sorted_results[0][metric_idx]
+            
+            if primary_metric_name and primary_score is not None:
+                f.write(f"The results demonstrate that **{best_model_name}** provides optimal retrieval performance ")
+                f.write(f"for the evaluated document collection, with a {primary_metric_name} score of {primary_score:.4f}. ")
             else:
-                f.write("While performance differences were moderate, the evaluation framework provides ")
-                f.write("valuable insights for informed model selection based on specific application requirements.")
+                f.write(f"The results demonstrate that **{best_model_name}** provides optimal retrieval performance ")
+                f.write(f"for the evaluated document collection. ")
+            
+            if len(sorted_results) > 1 and len(sorted_results[0]) > 1:
+                performance_gap = sorted_results[0][1] - sorted_results[-1][1]
+                if performance_gap > 0.1:
+                    f.write("The substantial performance variations across models underscore the importance of ")
+                    f.write("systematic evaluation in embedding model selection for production RAG systems.")
+                else:
+                    f.write("While performance differences were moderate, the evaluation framework provides ")
+                    f.write("valuable insights for informed model selection based on specific application requirements.")
+            else:
+                f.write("The evaluation framework provides valuable insights for informed model selection ")
+                f.write("based on specific application requirements.")
         else:
             f.write("The framework demonstrates the potential for automated benchmarking, though specific ")
             f.write("performance conclusions require model evaluation results.")
