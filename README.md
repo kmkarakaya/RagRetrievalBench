@@ -4,6 +4,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+**Owner: Murat Karakaya**
+- Website: [www.muratkarakaya.net](https://www.muratkarakaya.net)
+- YouTube: [Murat Karakaya Akademi](https://www.youtube.com/@MuratKarakayaAkademi)
+
 A comprehensive evaluation framework for embedding models in Retrieval Augmented Generation (RAG) systems. This tool provides automated benchmarking of embedding models using real document collections, synthetic query generation, and standardized information retrieval metrics.
 
 ## 🚀 Features
