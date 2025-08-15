@@ -65,7 +65,7 @@ n_queries = 5
 chunks_per_query = 1
 
 # How many candidates to retrieve for labeling
-candidate_pool_size = 5
+candidate_pool_size = 10
 
 # LLM settings
 llm_model = "gemini-2.5-flash-lite"
