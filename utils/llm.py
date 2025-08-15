@@ -13,27 +13,16 @@ import benchmark_config as cfg
 def initialize_genai_client():
     import os.path
     from dotenv import load_dotenv
-    # Check if .env file exists
+    
+    # Check if .env file exists and load it
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
     if os.path.exists(env_path):
         load_dotenv(env_path)
-    else:
-        print("Warning: .env file not found at", env_path)
-        # For testing, raise exception instead of exit
-        if 'pytest' in sys.modules:
-            raise ValueError("GEMINI_API_KEY not found")
-        exit(1)
     
-    # Get API key from environment variables
+    # Get API key from environment variables (either from .env or system)
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         api_key = os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            print("Error: No API key found in environment variables")
-            # For testing, raise exception instead of exit
-            if 'pytest' in sys.modules:
-                raise ValueError("GEMINI_API_KEY not found")
-            exit(1)
     
     if not api_key:
         raise ValueError(
@@ -54,23 +43,27 @@ def initialize_genai_client():
 def generate_content(system_prompt, user_prompt) -> str:
     """
     Generate content using the Gemini API.
-
+    Raises:
+        ValueError: If API call fails or returns empty response
     """
-    client = initialize_genai_client()
-    config = types.GenerateContentConfig(
-        system_instruction=system_prompt,
-        temperature=cfg.temperature
-    )
+    try:
+        client = initialize_genai_client()
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=cfg.temperature
+        )
 
-    # Use the model
-    response = client.models.generate_content(
-        model=cfg.llm_model,
-        config=config,
-        contents=user_prompt
-    )
-    
- 
-    return response.text
+        # Use the model
+        response = client.models.generate_content(
+            model=cfg.llm_model,
+            config=config,
+            contents=user_prompt
+        )
+        if not response or not response.text:
+            raise ValueError("API returned empty response")
+        return response.text
+    except Exception as e:
+        raise ValueError(f"API call failed: {str(e)}")
 
 # Example usage
 if __name__ == "__main__":    
