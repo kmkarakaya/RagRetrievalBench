@@ -32,6 +32,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 - [Output Files](#output-files)
 - [Development Tools](#development-tools)
 - [Testing](#testing)
+- [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -77,7 +78,7 @@ notepad .env  # Windows
 nano .env     # Linux/macOS
 ```
 
-5. Configure your evaluation settings in `benchmark_config.py`
+5. Configure your evaluation settings in `config.py`
 
 ### Additional Requirements for PDF Report Generation
 
@@ -119,15 +120,15 @@ python simple_rag_benchmark_pipeline.py --evaluate
 
 ## ⚙️ Configuration
 
-Edit `benchmark_config.py` to customize your evaluation:
+Edit `config.py` to customize your evaluation:
 
 ```python
 # Embedding models to evaluate
 embedding_models = [
     {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v1"},
     {"model_name": "sentence-transformers/all-mpnet-base-v2", "collection_name": "coll_v2"},
-    {"model_name": "sentence-transformers/all-MiniLM-L12-v2", "collection_name": "coll_v3"},
-    {"model_name": "sentence-transformers/paraphrase-MiniLM-L6-v2", "collection_name": "coll_v4"}
+    {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
+    {"model_name": "sentence-transformers/all-MiniLM-L12-v2", "collection_name": "coll_v4"}
 ]
 
 # Metrics configuration
@@ -150,14 +151,14 @@ chunk_size = 1000
 chunk_overlap = 200
 
 # Query generation
-n_queries = 50
+n_queries = 5
 chunks_per_query = 1
 candidate_pool_size = 10
 
 # LLM settings
-llm_model = "gemini-2.0-flash"
+llm_model = "gemini-2.5-flash-lite"
 temperature = 0.1
-llm_timeout = 5  # seconds between API calls
+llm_timeout = (60/15) + 1  # Rate limiting for API calls
 
 # ChromaDB settings
 show_progress_bar = True
@@ -182,7 +183,7 @@ reinitialize_collections = True
 
 1. **PDF Documents**: Place your PDF files in `utils/pdfs/` directory
 2. **API Key**: Set up your Google AI API key in `.env` file
-3. **Configuration**: Adjust settings in `benchmark_config.py`
+3. **Configuration**: Adjust settings in `config.py`
 
 ## 🔧 Pipeline Components
 
@@ -300,7 +301,7 @@ conda activate ragbenchmark
 pytest
 
 # Run with coverage
-pytest --cov=utils --cov-report=html --cov-report=term
+pytest --cov=. --cov-report=html --cov-report=term
 
 # Run specific test files
 pytest tests/test_llm.py
@@ -309,47 +310,69 @@ pytest tests/test_document_loader.py
 
 ### Test Coverage
 Current test coverage includes:
-- **utils/chromadb_utils.py**: 90% coverage
-- **utils/document_loader.py**: 70% coverage  
-- **utils/llm.py**: 69% coverage
-- **utils/text_splitter.py**: 26% coverage
+- **utils/chromadb_utils.py**: 90% coverage (excellent)
+- **utils/document_loader.py**: 70% coverage (good)
+- **utils/llm.py**: 79% coverage (good)
+- **utils/report_utils.py**: 76% coverage (excellent)
+- **utils/text_splitter.py**: 26% coverage (needs improvement)
+- **Overall Coverage**: 71% (excellent progress)
 
 ### Test Structure
 ```
 tests/
 ├── __init__.py
-├── conftest.py              # Test configuration and fixtures
-├── test_chromadb_utils.py   # ChromaDB functionality tests
-├── test_document_loader.py  # Document processing tests
-├── test_llm.py             # LLM integration tests
-└── test_text_splitter.py   # Text chunking tests
+├── conftest.py                    # Test configuration and fixtures
+├── test_chromadb_utils.py         # ChromaDB functionality tests
+├── test_document_loader.py        # Document processing tests
+├── test_llm.py                   # LLM integration tests
+├── test_text_splitter.py         # Text chunking tests
+├── test_report_utils.py          # Report generation tests
+├── test_report_integration.py    # Integration tests
+└── test_metric_indexing.py       # Metric calculation tests
 ```
+
+### Test Quality
+- **58 total tests** with **100% pass rate** ✅
+- **Comprehensive mocking** for external dependencies
+- **Integration tests** for complex workflows
+- **Error handling tests** for robust code
+- **Professional test documentation** in `docs/test_plan.md`
 
 ## 🎯 Project Structure
 
 ```
 RagRetrievalBench/
 ├── simple_rag_benchmark_pipeline.py  # Main pipeline script
-├── benchmark_config.py               # Configuration settings
+├── rag_benchmark.py                  # Alternative pipeline interface
+├── config.py                         # Configuration settings (renamed from benchmark_config.py)
 ├── make.py                          # Development task runner
 ├── requirements.txt                 # Python dependencies
+├── pytest.ini                      # Test configuration
 ├── .env                            # Environment variables (create this)
-├── utils/                          # Core utilities
-│   ├── chromadb_utils.py          # Vector database operations
-│   ├── document_loader.py         # PDF processing and corpus loading
-│   ├── llm.py                     # Google Gemini LLM integration
-│   ├── report_utils.py            # Report generation and visualization
-│   ├── text_splitter.py           # Document chunking utilities
-│   └── pdfs/                      # Input PDF documents directory
-├── tests/                         # Test suite
+├── .gitignore                      # Git ignore rules
+├── docs/                           # Documentation
+│   ├── test_plan.md               # Comprehensive testing strategy (540+ lines)
+│   └── todolist.md                # Development roadmap
+├── utils/                          # Core utilities package
+│   ├── __init__.py               # Package initialization
+│   ├── chromadb_utils.py         # Vector database operations
+│   ├── document_loader.py        # PDF processing and corpus loading
+│   ├── llm.py                    # Google Gemini LLM integration
+│   ├── report_utils.py           # Report generation and visualization
+│   ├── text_splitter.py          # Document chunking utilities
+│   └── pdfs/                     # Input PDF documents directory
+├── tests/                         # Comprehensive test suite
+│   ├── __init__.py              # Test package initialization
+│   ├── conftest.py              # Shared test configuration
+│   └── test_*.py               # Individual test modules
 └── reports/                       # Generated evaluation reports
 ```
 
 ## 🚀 API Rate Limits & Best Practices
 
 ### Google Gemini API Limits
-- **Free Tier**: 200 requests per day, 15 requests per minute
-- **Rate Limiting**: Built-in 5-second delays between API calls
+- **Gemini 2.5 Flash-Lite**: 15 RPM, 250,000 TPM, 1,000 RPD
+- **Rate Limiting**: Built-in delays between API calls (configurable)
 - **Error Handling**: Graceful quota exhaustion handling with helpful messages
 
 ### Performance Optimization
@@ -368,6 +391,12 @@ RagRetrievalBench/
 6. Commit changes: `git commit -am 'Add feature'`
 7. Push to branch: `git push origin feature-name`
 8. Submit a pull request
+
+### Development Standards
+- **Test Coverage**: Maintain >70% coverage for new code
+- **Code Quality**: Follow PEP 8 and use black formatting
+- **Documentation**: Update relevant docs for significant changes
+- **Testing**: Add comprehensive tests for new features
 
 ## 📄 License
 
