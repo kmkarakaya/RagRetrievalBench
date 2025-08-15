@@ -7,7 +7,7 @@ import os
 # Add parent directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import benchmark_config as cfg
+import config as cfg
 
 
 def initialize_genai_client():

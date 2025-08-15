@@ -7,7 +7,7 @@ from sentence_transformers import evaluation
 import time
 
 
-import benchmark_config as cfg
+import config as cfg
 
 
 def get_chromadb_client():

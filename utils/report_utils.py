@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore', category=RuntimeWarning, module='numpy')
 
 import matplotlib.pyplot as plt
 import numpy as np
-import benchmark_config as cfg
+import config as cfg
 import datetime
 from tabulate import tabulate
 import os

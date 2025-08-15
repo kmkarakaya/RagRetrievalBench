@@ -6,7 +6,7 @@ import re
 import numpy as np
 import argparse
 
-import benchmark_config as cfg
+import config as cfg
 from utils.llm import generate_content
 from utils.chromadb_utils import get_chromadb_client, initialize_collection, evaluate_with_chromadb
 from utils.report_utils import generate_benchmark_report, print_results_summary, print_report_info

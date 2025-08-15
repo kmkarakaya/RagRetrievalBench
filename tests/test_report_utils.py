@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import datetime
 
 # Import benchmark config first to ensure it's available
-import benchmark_config as cfg
+import config as cfg
 
 # Try to import report_utils functions, mock matplotlib if needed
 try:

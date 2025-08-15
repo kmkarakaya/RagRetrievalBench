@@ -14,7 +14,7 @@ sys.modules['matplotlib'] = Mock()
 sys.modules['matplotlib.pyplot'] = Mock()
 
 # Import benchmark config
-import benchmark_config as cfg
+import config as cfg
 
 # Now try to import report_utils functions
 try:
