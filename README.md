@@ -97,7 +97,7 @@ After installing these tools, the framework will generate PDF reports automatica
 conda activate ragbenchmark
 
 # Run the entire benchmark pipeline
-python simple_rag_benchmark_pipeline.py --all
+python rag_benchmark.py --all
 ```
 
 ### Step-by-Step Execution
