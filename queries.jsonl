@@ -1,5 +1,5 @@
-{"query_id": "q1_for_DeepSeek_chunk136", "text": "What are DeepSeek's future research directions for improving AI models?"}
-{"query_id": "q2_for_DeepSeek_chunk24", "text": "What is the Multi-Head Latent Attention (MLA) architecture in DeepSeek-V3 and how does it reduce KV cache during inference?"}
-{"query_id": "q3_for_DeepSeek_chunk143", "text": "What are the key advancements in large language models, including mixture-of-experts architectures and efficient transformer implementations?"}
-{"query_id": "q4_for_Attention_chunk12", "text": "What is Scaled Dot-Product Attention and how is it computed?"}
-{"query_id": "q5_for_DeepSeek_chunk8", "text": "What are the key aspects of DeepSeek-R1 distillation and self-rewarding techniques in LLMs?"}
+{"query_id": "q1_for_DeepSeek_chunk174", "text": "How does auxiliary loss affect expert specialization in large language models?"}
+{"query_id": "q2_for_DeepSeek_chunk112", "text": "How is the reward model trained and what method is used to enhance its reliability?"}
+{"query_id": "q3_for_DeepSeek_chunk117", "text": "What are the performance benchmarks for large language models like DeepSeek, Qwen2.5, LLaMA-3.1, Claude-3.5-Sonnet, and GPT-4o on tasks such as MMLU, DROP, and GPQA?"}
+{"query_id": "q4_for_Attention_chunk31", "text": "What are the performance variations of the Transformer model with different architectural components for English-to-German translation?"}
+{"query_id": "q5_for_Attention_chunk8", "text": "What is self-attention and its applications in NLP tasks?"}
