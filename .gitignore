@@ -1,14 +1,99 @@
-﻿# Ignore .env files
+﻿# Environment / Secrets
 .env
 .env.*
+.env.local
+.env.development
+.env.test
+.env.production
+**/.env
+**/.env.*
+*.env.backup
+*.env.bak
+*.secret
+secrets.*
 
 # Python
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+.hypothesis/
+coverage.xml
+*.out
+*.err
 
-# Database
+# Build & Distribution
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.envrc
+
+# Database & Large files
 *.sqlite3
+*.db
+*.bin
+*.model
+*.safetensors
+*.h5
+*.pkl
+*.pickle
 
-# IDEs
+# Archives / Temp
+*.tmp
+*.bak
+*.old
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# IDE / Editor
 .vscode/
 .idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Project Specific
+utils/chromadb_collections/*
+!utils/chromadb_collections/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# Data files (if not needed in repo)
+data/
+*.csv
+*.jsonl
+*.tsv
