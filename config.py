@@ -68,7 +68,7 @@ chunks_per_query = 1
 candidate_pool_size = 10
 
 # LLM settings
-llm_model = "gemini-2.5-flash-lite"
+llm_model = "gemini-1.5-flash" #"gemini-2.5-flash-lite"
 
 # Requests per minute (RPM) 
 # Tokens per minute (TPM)
@@ -76,7 +76,7 @@ llm_model = "gemini-2.5-flash-lite"
 # Gemini 2.0 Flash-Lite	30 RPM	1,000,000 TPM	200 RPD
 # Gemini 2.0 Flash	    15 RPM 	1,000,000 TPM   200 RPD
 # Gemini 2.5 Flash-Lite	15 RPM	  250,000 TPM 1,000 RPD
-llm_timeout = (60/15) + 1    #  wait for a short time in seconds to avoid hitting API limits
+llm_timeout = (60/10) + 1    #  wait for a short time in seconds to avoid hitting API limits
 
 
 

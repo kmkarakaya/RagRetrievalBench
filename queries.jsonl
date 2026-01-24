@@ -1,5 +1,5 @@
-{"query_id": "q1_for_DeepSeek_chunk174", "text": "How does auxiliary loss affect expert specialization in large language models?"}
-{"query_id": "q2_for_DeepSeek_chunk112", "text": "How is the reward model trained and what method is used to enhance its reliability?"}
-{"query_id": "q3_for_DeepSeek_chunk117", "text": "What are the performance benchmarks for large language models like DeepSeek, Qwen2.5, LLaMA-3.1, Claude-3.5-Sonnet, and GPT-4o on tasks such as MMLU, DROP, and GPQA?"}
-{"query_id": "q4_for_Attention_chunk31", "text": "What are the performance variations of the Transformer model with different architectural components for English-to-German translation?"}
-{"query_id": "q5_for_Attention_chunk8", "text": "What is self-attention and its applications in NLP tasks?"}
+{"query_id": "q1_for_DeepSeek_chunk65", "text": "What are the precision considerations for activations in low-precision training, particularly for linear and attention operators?"}
+{"query_id": "q2_for_DeepSeek_chunk30", "text": "How does DeepSeek-V3 balance expert load during training using bias terms and a complementary sequence-wise auxiliary loss?"}
+{"query_id": "q3_for_Attention_chunk15", "text": "What is multi-head attention and how does it work in transformer models?"}
+{"query_id": "q4_for_DeepSeek_chunk144", "text": "What are recent advancements in scaling large language models and efficient training techniques?"}
+{"query_id": "q5_for_DeepSeek_chunk61", "text": "How to improve FP8 training accuracy by accumulating intermediate results in FP32 on CUDA Cores?"}

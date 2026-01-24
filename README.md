@@ -103,19 +103,19 @@ python rag_benchmark.py --all
 ### Step-by-Step Execution
 ```bash
 # 1. Process PDFs into document chunks
-python simple_rag_benchmark_pipeline.py --prepare-corpus
+python rag_benchmark.py --prepare-corpus
 
 # 2. Generate evaluation queries
-python simple_rag_benchmark_pipeline.py --generate-queries
+python rag_benchmark.py --generate-queries
 
 # 3. Create relevance judgments
-python simple_rag_benchmark_pipeline.py --generate-qrels
+python rag_benchmark.py --generate-qrels
 
 # 4. Initialize embedding collections
-python simple_rag_benchmark_pipeline.py --initialize
+python rag_benchmark.py --initialize
 
 # 5. Run evaluation and generate reports
-python simple_rag_benchmark_pipeline.py --evaluate
+python rag_benchmark.py --evaluate
 ```
 
 ## ⚙️ Configuration
@@ -297,25 +297,29 @@ The `make.py clean` command removes:
 # Activate environment
 conda activate ragbenchmark
 
-# Run all tests
-pytest
+# Run all tests (recommended)
+python make.py test
 
-# Run with coverage
-pytest --cov=. --cov-report=html --cov-report=term
+# Run with coverage (defaults to utils coverage)
+python make.py test-cov
 
 # Run specific test files
 pytest tests/test_llm.py
 pytest tests/test_document_loader.py
+
+# Full-project coverage (optional)
+pytest --cov=. --cov-report=html --cov-report=term
 ```
 
 ### Test Coverage
-Current test coverage includes:
-- **utils/chromadb_utils.py**: 90% coverage (excellent)
-- **utils/document_loader.py**: 70% coverage (good)
-- **utils/llm.py**: 79% coverage (good)
-- **utils/report_utils.py**: 76% coverage (excellent)
-- **utils/text_splitter.py**: 26% coverage (needs improvement)
-- **Overall Coverage**: 71% (excellent progress)
+Coverage varies by module and changes over time. To generate current numbers:
+```bash
+python make.py test-cov
+```
+For full-project coverage, use:
+```bash
+pytest --cov=. --cov-report=html --cov-report=term
+```
 
 ### Test Structure
 ```
@@ -332,25 +336,31 @@ tests/
 ```
 
 ### Test Quality
-- **58 total tests** with **100% pass rate** ✅
+- **Unit + integration tests** across core utilities and reporting
 - **Comprehensive mocking** for external dependencies
-- **Integration tests** for complex workflows
-- **Error handling tests** for robust code
-- **Professional test documentation** in `docs/test_plan.md`
+- **Integration tests** for complex workflows (marked `integration` in `pytest.ini`)
+- **Error handling tests** for robust code paths
+- **Test plan** in `docs/test_plan.md`
 
 ## 🎯 Project Structure
 
 ```
 RagRetrievalBench/
-├── simple_rag_benchmark_pipeline.py  # Main pipeline script
-├── rag_benchmark.py                  # Alternative pipeline interface
-├── config.py                         # Configuration settings (renamed from benchmark_config.py)
+├── rag_benchmark.py                  # Main pipeline script
+├── config.py                         # Configuration settings
 ├── make.py                          # Development task runner
 ├── requirements.txt                 # Python dependencies
 ├── pytest.ini                      # Test configuration
 ├── .env                            # Environment variables (create this)
+├── .env.template                   # Environment variables template
 ├── .gitignore                      # Git ignore rules
+├── current_versions.txt            # Version tracking
+├── test_plan.md                    # Placeholder (see docs/test_plan.md)
+├── test_report_issues.py           # Test issue reporting script
+├── backend/                        # Backend-related files
 ├── docs/                           # Documentation
+│   ├── benchmark_workflow.md      # Benchmark workflow documentation
+│   ├── MAP_CALCULATION_SUMMARY.md # MAP calculation summary
 │   ├── test_plan.md               # Comprehensive testing strategy (540+ lines)
 │   └── todolist.md                # Development roadmap
 ├── utils/                          # Core utilities package
@@ -360,6 +370,7 @@ RagRetrievalBench/
 │   ├── llm.py                    # Google Gemini LLM integration
 │   ├── report_utils.py           # Report generation and visualization
 │   ├── text_splitter.py          # Document chunking utilities
+│   ├── chromadb_collections/     # ChromaDB collections storage
 │   └── pdfs/                     # Input PDF documents directory
 ├── tests/                         # Comprehensive test suite
 │   ├── __init__.py              # Test package initialization
