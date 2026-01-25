@@ -68,7 +68,7 @@ chunks_per_query = 1
 candidate_pool_size = 10
 
 # LLM settings
-llm_model = "gemini-1.5-flash" #"gemini-2.5-flash-lite"
+llm_model = "models/gemini-2.5-flash-lite"
 
 # Requests per minute (RPM) 
 # Tokens per minute (TPM)
@@ -92,14 +92,15 @@ Here is the document:
 """
 
 generate_qrels_system_instruction ="""
-ou are an expert Information Retrieval judge. 
+You are an expert Information Retrieval judge. 
 You will receive a user question and a candidate excerpt from a document.
-Your task is to determine if the excerpt fully answers the question.:
+Your task is to determine if the excerpt fully answers the question.
+Example:
 Question: What are the key benefits of X?
- “Text excerpt from a document”
-You will respond with a binary relevance label 0 or 1, where 0 means the excerpt does not relate to the question 
+"Text excerpt from a document"
+Respond with a binary relevance label 0 or 1, where 0 means the excerpt does not relate to the question 
 and 1 means it does have the complete or partial information.
-just return 0 or 1, do not add any other text in JSON format:
+Return only a JSON object in this format:
 
 {
     "relevance": 0 or 1

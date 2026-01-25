@@ -8,6 +8,7 @@ import argparse
 
 import config as cfg
 from utils.llm import generate_content
+from utils.batch_manager import BatchManager
 from utils.chromadb_utils import get_chromadb_client, initialize_collection, evaluate_with_chromadb
 from utils.report_utils import generate_benchmark_report, print_results_summary, print_report_info
 from utils.document_loader import prepare_corpus_from_pdfs
@@ -29,9 +30,50 @@ def prepare_corpus_from_pdfs_wrapper():
     print(f"Corpus preparation complete: {result['chunks_created']} chunks created")
     return result
 
+def extract_response_text(batch_result):
+    """Helper to extract text from a Batch API result object."""
+    try:
+        # Check for candidates directly in response
+        response = batch_result.get("response", {})
+        candidates = response.get("candidates", [])
+        
+        # Fallback: check for body (sometimes SDK wrappers might use this)
+        if not candidates:
+            candidates = response.get("body", {}).get("candidates", [])
+            
+        if candidates:
+            return candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
+    except Exception:
+        pass
+    return ""
 
 
-def generate_queries_from_corpus() -> dict[str,str]:
+
+def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dict[str,str]:
+    # --- Batch Fetch Mode ---
+    if batch_fetch_id:
+        print(f"Fetching QUERY results for batch {batch_fetch_id}...")
+        bm = BatchManager()
+        results = bm.download_results(batch_fetch_id)
+        if not results:
+            return
+
+        print(f"Writing {len(results)} queries to {cfg.queries_file}...")
+        with open(cfg.queries_file, 'w', encoding='utf-8') as f:
+            for res in results:
+                # Key maps to query_id
+                key = res.get("custom_id") or res.get("key")
+                text = extract_response_text(res)
+                
+                if key and text:
+                    f.write(json.dumps({"query_id": key, "text": text}) + "\n")
+        
+        # Update batch history to indicate successful fetch
+        bm.update_batch_status(batch_fetch_id, "FETCHED_SUCCESSFULLY")
+        print("Done.")
+        return
+
+    # --- Normal / Submit Mode ---
     print("Selecting seed chunks from corpus...")
     
     # Use the refactored load_corpus function
@@ -40,6 +82,21 @@ def generate_queries_from_corpus() -> dict[str,str]:
     all_ids = list(corpus.keys())
     seed_ids = random.sample(all_ids, cfg.n_queries * cfg.chunks_per_query)
     print(f"Selected {len(seed_ids)} seed chunks for query generation ({cfg.n_queries,cfg.chunks_per_query}) .")
+
+    # Batch Submission
+    if batch_submit:
+        print("Preparing batch request for Queries...")
+        bm = BatchManager()
+        requests = []
+        for i, seed_id in enumerate(seed_ids):
+             query_id = f"q{i+1}_for_{seed_id}"
+             prompt = f"Generate a search query for the following document:\n\n{corpus[seed_id]}\n\nQuery:"
+             req = bm.prepare_request(query_id, prompt, cfg.generate_query_system_instruction, cfg.temperature)
+             requests.append(req)
+        
+        bm.submit_batch(requests, "query_gen")
+        print("Batch processing started. Please note the Job Name above for fetching results.")
+        return
     
     # Generate and save queries in same loop
     print(f"Generating and saving queries to {cfg.queries_file}...")
@@ -58,7 +115,52 @@ def generate_queries_from_corpus() -> dict[str,str]:
             
     print("Query generation and saving complete. Queries saved to", cfg.queries_file)
  
-def generate_qrels():
+def generate_qrels(batch_submit=False, batch_fetch_id=None):
+    # --- Batch Fetch Mode ---
+    if batch_fetch_id:
+        print(f"Fetching QRELS results for batch {batch_fetch_id}...")
+        bm = BatchManager()
+        results = bm.download_results(batch_fetch_id)
+        if not results:
+            return
+
+        print(f"Writing qrels to {cfg.qrels_file}...")
+        with open(cfg.qrels_file, 'w', encoding='utf-8') as f:
+            for res in results:
+                key = res.get("custom_id") or res.get("key")
+                text = extract_response_text(res)
+                if not key or not text:
+                    continue
+
+                # Parse Key (format: query_id|||doc_id)
+                try:
+                    query_id, doc_id = key.split("|||")
+                except ValueError:
+                    print(f"Skipping invalid key format: {key}")
+                    continue
+
+                # Parse Score
+                rel_score = 0
+                try:
+                    json_pattern = r'({[\s\S]*?})'
+                    match = re.search(json_pattern, text)
+                    if match:
+                        relevance_json = json.loads(match.group(1))
+                        rel_score = relevance_json.get("relevance", 0)
+                    else:
+                        relevance_json = json.loads(text)
+                        rel_score = relevance_json.get("relevance", 0)
+                except Exception:
+                    pass # Default to 0
+
+                if rel_score > 0:
+                     f.write(f"{query_id}\t{doc_id}\t{rel_score}\n")
+
+        # Update batch history to indicate successful fetch
+        bm.update_batch_status(batch_fetch_id, "FETCHED_SUCCESSFULLY")
+        print("Done.")
+        return
+
     # Use refactored load_corpus function
     corpus = load_corpus_from_file(cfg.corpus_file)
     # Use the first configured model and collection for qrels generation
@@ -82,6 +184,28 @@ def generate_qrels():
     # Load queries using refactored function
     queries = load_queries_from_file(cfg.queries_file)
     print(f"Loaded {len(queries)} queries.")
+
+    # Batch Submission
+    if batch_submit:
+        print("Preparing batch request for Qrels...")
+        bm = BatchManager()
+        requests = []
+        
+        for query_id, query_text in queries.items():
+            results = collection.query(query_texts=[query_text], n_results=cfg.candidate_pool_size)
+            ids = results['ids'][0]
+            docs = results['documents'][0]
+            
+            for i, (doc_id, text) in enumerate(zip(ids, docs)):
+                prompt = f"Question: {query_text}\n{i+1}. [{doc_id}] \"{text}\"\n\n"
+                # Use a safe separator for the composite key
+                key = f"{query_id}|||{doc_id}"
+                req = bm.prepare_request(key, prompt, cfg.generate_qrels_system_instruction, cfg.temperature)
+                requests.append(req)
+        
+        bm.submit_batch(requests, "qrels_gen")
+        print(f"Submitted {len(requests)} judgments.")
+        return
 
     print("Generating qrels file...")
     # Create qrels file outside the loop
@@ -164,6 +288,12 @@ def main():
     parser.add_argument("--initialize", action="store_true", help="Initialize collections")
     parser.add_argument("--evaluate", action="store_true", help="Evaluate models")
     parser.add_argument("--all", action="store_true", help="Run complete pipeline")
+    
+    # New Batch Arguments
+    parser.add_argument("--batch-submit", action="store_true", help="Submit tasks to Gemini Batch API instead of running locally")
+    parser.add_argument("--batch-fetch", type=str, help="Fetch results for a specific Batch Job Name (ID)")
+    parser.add_argument("--batch_status", action="store_true", help="List all batch jobs and their statuses")
+    
     args = parser.parse_args()
 
     # Create necessary directories
@@ -176,15 +306,31 @@ def main():
         return
         
     if args.generate_queries:
-        generate_queries_from_corpus()
+        generate_queries_from_corpus(batch_submit=args.batch_submit, batch_fetch_id=args.batch_fetch)
         return
         
     if args.generate_qrels:
-        generate_qrels()
+        generate_qrels(batch_submit=args.batch_submit, batch_fetch_id=args.batch_fetch)
         return
         
+    if args.batch_status:
+        history_file = "reports/batch_history.jsonl"
+        if os.path.exists(history_file):
+            print("Batch Job History:")
+            with open(history_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    entry = json.loads(line.strip())
+                    print(f"- {entry['batch_id']}: {entry['status']} ({entry['type']}) - {entry['timestamp']}")
+        else:
+            print("No batch history found.")
+        return
+    
     # Handle complete pipeline
     if args.all:
+        if args.batch_submit or args.batch_fetch:
+            print("Error: --all cannot be used with batch modes. Please run steps individually.")
+            return
+
         print("Starting complete RAG benchmark pipeline...")
         prepare_corpus_from_pdfs_wrapper()
         generate_queries_from_corpus()
@@ -193,6 +339,43 @@ def main():
         
     # Handle initialization and evaluation
     if args.initialize or args.evaluate or args.all:
+        
+        # --- PATH 1: Initialization Only ---
+        # If we are ONLY initializing, we just need the corpus.
+        if args.initialize and not args.evaluate and not args.all:
+            if not os.path.exists(cfg.corpus_file):
+                raise FileNotFoundError(f"Corpus file not found: {cfg.corpus_file}")
+            
+            print("Loading corpus for initialization...")
+            corpus = load_corpus_from_file(cfg.corpus_file)
+            
+            # Initialize collections and collect timing data
+            timing_results = []
+            for model_cfg in cfg.embedding_models:
+                model_name = model_cfg["model_name"]
+                collection_name = model_cfg["collection_name"]
+                timing_data = initialize_collection(corpus, model_name, collection_name)
+                if timing_data and isinstance(timing_data, dict):
+                    timing_results.append((model_name, timing_data))
+            
+            # Save timing data to file for later use
+            if timing_results:
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                timing_file = f"reports/timing_data_{timestamp}.json"
+                
+                with open(timing_file, 'w', encoding='utf-8') as f:
+                    # Convert to dict format for JSON
+                    timing_dict = {model_name: timing_data for model_name, timing_data in timing_results}
+                    json.dump(timing_dict, f, indent=2)
+                print(f"Timing data saved to {timing_file}")
+            
+            print("\nInitialization completed successfully.")
+            return
+
+        # --- PATH 2: Evaluation (or All) ---
+        # Requires all files (Corpus, Queries, Qrels)
+        
         # Validate required files
         for file_path in [cfg.corpus_file, cfg.queries_file, cfg.qrels_file]:
             if not os.path.exists(file_path):
@@ -204,16 +387,34 @@ def main():
         # Load ground truth data ONCE using refactored function
         queries, corpus, relevant_docs = load_ground_truth(cfg.corpus_file, cfg.queries_file, cfg.qrels_file)
         
-        # Initialize containers ONCE
-        model_results = []
+        # Load existing timing data if available
         timing_results = []
+        # Find the most recent timing data file
+        import glob
+        timing_files = glob.glob("reports/timing_data_*.json")
+        if timing_files:
+            # Sort by modification time, get the most recent
+            latest_timing_file = max(timing_files, key=os.path.getmtime)
+            try:
+                with open(latest_timing_file, 'r', encoding='utf-8') as f:
+                    timing_dict = json.load(f)
+                    timing_results = [(model_name, timing_data) for model_name, timing_data in timing_dict.items()]
+                print(f"Loaded timing data from {latest_timing_file}")
+            except Exception as e:
+                print(f"Warning: Could not load timing data from {latest_timing_file}: {e}")
+        else:
+            print("No timing data files found.")
+        
+        # Initialize containers (timing_results may already have data)
+        model_results = []
         
         # Process each model ONCE
         for model_cfg in cfg.embedding_models:
             model_name = model_cfg["model_name"]
             collection_name = model_cfg["collection_name"]
             
-            # Initialize if requested
+            # Initialize if requested (args.all or (args.initialize AND args.evaluate))
+            # Note: Pure args.initialize is handled in PATH 1 above
             if args.initialize or args.all:
                 timing_data = initialize_collection(corpus, model_name, collection_name)
                 if timing_data and isinstance(timing_data, dict):
@@ -237,6 +438,18 @@ def main():
                 # Evaluate model
                 metrics = evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collection_name)
                 model_results.append((model_name, *metrics))
+        
+        # Save updated timing data to file (including any empty entries added during evaluation)
+        if timing_results:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            timing_file = f"reports/timing_data_{timestamp}.json"
+            
+            with open(timing_file, 'w', encoding='utf-8') as f:
+                # Convert to dict format for JSON
+                timing_dict = {model_name: timing_data for model_name, timing_data in timing_results}
+                json.dump(timing_dict, f, indent=2)
+            print(f"Updated timing data saved to {timing_file}")
         
         # Display and generate report ONLY ONCE
         if model_results:

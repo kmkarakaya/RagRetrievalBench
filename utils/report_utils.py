@@ -40,8 +40,21 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     report_file = os.path.join(output_dir, f"benchmark_report_{timestamp}.md")
     
     # Sort models by MAP score for easier comparison (if any results exist)
-    if model_results and cfg.compute_map:
-        sorted_results = sorted(model_results, key=lambda x: x[1], reverse=True)
+    if model_results:
+        # Determine sort index based on primary metric priority
+        # Default priority: MAP -> NDCG -> MRR -> Recall -> Precision
+        if cfg.compute_map:
+            sort_idx = 1
+        elif cfg.compute_ndcg:
+            sort_idx = 4
+        elif cfg.compute_mrr:
+            sort_idx = 5
+        elif cfg.compute_recall:
+            sort_idx = 2
+        else:
+            sort_idx = 3 # Precision
+            
+        sorted_results = sorted(model_results, key=lambda x: x[sort_idx], reverse=True)
     else:
         sorted_results = model_results
     
@@ -95,25 +108,18 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             best_model = sorted_results[0]
             f.write(f"**Best performing model:** `{best_model[0]}`\n")
             
-            # Use dynamic indexing for metrics - only access metrics that exist in the tuple
-            metric_idx = 1
-            available_metrics = len(best_model) - 1  # Subtract 1 for model name
-            
-            if cfg.compute_map and metric_idx < len(best_model):
-                f.write(f"* MAP@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
-                metric_idx += 1
-            if cfg.compute_recall and metric_idx < len(best_model):
-                f.write(f"* Recall@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
-                metric_idx += 1
-            if cfg.compute_precision and metric_idx < len(best_model):
-                f.write(f"* Precision@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
-                metric_idx += 1
-            if cfg.compute_ndcg and metric_idx < len(best_model):
-                f.write(f"* NDCG@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
-                metric_idx += 1
-            if cfg.compute_mrr and metric_idx < len(best_model):
-                f.write(f"* MRR@{cfg.k}: **{best_model[metric_idx]:.4f}**\n")
-                metric_idx += 1
+            # Use fixed indexing matching evaluate_with_chromadb return tuple
+            # Tuple structure: (model_name, map, recall, precision, ndcg, mrr)
+            if cfg.compute_map:
+                f.write(f"* MAP@{cfg.k}: **{best_model[1]:.4f}**\n")
+            if cfg.compute_recall:
+                f.write(f"* Recall@{cfg.k}: **{best_model[2]:.4f}**\n")
+            if cfg.compute_precision:
+                f.write(f"* Precision@{cfg.k}: **{best_model[3]:.4f}**\n")
+            if cfg.compute_ndcg:
+                f.write(f"* NDCG@{cfg.k}: **{best_model[4]:.4f}**\n")
+            if cfg.compute_mrr:
+                f.write(f"* MRR@{cfg.k}: **{best_model[5]:.4f}**\n")
             f.write("\n")
         else:
             f.write("**No model results available for comparison.**\n\n")
@@ -286,22 +292,20 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         # Prepare table data
         table_data = []
         for result in sorted_results:
-            row = [result[0]]  # Model name
-            idx = 1
-            if cfg.compute_map and idx < len(result):
-                row.append(f"{result[idx]:.4f}")
-                idx += 1
-            if cfg.compute_recall and idx < len(result):
-                row.append(f"{result[idx]:.4f}")
-                idx += 1
-            if cfg.compute_precision and idx < len(result):
-                row.append(f"{result[idx]:.4f}")
-                idx += 1
-            if cfg.compute_ndcg and idx < len(result):
-                row.append(f"{result[idx]:.4f}")
-                idx += 1
-            if cfg.compute_mrr and idx < len(result):
-                row.append(f"{result[idx]:.4f}")
+            short_name = result[0].split('/')[-1]  # Use short name for better table formatting
+            row = [short_name]  # Model name
+            # Use fixed indices to avoid misalignment
+            # Tuple: (Model, MAP, Recall, Precision, NDCG, MRR)
+            if cfg.compute_map:
+                row.append(f"{result[1]:.4f}")
+            if cfg.compute_recall:
+                row.append(f"{result[2]:.4f}")
+            if cfg.compute_precision:
+                row.append(f"{result[3]:.4f}")
+            if cfg.compute_ndcg:
+                row.append(f"{result[4]:.4f}")
+            if cfg.compute_mrr:
+                row.append(f"{result[5]:.4f}")
             
             table_data.append(row)
         
@@ -449,10 +453,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                     if not isinstance(timing_data, dict):
                         continue  # Skip invalid data
                         
-                    # Check for required fields
+                    # Check for required fields and valid non-None values
                     required_fields = ['embedding_time', 'docs_per_second', 'avg_time_per_doc']
-                    if not all(field in timing_data for field in required_fields):
-                        continue  # Skip incomplete data
+                    if not all(field in timing_data and timing_data[field] is not None for field in required_fields):
+                        continue  # Skip incomplete or placeholder data
                     
                     timing_rows.append([
                         model_name,
@@ -675,25 +679,20 @@ def generate_visualizations(model_results, output_dir, timestamp):
     # Prepare data - Dynamic metric extraction based on config
     model_names = [result[0].split('/')[-1] for result in model_results]  # Use shorter names
     
-    # Build metrics dictionary dynamically based on configuration
+    # Build metrics dictionary using fixed indices from evaluate_with_chromadb
+    # Tuple structure: (model_name, map, recall, precision, ndcg, mrr)
     metrics = {}
-    metric_index = 1  # Start from index 1 (index 0 is model name)
     
     if cfg.compute_map:
-        metrics["MAP"] = [result[metric_index] for result in model_results]
-        metric_index += 1
+        metrics["MAP"] = [result[1] for result in model_results]
     if cfg.compute_recall:
-        metrics["Recall"] = [result[metric_index] for result in model_results]
-        metric_index += 1
+        metrics["Recall"] = [result[2] for result in model_results]
     if cfg.compute_precision:
-        metrics["Precision"] = [result[metric_index] for result in model_results]
-        metric_index += 1
+        metrics["Precision"] = [result[3] for result in model_results]
     if cfg.compute_ndcg:
-        metrics["NDCG"] = [result[metric_index] for result in model_results]
-        metric_index += 1
+        metrics["NDCG"] = [result[4] for result in model_results]
     if cfg.compute_mrr:
-        metrics["MRR"] = [result[metric_index] for result in model_results]
-        metric_index += 1
+        metrics["MRR"] = [result[5] for result in model_results]
     
     # 1. Bar chart comparing all metrics across models
     plt.figure(figsize=(12, 8))
@@ -767,22 +766,21 @@ def generate_timing_visualization(timing_results, output_dir, timestamp):
         return {}
     
     try:
-        # Extract timing data
-        models = [result[0].split('/')[-1] for result in timing_results]  # Short names
+        # Extract timing data - Filter first to ensure alignment
+        models = []
         docs_per_second = []
         embedding_times = []
         avg_time_per_doc = []
         
         for model_name, timing_data in timing_results:
             if timing_data.get('embedding_time') is not None:
+                short_name = model_name.split('/')[-1]
+                models.append(short_name)
                 embedding_times.append(timing_data['embedding_time'])
                 docs_per_second.append(timing_data['docs_per_second'])
                 avg_time_per_doc.append(timing_data['avg_time_per_doc'] * 1000)  # Convert to ms
-            else:
-                # Skip models without timing data
-                continue
         
-        if not docs_per_second:  # No valid timing data
+        if not docs_per_second:  # No valid timing data after filtering
             return {}
         
         # Create dual-axis plot
@@ -1044,31 +1042,38 @@ def print_results_summary(model_results):
     if cfg.compute_ndcg:      headers.append(f"NDCG@{cfg.k}")
     if cfg.compute_mrr:       headers.append(f"MRR@{cfg.k}")
 
-    # Build table rows
+    # Build table rows - filter columns based on config flags to match headers
     table_data = []
     for model_name, *metrics in model_results:
+        # metrics tuple is: (map, recall, precision, ndcg, mrr)
+        # We need to select only enabled metrics
+        row_values = []
+        if cfg.compute_map:       row_values.append(metrics[0])
+        if cfg.compute_recall:    row_values.append(metrics[1])
+        if cfg.compute_precision: row_values.append(metrics[2])
+        if cfg.compute_ndcg:      row_values.append(metrics[3])
+        if cfg.compute_mrr:       row_values.append(metrics[4])
+
         short_name = model_name.split("/")[-1]
-        row = [short_name] + [f"{m:.4f}" for m in metrics]
+        row = [short_name] + [f"{m:.4f}" for m in row_values]
         table_data.append(row)
 
     # Print table
     print("\nBenchmark Results Summary\n")
     print(tabulate(table_data, headers=headers, tablefmt="github"))
 
-    # Summary statistics - use actual metric indices from model_results
+    # Summary statistics - use fixed metric indices
     print("\nSummary Statistics\n")
     
-    metric_idx = 1  # Start from index 1 (0 is model name)
+    # Model results indices: 0=Name, 1=MAP, 2=Recall, 3=Precision, 4=NDCG, 5=MRR
     if cfg.compute_map:
-        scores = [result[metric_idx] for result in model_results]
+        scores = [result[1] for result in model_results]
         print(f"• MAP@{cfg.k}: Best={max(scores):.4f}, "
               f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
-        metric_idx += 1
     if cfg.compute_recall:
-        scores = [result[metric_idx] for result in model_results]
+        scores = [result[2] for result in model_results]
         print(f"• Recall@{cfg.k}: Best={max(scores):.4f}, "
               f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
-        metric_idx += 1
     print()
 
 

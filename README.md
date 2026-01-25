@@ -17,6 +17,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 - **Intelligent Relevance Assessment**: Automated qrels generation with LLM evaluation
 - **Multi-Model Comparison**: Benchmark multiple embedding models simultaneously
 - **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, and MRR evaluation
+- **Persistent Timing Data**: Timing metrics saved between pipeline runs for accurate performance tracking
 - **Professional Reporting**: Automated generation of markdown and PDF reports with visualizations
 - **ChromaDB Integration**: Efficient vector storage and retrieval
 - **Modular Pipeline**: Run individual components or complete end-to-end evaluation
@@ -111,11 +112,47 @@ python rag_benchmark.py --generate-queries
 # 3. Create relevance judgments
 python rag_benchmark.py --generate-qrels
 
-# 4. Initialize embedding collections
+# 4. Initialize embedding collections (timing data saved automatically)
 python rag_benchmark.py --initialize
 
-# 5. Run evaluation and generate reports
+# 5. Run evaluation and generate reports (loads saved timing data)
 python rag_benchmark.py --evaluate
+```
+
+**Note**: Steps 4 and 5 can be run separately - timing data from initialization is automatically saved and loaded for accurate performance reporting.
+
+### ⚡ Batch Processing (Optional)
+
+For large datasets, use the Gemini Batch API to reduce costs (50% cheaper) and avoid rate limits. This process is split into two phases: **Submit** and **Fetch**.
+
+**Phase 1: Query Generation (Batch Mode)**
+```bash
+# 1. Submit the batch job
+python rag_benchmark.py --generate-queries --batch-submit
+
+# Note the Batch ID from the output (saved in reports/batch_history.jsonl)
+# Wait for the job to complete (you can check status in Google AI Studio or logs)
+
+# 2. Fetch and process results
+python rag_benchmark.py --generate-queries --batch-fetch <BATCH_ID>
+```
+
+**Phase 2: Relevance Judgments (Batch Mode)**
+```bash
+# 1. Submit the batch job
+python rag_benchmark.py --generate-qrels --batch-submit
+
+# Note the Batch ID
+# Wait for completion...
+
+# 2. Fetch and process results
+python rag_benchmark.py --generate-qrels --batch-fetch <BATCH_ID>
+```
+
+**Check Batch Status**
+```bash
+# List all batch jobs and their current statuses
+python rag_benchmark.py --batch_status
 ```
 
 ## ⚙️ Configuration
@@ -217,11 +254,16 @@ reinitialize_collections = True
 
 ### 5. Evaluation & Reporting (`--evaluate`)
 - **Input**: Corpus, queries, qrels, and ChromaDB collections
-- **Process**: Multi-model retrieval evaluation with comprehensive metrics
+- **Process**: 
+  1. Load persisted timing data from previous initialization runs
+  2. Multi-model retrieval evaluation with comprehensive metrics
+  3. Generate timing data for any missing models
+  4. Save updated timing data for future runs
 - **Output**: 
   - Performance reports (markdown and PDF)
   - Visualization charts (PNG format)
   - Detailed timing analysis
+- **Features**: Persistent timing data allows running `--initialize` and `--evaluate` separately
 
 ## 📊 Evaluation Metrics
 
@@ -245,6 +287,7 @@ RagRetrievalBench/
 ├── reports/
 │   ├── benchmark_report_*.md       # Comprehensive evaluation report
 │   ├── benchmark_report_*.pdf      # PDF version (if Pandoc installed)
+│   ├── timing_data.json            # Persisted timing metrics for models
 │   ├── timing_comparison_*.png     # Performance comparison charts
 │   ├── model_comparison_*.png      # Model performance visualization
 │   └── corpus_statistics_*.png    # Dataset analysis charts
@@ -258,7 +301,7 @@ RagRetrievalBench/
 - **Methodology**: Experimental setup and evaluation procedure
 - **Dataset Statistics**: Corpus analysis and query characteristics
 - **Model Performance**: Comparative tables with statistical analysis
-- **Timing Analysis**: Embedding performance and throughput comparison
+- **Timing Analysis**: Embedding performance and throughput comparison (uses persisted timing data)
 - **Visualizations**: Charts for performance, timing, and dataset statistics
 - **Technical Details**: Configuration and reproducibility information
 
@@ -376,7 +419,13 @@ RagRetrievalBench/
 │   ├── __init__.py              # Test package initialization
 │   ├── conftest.py              # Shared test configuration
 │   └── test_*.py               # Individual test modules
-└── reports/                       # Generated evaluation reports
+├── reports/                       # Generated evaluation reports
+│   ├── benchmark_report_*.md      # Comprehensive evaluation report
+│   ├── benchmark_report_*.pdf     # PDF version (if Pandoc installed)
+│   ├── timing_data.json           # Persisted timing metrics
+│   ├── timing_comparison_*.png    # Performance comparison charts
+│   ├── model_comparison_*.png     # Model performance visualization
+│   └── corpus_statistics_*.png   # Dataset analysis charts
 ```
 
 ## 🚀 API Rate Limits & Best Practices
