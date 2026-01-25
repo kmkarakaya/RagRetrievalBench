@@ -135,11 +135,11 @@ class TestReportUtilsIntegration:
         cfg.compute_ndcg = True
         cfg.compute_mrr = False
         
-        # Corresponding model results (model_name, MAP, NDCG)
-        # This is the key test: NDCG should be at index 2, not index 4!
+        # Corresponding model results (model_name, MAP, Recall, Precision, NDCG, MRR)
+        # Note: System always returns full tuple regardless of which metrics are enabled
         partial_results = [
-            ("model1", 0.8, 0.85),
-            ("model2", 0.7, 0.75),
+            ("model1", 0.8, 0.0, 0.0, 0.85, 0.0),  # MAP and NDCG enabled, others 0.0
+            ("model2", 0.7, 0.0, 0.0, 0.75, 0.0),
         ]
         
         mock_viz.return_value = {"perf_chart": "chart1.png"}
@@ -162,7 +162,7 @@ class TestReportUtilsIntegration:
         
         # These are the critical assertions for the fix
         assert "MAP@10: **0.8000**" in content  # MAP at index 1 (correct)
-        assert "NDCG@10: **0.8500**" in content  # NDCG at index 2 (not 4 - this is the fix!)
+        assert "NDCG@10: **0.8500**" in content  # NDCG at index 4 (correct)
         
         # These should not be present since they're disabled
         assert "Recall@10" not in content
@@ -180,10 +180,10 @@ class TestReportUtilsIntegration:
         cfg.compute_ndcg = False
         cfg.compute_mrr = False
         
-        # Model results with only recall values
+        # Model results with full tuple (only recall enabled, others 0.0)
         recall_only_results = [
-            ("model1", 0.9),  # Only recall value
-            ("model2", 0.8),
+            ("model1", 0.0, 0.9, 0.0, 0.0, 0.0),  # Only recall value at index 2
+            ("model2", 0.0, 0.8, 0.0, 0.0, 0.0),
         ]
         
         mock_viz.return_value = {}

@@ -2,6 +2,9 @@ import os
 
 # Configuration file for benchmark.py
 
+# Current dataset name (set via configure_for_dataset)
+current_dataset = None
+
 # Path to the corpus, queries, and qrels files
 corpus_file = "corpus.jsonl"
 queries_file = "queries.jsonl"
@@ -15,7 +18,10 @@ def configure_for_dataset(dataset_name):
     Args:
         dataset_name (str): Name of the dataset (folder name under datasets/).
     """
-    global corpus_file, queries_file, qrels_file, pdf_dir, reports_dir, chroma_db_path, embedding_models
+    global corpus_file, queries_file, qrels_file, pdf_dir, reports_dir, chroma_db_path, embedding_models, current_dataset
+    
+    # Store current dataset name
+    current_dataset = dataset_name
     
     # Define dataset root
     dataset_root = os.path.join("datasets", dataset_name)
@@ -118,6 +124,16 @@ pdf_dir = "utils/pdfs"  # Directory containing PDFs
 chunk_size = 1000
 chunk_overlap = 200
 
+# Aggregate Reporting Configuration
+aggregate_results_dir = "reports/aggregate"  # Root output directory for aggregate reports
+aggregate_include_datasets = []  # List of dataset names to include (empty = auto-discover all)
+aggregate_exclude_datasets = []  # Datasets to exclude from aggregation
+aggregate_statistical_tests = True  # Enable paired t-tests and effect size calculations
+aggregate_generate_visualizations = True  # Generate cross-dataset charts
+aggregate_significance_level = 0.05  # Alpha for statistical tests (p-value threshold)
+aggregate_min_datasets = 2  # Minimum datasets required for aggregation
+aggregate_require_identical_metrics = False  # If True, only aggregate datasets with same metric flags
+
 #QUERY GENERATION SETTINGS
 # How many benchmark queries (seeds) to generate
 n_queries = 5
@@ -167,3 +183,40 @@ Return only a JSON object in this format:
 """
 
 temperature = 0.1  # Temperature for LLM generation
+
+def discover_available_datasets():
+    """
+    Auto-discover datasets in datasets/ directory.
+    Returns list of dataset names with valid corpus.jsonl files.
+    """
+    datasets_root = "datasets"
+    if not os.path.exists(datasets_root):
+        return []
+    
+    available = []
+    for name in os.listdir(datasets_root):
+        dataset_path = os.path.join(datasets_root, name)
+        if os.path.isdir(dataset_path):
+            corpus_file_path = os.path.join(dataset_path, "corpus.jsonl")
+            if os.path.exists(corpus_file_path):
+                available.append(name)
+    
+    return sorted(available)
+
+def get_latest_raw_results(dataset_name):
+    """
+    Find the most recent raw_results_{timestamp}.json for a dataset.
+    Returns absolute path or None if not found.
+    """
+    reports_dir_path = os.path.join("datasets", dataset_name, "reports")
+    if not os.path.exists(reports_dir_path):
+        return None
+    
+    raw_files = [f for f in os.listdir(reports_dir_path) 
+                 if f.startswith("raw_results_") and f.endswith(".json")]
+    if not raw_files:
+        return None
+    
+    # Sort by timestamp in filename (format: raw_results_YYYY-MM-DD_HH-MM-SS.json)
+    raw_files.sort(reverse=True)
+    return os.path.join(reports_dir_path, raw_files[0])

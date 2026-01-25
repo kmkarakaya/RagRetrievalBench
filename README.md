@@ -16,10 +16,13 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 - **LLM-Powered Query Generation**: Generate realistic queries using Google Gemini AI
 - **Intelligent Relevance Assessment**: Automated qrels generation with LLM evaluation
 - **Multi-Model Comparison**: Benchmark multiple embedding models simultaneously
+- **Cross-Dataset Analysis**: Compare embedding model performance across multiple datasets with statistical significance testing
 - **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, and MRR evaluation
+- **Statistical Analysis**: Paired t-tests, Cohen's d effect sizes, Friedman test, and consistency metrics
 - **Batch Processing Support**: Cost-effective asynchronous processing for large datasets
 - **Persistent Timing Data**: Timing metrics saved between pipeline runs for accurate performance tracking
 - **Professional Reporting**: Automated generation of markdown and PDF reports with visualizations
+- **Aggregate Reporting**: Cross-dataset comparison reports with 14+ statistical visualizations
 - **ChromaDB Integration**: Efficient vector storage and retrieval
 - **Modular Pipeline**: Run individual components or complete end-to-end evaluation
 - **Multi-Dataset Support**: Run benchmarks on multiple datasets with complete isolation
@@ -133,11 +136,34 @@ python rag_benchmark.py --dataset legal_docs --generate-queries
 python rag_benchmark.py --dataset legal_docs --generate-qrels
 python rag_benchmark.py --dataset legal_docs --initialize
 python rag_benchmark.py --dataset legal_docs --evaluate
+
+# Combined initialization and evaluation (recommended for convenience)
+python rag_benchmark.py --dataset finance --initialize --evaluate
 ```
 
 **Note**: Steps 4 and 5 can be run separately - timing data from initialization is automatically saved and loaded for accurate performance reporting.
 
 **💡 Tip**: For datasets with more than 10 queries, consider using [Batch Processing](#batch-processing-optional) to reduce costs and avoid rate limits.
+
+### Cross-Dataset Aggregate Reporting
+
+Compare embedding model performance across multiple datasets with statistical analysis:
+
+```bash
+# Run evaluations on multiple datasets
+python rag_benchmark.py --dataset education --all
+python rag_benchmark.py --dataset finance --all
+python rag_benchmark.py --dataset legal --all
+
+# Generate aggregate comparison report
+python rag_benchmark.py --generate-aggregate-report
+
+# Generate aggregate report for specific datasets
+python rag_benchmark.py --generate-aggregate-report --aggregate-datasets education finance
+
+# Save aggregate report to custom location
+python rag_benchmark.py --generate-aggregate-report --aggregate-output-dir ./my_reports
+```
 
 ### ⚡ Batch Processing (Optional)
 
@@ -274,6 +300,10 @@ The framework supports running benchmarks on multiple datasets with complete iso
 | `--evaluate` | Run retrieval evaluation and generate reports |
 | `--all` | Execute complete pipeline end-to-end |
 | `--dataset <name>` | Run benchmark on specified dataset (isolates all data) |
+| `--generate-aggregate-report` | Generate cross-dataset comparison report with statistical analysis (includes PDF) |
+| `--aggregate-datasets <list>` | Specify datasets for aggregate analysis (default: auto-discover) |
+| `--aggregate-output-dir <path>` | Custom output directory for aggregate reports (default: reports/aggregate/) |
+| `--aggregate-metrics <list>` | Metrics to include in aggregate analysis (default: all enabled) |
 | `--batch-submit` | Submit tasks to Gemini Batch API |
 | `--batch-fetch <ID>` | Fetch results from Batch API job |
 | `--batch_status` | List all batch jobs and their statuses (across all datasets if no --dataset specified) |
@@ -322,11 +352,28 @@ The framework supports running benchmarks on multiple datasets with complete iso
   2. Multi-model retrieval evaluation with comprehensive metrics
   3. Generate timing data for any missing models
   4. Save updated timing data for future runs
+  5. Save structured raw results JSON for aggregate analysis
 - **Output**: 
   - Performance reports (markdown and PDF)
   - Visualization charts (PNG format)
   - Detailed timing analysis
+  - Raw results JSON for cross-dataset comparison
 - **Features**: Persistent timing data allows running `--initialize` and `--evaluate` separately
+
+### 6. Aggregate Analysis (`--generate-aggregate-report`)
+- **Input**: Raw results JSON from multiple dataset evaluations
+- **Process**:
+  1. Load and validate results from multiple datasets
+  2. Perform statistical analysis (paired t-tests, Cohen's d, Friedman test)
+  3. Calculate model rankings and consistency metrics
+  4. Generate 14+ statistical visualizations
+  5. Create comprehensive cross-dataset comparison report
+- **Output**:
+  - Aggregate comparison report (markdown and PDF)
+  - Statistical analysis visualizations
+  - Model ranking heatmaps and radar charts
+  - Dataset difficulty analysis
+- **Features**: Automated dataset discovery, statistical significance testing, publication-ready analysis
 
 ## 📊 Evaluation Metrics
 
@@ -339,6 +386,17 @@ The framework computes standard information retrieval metrics:
 - **MRR@k**: Mean reciprocal rank of first relevant document
 - **Timing Metrics**: Embedding speed, throughput, processing time
 
+### Statistical Analysis Methods (Aggregate Reporting)
+
+For cross-dataset comparison and statistical significance testing:
+
+- **Paired t-tests**: Compare model performance across datasets (α=0.05)
+- **Cohen's d**: Measure effect sizes for practical significance
+- **Friedman Test**: Non-parametric test for multiple model comparison
+- **Consistency Metrics**: Coefficient of variation, worst-case performance drop
+- **Win-Tie-Loss Analysis**: Pairwise model comparison across datasets
+- **Dataset Difficulty Scoring**: Relative hardness assessment across datasets
+
 ## 📁 Output Files
 
 ### Generated Files Structure
@@ -348,8 +406,17 @@ RagRetrievalBench/
 ├── queries.jsonl                   # Generated evaluation queries (default)
 ├── qrels.tsv                       # Relevance judgments (default)
 ├── reports/                        # Reports for default dataset
+│   ├── aggregate/                  # Cross-dataset comparison reports
+│   │   ├── aggregate_report_*.md   # Comprehensive cross-dataset analysis
+│   │   ├── aggregate_report_*.pdf  # PDF version (if Pandoc installed)
+│   │   ├── cross_dataset_radar_chart.png
+│   │   ├── model_ranking_heatmap.png
+│   │   ├── pairwise_significance_heatmap.png
+│   │   ├── consistency_comparison.png
+│   │   └── [additional statistical visualizations]
 │   ├── benchmark_report_*.md       # Comprehensive evaluation report
 │   ├── benchmark_report_*.pdf      # PDF version (if Pandoc installed)
+│   ├── raw_results_*.json          # Structured results for aggregate analysis
 │   ├── timing_data.json            # Persisted timing metrics for models
 │   ├── timing_comparison_*.png     # Performance comparison charts
 │   ├── model_comparison_*.png      # Model performance visualization
@@ -363,6 +430,7 @@ RagRetrievalBench/
 │       ├── reports/                # Dataset-specific reports
 │       │   ├── benchmark_report_*.md
 │       │   ├── benchmark_report_*.pdf
+│       │   ├── raw_results_*.json  # Dataset-specific raw results
 │       │   ├── timing_data.json
 │       │   ├── batch_history.jsonl # Dataset-specific batch history
 │       │   └── *.png               # Dataset-specific visualizations
@@ -375,6 +443,8 @@ RagRetrievalBench/
 ```
 
 ### Report Contents
+
+#### Individual Dataset Reports
 - **Executive Summary**: Best performing models and key insights
 - **Methodology**: Experimental setup and evaluation procedure
 - **Dataset Statistics**: Corpus analysis and query characteristics
@@ -382,6 +452,16 @@ RagRetrievalBench/
 - **Timing Analysis**: Embedding performance and throughput comparison (uses persisted timing data)
 - **Visualizations**: Charts for performance, timing, and dataset statistics
 - **Technical Details**: Configuration and reproducibility information
+
+#### Aggregate Cross-Dataset Reports
+- **Executive Summary**: Overall best performers across datasets with consistency metrics
+- **Datasets Analyzed**: Summary of all included datasets (PDFs → chunks breakdown)
+- **Cross-Dataset Model Comparison**: Statistical rankings with significance testing
+- **Dataset-Specific Analysis**: Individual dataset performance and difficulty assessment
+- **Model Consistency**: Performance variability analysis across datasets
+- **Statistical Analysis**: Paired t-tests, effect sizes, Friedman test results
+- **Visualizations**: 14+ statistical charts including radar plots, heatmaps, and significance matrices
+- **Recommendations**: Production deployment guidance based on aggregate analysis
 
 ## 🛠️ Development Tools
 
@@ -494,6 +574,7 @@ RagRetrievalBench/
 │   └── todolist.md                # Development roadmap
 ├── utils/                          # Core utilities package
 │   ├── __init__.py               # Package initialization
+│   ├── aggregate_report_utils.py # Cross-dataset statistical analysis
 │   ├── chromadb_utils.py         # Vector database operations
 │   ├── document_loader.py        # PDF processing and corpus loading
 │   ├── llm.py                    # Google Gemini LLM integration
@@ -511,7 +592,16 @@ RagRetrievalBench/
 │   ├── timing_data.json           # Persisted timing metrics
 │   ├── timing_comparison_*.png    # Performance comparison charts
 │   ├── model_comparison_*.png     # Model performance visualization
-│   └── corpus_statistics_*.png   # Dataset analysis charts
+│   ├── corpus_statistics_*.png   # Dataset analysis charts
+│   └── aggregate/                 # Cross-dataset aggregate reports
+│       ├── aggregate_report_*.md  # Statistical comparison reports
+│       ├── aggregate_report_*.pdf # PDF version (if Pandoc installed)
+│       ├── raw_results.json       # Structured results for analysis
+│       ├── statistical_tests_*.png # Statistical significance plots
+│       ├── effect_size_*.png      # Effect size visualizations
+│       ├── win_tie_loss_*.png     # Model ranking visualizations
+│       ├── consistency_*.png      # Performance consistency charts
+│       └── friedman_test_*.png   # Non-parametric test results
 ```
 
 ## 🚀 API Rate Limits & Best Practices

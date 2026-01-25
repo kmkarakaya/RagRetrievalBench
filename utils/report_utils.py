@@ -8,6 +8,7 @@ import datetime
 from tabulate import tabulate
 import os
 import textwrap
+import json
 
 # Import SentenceTransformer for model information
 try:
@@ -20,7 +21,81 @@ except ImportError:
 import subprocess
 import chromadb
 
-def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports", dataset_name=None):
+def save_raw_results_json(dataset_name, model_results, timing_data, corpus, queries, relevant_docs, output_path):
+    """
+    Save structured evaluation results for aggregate analysis.
+    
+    Args:
+        dataset_name: Name of the dataset
+        model_results: List of tuples (model_name, enabled_metrics...) where enabled_metrics
+                      are in order: MAP, Recall, Precision, NDCG, MRR (only enabled ones included)
+        timing_data: Dict with timing information per model
+        corpus: Dict of document chunks
+        queries: Dict of queries
+        relevant_docs: Dict of relevance judgments
+        output_path: Path to save JSON file
+    """
+    # Compute corpus statistics
+    chunk_lengths = [len(text.split()) for text in corpus.values()]
+    total_chunks = len(corpus)
+    avg_chunks_per_doc = total_chunks  # Simplified - could be enhanced
+    
+    # Build results structure
+    results_dict = {
+        "dataset": dataset_name,
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+        "config": {
+            "k": cfg.k,
+            "chunk_size": cfg.chunk_size,
+            "chunk_overlap": cfg.chunk_overlap,
+            "metric_flags": {
+                "compute_map": cfg.compute_map,
+                "compute_recall": cfg.compute_recall,
+                "compute_precision": cfg.compute_precision,
+                "compute_ndcg": cfg.compute_ndcg,
+                "compute_mrr": cfg.compute_mrr
+            }
+        },
+        "models": {},
+        "corpus_stats": {
+            "total_pdfs": len([f for f in os.listdir(cfg.pdf_dir) if f.endswith('.pdf')]) if os.path.exists(cfg.pdf_dir) else 0,
+            "total_chunks": total_chunks,
+            "avg_chunks_per_pdf": round(total_chunks / len([f for f in os.listdir(cfg.pdf_dir) if f.endswith('.pdf')]), 1) if os.path.exists(cfg.pdf_dir) and len([f for f in os.listdir(cfg.pdf_dir) if f.endswith('.pdf')]) > 0 else 0,
+            "total_queries": len(queries),
+            "total_qrels": sum(len(v) for v in relevant_docs.values()),
+            "avg_qrels_per_query": round(sum(len(v) for v in relevant_docs.values()) / len(relevant_docs), 2) if relevant_docs else 0
+        }
+    }
+    
+    # Process model results
+    for result in model_results:
+        model_name = result[0]
+        metrics = {
+            "map": float(result[1]),
+            "recall": float(result[2]),
+            "precision": float(result[3]),
+            "ndcg": float(result[4]),
+            "mrr": float(result[5])
+        }
+        
+        # Get timing data if available
+        timing = {}
+        if timing_data and model_name in timing_data:
+            timing = timing_data[model_name]
+        
+        results_dict["models"][model_name] = {
+            "metrics": metrics,
+            "timing": timing
+        }
+    
+    # Save to JSON
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(results_dict, f, indent=2, ensure_ascii=False)
+    
+    print(f"\n[Raw Results] Saved to: {output_path}")
+
+def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports", dataset_name=None, save_raw_results=True):
     """Generate a comprehensive benchmark report suitable for a conference paper."""
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -53,21 +128,40 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_file = os.path.join(output_dir, f"{dataset_name}_benchmark_report_{timestamp}.md")
     
-    # Sort models by MAP score for easier comparison (if any results exist)
+    # Sort models by primary metric for easier comparison (if any results exist)
     if model_results:
+        # Build dynamic metric indices based on enabled metrics
+        metric_indices = {}
+        current_idx = 1  # Start after model name (index 0)
+        
+        if cfg.compute_map:
+            metric_indices['map'] = current_idx
+            current_idx += 1
+        if cfg.compute_recall:
+            metric_indices['recall'] = current_idx
+            current_idx += 1
+        if cfg.compute_precision:
+            metric_indices['precision'] = current_idx
+            current_idx += 1
+        if cfg.compute_ndcg:
+            metric_indices['ndcg'] = current_idx
+            current_idx += 1
+        if cfg.compute_mrr:
+            metric_indices['mrr'] = current_idx
+        
         # Determine sort index based on primary metric priority
         # Default priority: MAP -> NDCG -> MRR -> Recall -> Precision
         if cfg.compute_map:
-            sort_idx = 1
+            sort_idx = metric_indices['map']
         elif cfg.compute_ndcg:
-            sort_idx = 4
+            sort_idx = metric_indices['ndcg']
         elif cfg.compute_mrr:
-            sort_idx = 5
+            sort_idx = metric_indices['mrr']
         elif cfg.compute_recall:
-            sort_idx = 2
+            sort_idx = metric_indices['recall']
         else:
-            sort_idx = 3 # Precision
-            
+            sort_idx = metric_indices.get('precision', 1)  # Fallback to first available
+        
         sorted_results = sorted(model_results, key=lambda x: x[sort_idx], reverse=True)
     else:
         sorted_results = model_results
@@ -75,7 +169,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     # ——— Fallback timing for evaluation‐only runs ———
     # if user only did --evaluate, timing_results is [] ⇒ inject hard‐coded values
     if timing_results is not None and not timing_results:
-        print("⚠️  Warning: No timing data available for report generation")
+        print("[Warning] No timing data available for report generation")
         print("   To include timing analysis, run: python simple_rag_benchmark_pipeline.py --initialize")
         print("   Report will be generated without timing performance section")
         timing_results = None  # Clear it completely
@@ -139,18 +233,17 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             best_model = sorted_results[0]
             f.write(f"**Best performing model:** `{best_model[0]}`\n")
             
-            # Use fixed indexing matching evaluate_with_chromadb return tuple
-            # Tuple structure: (model_name, map, recall, precision, ndcg, mrr)
+            # Use dynamic indexing based on enabled metrics
             if cfg.compute_map:
-                f.write(f"* MAP@{cfg.k}: **{best_model[1]:.4f}**\n")
+                f.write(f"* MAP@{cfg.k}: **{best_model[metric_indices['map']]:.4f}**\n")
             if cfg.compute_recall:
-                f.write(f"* Recall@{cfg.k}: **{best_model[2]:.4f}**\n")
+                f.write(f"* Recall@{cfg.k}: **{best_model[metric_indices['recall']]:.4f}**\n")
             if cfg.compute_precision:
-                f.write(f"* Precision@{cfg.k}: **{best_model[3]:.4f}**\n")
+                f.write(f"* Precision@{cfg.k}: **{best_model[metric_indices['precision']]:.4f}**\n")
             if cfg.compute_ndcg:
-                f.write(f"* NDCG@{cfg.k}: **{best_model[4]:.4f}**\n")
+                f.write(f"* NDCG@{cfg.k}: **{best_model[metric_indices['ndcg']]:.4f}**\n")
             if cfg.compute_mrr:
-                f.write(f"* MRR@{cfg.k}: **{best_model[5]:.4f}**\n")
+                f.write(f"* MRR@{cfg.k}: **{best_model[metric_indices['mrr']]:.4f}**\n")
             f.write("\n")
         else:
             f.write("**No model results available for comparison.**\n\n")
@@ -205,6 +298,20 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write(tabulate(corpus_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
         
+        f.write("**Table: Corpus Characteristics Summary**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write("- **Source PDF Documents**: Number of original PDF files processed\n")
+        f.write("- **Total Document Chunks**: Number of text chunks created from PDFs\n")
+        f.write("- **Average Chunk Length**: Mean number of words per chunk\n")
+        f.write("- **Median Chunk Length**: Middle value of chunk lengths (resistant to outliers)\n")
+        f.write("- **Min/Max Chunk Length**: Range of chunk sizes\n")
+        f.write("- **Standard Deviation**: Variability in chunk lengths\n\n")
+        
+        f.write("**How to interpret:**\n")
+        f.write("- **High variability** (large std dev) indicates inconsistent chunking\n")
+        f.write("- **Very short chunks** may lose context, very long chunks may be noisy\n")
+        f.write("- **Chunk count** affects retrieval efficiency and memory usage\n\n")
+        
         # Query statistics table
         f.write("#### Query Characteristics\n\n")
         query_stats = [
@@ -218,6 +325,19 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write(tabulate(query_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
         
+        f.write("**Table: Query Characteristics Summary**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write("- **Total Queries**: Number of evaluation queries generated\n")
+        f.write("- **Average Query Length**: Mean number of words per query\n")
+        f.write("- **Median Query Length**: Middle value of query lengths\n")
+        f.write("- **Min/Max Query Length**: Range of query lengths\n")
+        f.write("- **Standard Deviation**: Variability in query lengths\n\n")
+        
+        f.write("**How to interpret:**\n")
+        f.write("- **Query length** affects retrieval difficulty (longer = more specific)\n")
+        f.write("- **High variability** indicates diverse query types\n")
+        f.write("- **Query count** determines statistical power of evaluation\n\n")
+        
         # Relevance statistics
         f.write("#### Relevance Distribution\n\n")
         relevance_stats = [
@@ -230,6 +350,19 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         ]
         f.write(tabulate(relevance_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
+        
+        f.write("**Table: Relevance Distribution Summary**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write("- **Total Relevance Judgments**: Total number of relevant document-query pairs\n")
+        f.write("- **Average Relevant Docs per Query**: Mean number of relevant documents per query\n")
+        f.write("- **Median Relevant Docs per Query**: Middle value of relevant docs per query\n")
+        f.write("- **Min/Max Relevant Docs**: Range of relevant documents per query\n")
+        f.write("- **Coverage Ratio**: Percentage of corpus that is relevant to queries\n\n")
+        
+        f.write("**How to interpret:**\n")
+        f.write("- **High average relevant docs** = easier retrieval task\n")
+        f.write("- **Low coverage ratio** = sparse relevance (harder evaluation)\n")
+        f.write("- **High variability** indicates inconsistent query difficulty\n\n")
         
         # Benchmark configuration
         f.write("## Experimental Setup\n\n")
@@ -275,6 +408,18 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                         tablefmt="pipe"))
         f.write("\n\n")
         
+        f.write("**Table: Evaluated Embedding Models**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write("- **Model Name**: Full model identifier from Hugging Face or provider\n")
+        f.write("- **Collection**: ChromaDB collection name for this model\n")
+        f.write("- **Dimensions**: Embedding vector dimensionality\n")
+        f.write("- **Type**: Model architecture or framework\n\n")
+        
+        f.write("**How to interpret:**\n")
+        f.write("- **Higher dimensions** generally capture more semantic nuance\n")
+        f.write("- **Different architectures** have different strengths/weaknesses\n")
+        f.write("- **Collection names** ensure isolated evaluation per model\n\n")
+        
         f.write("### Evaluation Metrics\n\n")
         metrics_desc = []
         if cfg.compute_map:
@@ -291,6 +436,21 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write(tabulate(metrics_desc, headers=["Metric", "Description", "Measures"], tablefmt="pipe"))
         f.write("\n\n")
         
+        f.write("**Table: Evaluation Metrics Overview**\n\n")
+        f.write("**Metric Details:**\n")
+        f.write("- **MAP@k**: Mean Average Precision - balances precision and recall across ranks\n")
+        f.write("- **Recall@k**: Coverage - fraction of relevant docs retrieved in top k\n")
+        f.write("- **Precision@k**: Accuracy - fraction of retrieved docs that are relevant\n")
+        f.write("- **NDCG@k**: Position-aware ranking quality with logarithmic discounting\n")
+        f.write("- **MRR@k**: First relevant position - emphasizes finding relevant docs early\n\n")
+        
+        f.write("**When to use each metric:**\n")
+        f.write("- **MAP**: Overall ranking quality for information retrieval\n")
+        f.write("- **Recall**: Ensuring comprehensive coverage of relevant content\n")
+        f.write("- **Precision**: Minimizing irrelevant results in recommendations\n")
+        f.write("- **NDCG**: Search engine ranking with position bias\n")
+        f.write("- **MRR**: Question-answering where first relevant result matters\n\n")
+        
         # Representative Query Examples
         f.write("### Representative Query Examples\n\n")
         headers = ["Query ID", "Query Text", "# Relevant Docs"]
@@ -301,6 +461,17 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             rep_rows.append([wrapped_qid, queries[qid], len(relevant_docs[qid])])
         f.write(tabulate(rep_rows, headers=headers, tablefmt="pipe"))
         f.write("\n\n")
+        
+        f.write("**Table: Representative Query Examples**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write("- **Query ID**: Unique identifier for each query\n")
+        f.write("- **Query Text**: The actual query text used for retrieval\n")
+        f.write("- **# Relevant Docs**: Number of ground truth relevant documents\n\n")
+        
+        f.write("**How to interpret:**\n")
+        f.write("- **Query diversity** shows the range of information needs tested\n")
+        f.write("- **Relevant docs count** indicates query specificity (fewer = more specific)\n")
+        f.write("- **Query length** may correlate with retrieval difficulty\n\n")
         
         # Results section
         f.write("## Results\n\n")
@@ -344,6 +515,23 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("**Table: Comprehensive Model Performance Results**\n\n")
         f.write(tabulate(table_data, headers=headers, tablefmt="pipe"))
         f.write("\n\n")
+        
+        f.write("**Table: Model Performance Results Explanation**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write(f"- **Model**: Embedding model name (shortened for readability)\n")
+        f.write(f"- **MAP@{cfg.k}**: Mean Average Precision at rank {cfg.k}\n")
+        f.write(f"- **Recall@{cfg.k}**: Fraction of relevant documents retrieved in top {cfg.k}\n")
+        f.write(f"- **Precision@{cfg.k}**: Fraction of retrieved documents that are relevant\n")
+        f.write(f"- **NDCG@{cfg.k}**: Normalized Discounted Cumulative Gain at rank {cfg.k}\n")
+        f.write(f"- **MRR@{cfg.k}**: Mean Reciprocal Rank at rank {cfg.k}\n\n")
+        
+        f.write("**How to interpret the results:**\n")
+        f.write("- **Higher scores** = better retrieval performance\n")
+        f.write("- **MAP** balances ranking quality and coverage\n")
+        f.write("- **Recall** shows how comprehensive the retrieval is\n")
+        f.write("- **Precision** shows how accurate the retrieval is\n")
+        f.write("- **NDCG** rewards relevant documents appearing early\n")
+        f.write("- **MRR** emphasizes finding the first relevant result\n\n")
         
         # Performance analysis
         f.write("### Performance Analysis\n\n")
@@ -406,27 +594,103 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             if 'overview' in viz_files:
                 f.write("#### 6.3.1 Overall Performance Comparison\n\n")
                 f.write(f"![Model Performance Overview]({os.path.basename(viz_files['overview'])})\n\n")
-                f.write("*Figure: Comprehensive comparison of all embedding models across evaluation metrics.*\n\n")
+                f.write("**Figure: Comprehensive Model Performance Comparison**\n\n")
+                f.write(f"This bar chart compares all embedding models across all evaluation metrics at k={cfg.k}. ")
+                f.write("Each model has a group of bars showing its performance on different metrics.\n\n")
+                f.write("**How to interpret:**\n")
+                f.write("- **Taller bars** indicate better performance on that metric\n")
+                f.write("- **Consistent height across metrics** shows well-rounded models\n")
+                f.write("- **Spiky patterns** reveal specialized models (good at some metrics, poor at others)\n")
+                f.write("- **Model grouping** allows direct comparison between models\n\n")
+                f.write("**Why it matters:** Identifies models with balanced capabilities vs. specialized models, ")
+                f.write("helping you choose based on your specific requirements.\n\n")
             
             # Add corpus statistics visualizations
             if 'corpus_stats' in viz_files:
                 f.write("#### 6.3.2 Dataset Characteristics\n\n")
                 f.write(f"![Corpus Statistics]({os.path.basename(viz_files['corpus_stats'])})\n\n")
-                f.write("*Figure: Distribution of chunk lengths, query lengths, and relevance patterns in the evaluation dataset.*\n\n")
+                f.write("**Figure: Dataset Characteristics and Distributions**\n\n")
+                f.write("This figure contains four subplots showing the statistical properties of your evaluation dataset:\n\n")
+                f.write("**Top-left: Chunk Length Distribution**\n")
+                f.write("- Shows how document chunk sizes vary across the corpus\n")
+                f.write("- **Normal distribution** indicates consistent chunking\n")
+                f.write("- **Skewed distribution** suggests chunking strategy issues\n\n")
+                
+                f.write("**Top-right: Query Length Distribution**\n")
+                f.write("- Shows the diversity of query lengths in your evaluation set\n")
+                f.write("- **Wide range** indicates varied information needs\n")
+                f.write("- **Narrow range** suggests similar query complexity\n\n")
+                
+                f.write("**Bottom-left: Relevance Distribution**\n")
+                f.write("- Shows how many relevant documents exist per query\n")
+                f.write("- **Right-skewed** = most queries have few relevant docs (harder task)\n")
+                f.write("- **Left-skewed** = most queries have many relevant docs (easier task)\n\n")
+                
+                f.write("**Bottom-right: Summary Statistics Table**\n")
+                f.write("- Key metrics for chunk lengths, query lengths, and relevance\n")
+                f.write("- Helps assess dataset quality and evaluation difficulty\n\n")
+                
+                f.write("**Why it matters:** Understanding your dataset characteristics helps interpret ")
+                f.write("model performance results and identify potential evaluation biases.\n\n")
             
             # Add individual metric charts
             f.write("#### 6.3.3 Individual Metric Analysis\n\n")
+            f.write("The following charts provide detailed performance breakdowns for each evaluation metric. ")
+            f.write("Each chart focuses on a single metric to enable precise model comparisons.\n\n")
+            
             for metric_name, file_path in viz_files.items():
                 if metric_name not in ['overview', 'corpus_stats']:
-                    f.write(f"##### {metric_name.upper()}@{cfg.k} Results\n\n")
+                    f.write(f"##### {metric_name.upper()}@{cfg.k} Performance\n\n")
                     f.write(f"![{metric_name.capitalize()} Comparison]({os.path.basename(file_path)})\n\n")
+                    
+                    # Add metric-specific explanations
+                    if metric_name.lower() == 'map':
+                        f.write("**MAP@k (Mean Average Precision)**: Measures ranking quality by averaging precision ")
+                        f.write("at each relevant document position. Rewards models that rank relevant documents highly.\n\n")
+                        f.write("**Interpretation**: Higher values indicate better overall ranking performance. ")
+                        f.write("Useful for general information retrieval tasks.\n\n")
+                    
+                    elif metric_name.lower() == 'recall':
+                        f.write("**Recall@k**: Measures the fraction of relevant documents that are successfully retrieved ")
+                        f.write("in the top k results. Focuses on coverage of relevant content.\n\n")
+                        f.write("**Interpretation**: Higher values indicate more comprehensive retrieval. ")
+                        f.write("Important when missing relevant information is costly.\n\n")
+                    
+                    elif metric_name.lower() == 'precision':
+                        f.write("**Precision@k**: Measures the fraction of retrieved documents that are actually relevant. ")
+                        f.write("Focuses on accuracy of the retrieved results.\n\n")
+                        f.write("**Interpretation**: Higher values indicate fewer irrelevant results. ")
+                        f.write("Important when irrelevant information reduces user satisfaction.\n\n")
+                    
+                    elif metric_name.lower() == 'ndcg':
+                        f.write("**NDCG@k (Normalized Discounted Cumulative Gain)**: Measures ranking quality with ")
+                        f.write("position-based discounting. Relevant documents are more valuable when ranked higher.\n\n")
+                        f.write("**Interpretation**: Higher values indicate better ranking with proper position weighting. ")
+                        f.write("Standard metric for search engine evaluation.\n\n")
+                    
+                    elif metric_name.lower() == 'mrr':
+                        f.write("**MRR@k (Mean Reciprocal Rank)**: Measures how early the first relevant document ")
+                        f.write("appears in the ranked results. Emphasizes finding relevant information quickly.\n\n")
+                        f.write("**Interpretation**: Higher values indicate faster discovery of relevant content. ")
+                        f.write("Critical for question-answering and single-answer scenarios.\n\n")
         
         # Statistical significance analysis
         if len(model_results) >= 2:
             f.write("### Statistical Significance Analysis\n\n")
-            f.write("The following tables show absolute differences between model pairs. ")
-            f.write("Differences greater than 0.05 may indicate practically significant improvements ")
-            f.write("for real-world applications.\n\n")
+            f.write("This section helps determine whether observed performance differences between models ")
+            f.write("are meaningful or could occur by random chance. While formal statistical tests ")
+            f.write("require larger sample sizes, these tables show practical significance thresholds.\n\n")
+            
+            f.write("**Understanding the Results:**\n")
+            f.write("- **Difference > 0.05**: Potentially meaningful improvement for real applications\n")
+            f.write("- **Difference > 0.10**: Clearly significant performance gap\n")
+            f.write("- **Difference < 0.02**: Likely negligible for most use cases\n")
+            f.write("- **Values marked with *** indicate differences above the 0.05 threshold\n\n")
+            
+            f.write("**Important Caveats:**\n")
+            f.write("- These are absolute differences, not statistical significance tests\n")
+            f.write("- True significance requires larger datasets and proper statistical methods\n")
+            f.write("- Consider practical importance alongside statistical significance\n\n")
             
             # Create significance tables for each metric - using dynamic indices
             idx_map = {}
@@ -472,8 +736,14 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         if timing_results:
             f.write("## Embedding Performance Metrics\n\n")
             f.write("This section analyzes the computational efficiency of different embedding models ")
-            f.write("during the corpus initialization phase, measuring the time required to embed ")
-            f.write(f"and index {chunk_count} document chunks.\n\n")
+            f.write("during the corpus initialization phase. Understanding embedding speed is crucial ")
+            f.write("for production deployment decisions.\n\n")
+            
+            f.write("**Why embedding speed matters:**\n")
+            f.write("- **Initial setup time**: How long to embed your entire corpus\n")
+            f.write("- **Update frequency**: How often you can refresh embeddings\n")
+            f.write("- **Scalability**: Performance with larger document collections\n")
+            f.write("- **Cost**: Computational resources required for deployment\n\n")
             
             # Create timing table
             timing_headers = ["Model", "Embedding Time (s)", "Docs/Second", "Avg Time/Doc (ms)"]
@@ -506,6 +776,19 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write("#### Embedding Speed Comparison\n\n")
             f.write(tabulate(timing_rows, headers=timing_headers, tablefmt="pipe"))
             f.write("\n\n")
+            
+            f.write("**Table: Embedding Performance Metrics**\n\n")
+            f.write("**Column Explanations:**\n")
+            f.write("- **Model**: Embedding model name\n")
+            f.write("- **Embedding Time (s)**: Total time to embed all document chunks\n")
+            f.write("- **Docs/Second**: Processing throughput (higher = faster)\n")
+            f.write("- **Avg Time/Doc (ms)**: Average time per document chunk\n\n")
+            
+            f.write("**How to interpret:**\n")
+            f.write("- **Higher Docs/Second** = more efficient processing\n")
+            f.write("- **Lower Avg Time/Doc** = faster individual document handling\n")
+            f.write("- **Trade-offs**: Speed often correlates with model size/complexity\n")
+            f.write("- **Production considerations**: Balance speed with retrieval quality\n\n")
             
             # Find fastest and slowest models
             if timing_rows:  # Only proceed if there are valid timing rows
@@ -760,7 +1043,8 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
     if len(model_results) > 1:
         for j, (metric_name, metric_values) in enumerate(metrics.items()):
             plt.figure(figsize=(10, 6))
-            color = colors[j % len(colors)]
+            # Use consistent blue color for all individual metric charts
+            color = '#1f77b4'  # Blue color
             
             # Sort models by this metric
             sorted_indices = np.argsort(metric_values)[::-1]
@@ -1062,8 +1346,9 @@ if __name__ == "__main__":
 
 
 
-def print_results_summary(model_results):
-    """Print benchmark results summary table."""
+def print_results_summary(model_results, queries=None, corpus=None, relevant_docs=None, 
+                         timing_results=None, dataset_name=None, output_dir=None, save_raw_results=False):
+    """Print benchmark results summary table and optionally save raw results JSON."""
     from tabulate import tabulate
 
     # Build headers dynamically
@@ -1107,11 +1392,32 @@ def print_results_summary(model_results):
         print(f"• Recall@{cfg.k}: Best={max(scores):.4f}, "
               f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
     print()
+    
+    # Save raw results JSON for aggregate analysis
+    if save_raw_results and output_dir:
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        raw_results_path = os.path.join(output_dir, f"raw_results_{timestamp}.json")
+        # Load timing data from file if timing_results was provided
+        timing_dict = {}
+        if timing_results:
+            # Convert timing_results list to dict
+            timing_dict = {model: timing for model, timing in timing_results}
+        
+        save_raw_results_json(
+            dataset_name=dataset_name or "unknown",
+            model_results=model_results,
+            timing_data=timing_dict,
+            corpus=corpus or [],
+            queries=queries or [],
+            relevant_docs=relevant_docs or {},
+            output_path=raw_results_path
+        )
 
 
 def print_report_info(report_files):
     """Print information about generated report files."""
-    print(f"\n📊 REPORTS GENERATED:")
+    print(f"\n[Reports] Generated:")
     if isinstance(report_files, tuple):
         md_file, pdf_file = report_files
         print(f"  • Markdown: {md_file}")

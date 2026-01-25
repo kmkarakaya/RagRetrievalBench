@@ -89,11 +89,67 @@ def clean():
     else:
         print("No ChromaDB collections directory found to clean")
     
+    # Clean dataset-specific directories
+    datasets_dir = Path('datasets')
+    if datasets_dir.exists() and datasets_dir.is_dir():
+        print(f"\nCleaning dataset-specific directories under: {datasets_dir}")
+        for dataset_dir in datasets_dir.iterdir():
+            if dataset_dir.is_dir():
+                print(f"  Processing dataset: {dataset_dir.name}")
+                
+                # Clean dataset reports
+                ds_reports_dir = dataset_dir / 'reports'
+                if ds_reports_dir.exists() and ds_reports_dir.is_dir():
+                    print(f"    Cleaning reports in: {ds_reports_dir}")
+                    for item in ds_reports_dir.iterdir():
+                        if item.name != '.gitkeep':
+                            if item.is_file():
+                                print(f"    Removing report file: {item.name}")
+                                item.unlink()
+                            elif item.is_dir():
+                                print(f"    Removing report subdirectory: {item.name}")
+                                shutil.rmtree(item)
+                
+                # Clean dataset ChromaDB collections
+                ds_chromadb_dir = dataset_dir / 'chromadb_collections'
+                if ds_chromadb_dir.exists() and ds_chromadb_dir.is_dir():
+                    print(f"    Cleaning ChromaDB collections in: {ds_chromadb_dir}")
+                    for item in ds_chromadb_dir.iterdir():
+                        if item.name != '.gitkeep':
+                            if item.is_file():
+                                print(f"    Removing ChromaDB file: {item.name}")
+                                item.unlink()
+                            elif item.is_dir():
+                                print(f"    Removing ChromaDB collection: {item.name}")
+                                shutil.rmtree(item)
+        
+        print("Dataset-specific directories cleaned")
+    else:
+        print("No datasets directory found to clean")
+    
     print("\n✅ Cleanup complete!")
+
+def evaluate(dataset="education"):
+    """Run evaluation on a specific dataset"""
+    run_command(f"python rag_benchmark.py --evaluate --dataset {dataset}", f"Evaluating models on {dataset} dataset")
+
+def aggregate_report():
+    """Generate aggregate report across all datasets"""
+    run_command("python rag_benchmark.py --generate-aggregate-report", "Generating aggregate report")
+
+def prepare_data(dataset="education"):
+    """Prepare data for a specific dataset (corpus, queries, qrels)"""
+    run_command(f"python rag_benchmark.py --prepare-corpus --generate-queries --generate-qrels --dataset {dataset}", 
+                f"Preparing data for {dataset} dataset")
+
+def init_collections(dataset="education"):
+    """Initialize collections for a specific dataset"""
+    run_command(f"python rag_benchmark.py --initialize --dataset {dataset}", 
+                f"Initializing collections for {dataset} dataset")
 
 def benchmark():
     """Run the benchmark pipeline"""
-    run_command("python simple_rag_benchmark_pipeline.py --help", "Showing benchmark options")
+    run_command("python rag_benchmark.py --help", "Showing benchmark options")
 
 def help():
     """Show this help message"""
@@ -102,9 +158,17 @@ def help():
     print("  python make.py lint         Check code quality without modifying")
     print("  python make.py test         Run all tests")
     print("  python make.py test-cov     Run tests with coverage report")
-    print("  python make.py clean        Clean up cached files")
+    print("  python make.py clean        Clean up cached files and generated data")
     print("  python make.py benchmark    Show benchmark pipeline options")
+    print("  python make.py evaluate     Run evaluation on education dataset")
+    print("  python make.py aggregate    Generate aggregate report across datasets")
+    print("  python make.py prepare      Prepare data for education dataset")
+    print("  python make.py init         Initialize collections for education dataset")
     print("  python make.py help         Show this help message")
+    print("\nCommand options:")
+    print("  python make.py evaluate finance    Evaluate finance dataset")
+    print("  python make.py prepare finance     Prepare data for finance dataset")
+    print("  python make.py init finance        Initialize collections for finance dataset")
     print("\nTest options:")
     print("  python make.py test -v                     Verbose output")
     print("  python make.py test -m integration         Run integration tests only")
@@ -114,16 +178,21 @@ def help():
     print("  python make.py test-cov                    Generate HTML coverage report")
     print("  python make.py test-cov -v                Coverage with verbose output")
 
+commands = {
+    "format": format,
+    "lint": lint,
+    "test": test,
+    "test-cov": test_cov,
+    "clean": clean,
+    "benchmark": benchmark,
+    "evaluate": evaluate,
+    "aggregate": aggregate_report,
+    "prepare": prepare_data,
+    "init": init_collections,
+    "help": help
+}
+
 if __name__ == "__main__":
-    commands = {
-        "format": format,
-        "lint": lint,
-        "test": test,
-        "test-cov": test_cov,
-        "clean": clean,
-        "benchmark": benchmark,
-        "help": help
-    }
 
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
         help()

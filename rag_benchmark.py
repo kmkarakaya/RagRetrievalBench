@@ -296,6 +296,16 @@ def main():
     parser.add_argument("--batch-cancel", type=str, help="Cancel a specific Batch Job Name (ID)")
     parser.add_argument("--dataset", type=str, help="Dataset name to run benchmark on")
     
+    # Aggregate Reporting Arguments
+    parser.add_argument("--generate-aggregate-report", action="store_true", 
+                       help="Generate cross-dataset aggregate performance report")
+    parser.add_argument("--aggregate-datasets", type=str, default=None,
+                       help="Comma-separated list of datasets to include (e.g., education,finance). Default: all available")
+    parser.add_argument("--aggregate-output-dir", type=str, default=None,
+                       help="Custom output directory for aggregate report. Default: reports/aggregate")
+    parser.add_argument("--aggregate-metrics", type=str, default=None,
+                       help="Comma-separated metrics to analyze (e.g., map,ndcg). Default: common metrics across datasets")
+    
     args = parser.parse_args()
     
     if args.dataset:
@@ -304,6 +314,62 @@ def main():
     # Create necessary directories
     os.makedirs(cfg.reports_dir, exist_ok=True)
     os.makedirs(cfg.pdf_dir, exist_ok=True)
+    
+    # Handle aggregate report generation
+    if args.generate_aggregate_report:
+        print("=" * 80)
+        print("GENERATING AGGREGATE CROSS-DATASET REPORT")
+        print("=" * 80)
+        
+        # Parse dataset list
+        dataset_names = None
+        if args.aggregate_datasets:
+            dataset_names = [d.strip() for d in args.aggregate_datasets.split(',')]
+            print(f"\nDatasets to include: {', '.join(dataset_names)}")
+        else:
+            dataset_names = cfg.discover_available_datasets()
+            print(f"\nAuto-discovered datasets: {', '.join(dataset_names)}")
+        
+        # Validate minimum datasets
+        if len(dataset_names) < cfg.aggregate_min_datasets:
+            print(f"\nERROR: Need at least {cfg.aggregate_min_datasets} datasets for aggregation.")
+            print(f"Found: {len(dataset_names)} datasets")
+            print(f"\nAvailable datasets:")
+            for ds in cfg.discover_available_datasets():
+                raw_path = cfg.get_latest_raw_results(ds)
+                status = "✓ Has raw results" if raw_path else "✗ Missing raw results (run --evaluate first)"
+                print(f"  - {ds}: {status}")
+            return
+        
+        # Parse metrics
+        metrics = None
+        if args.aggregate_metrics:
+            metrics = [m.strip() for m in args.aggregate_metrics.split(',')]
+        
+        # Generate report
+        try:
+            from utils.aggregate_report_utils import generate_aggregate_report
+            
+            report_path = generate_aggregate_report(
+                dataset_names=dataset_names,
+                output_dir=args.aggregate_output_dir,
+                metrics=metrics,
+                generate_pdf=True
+            )
+            
+            print(f"\n{'='*80}")
+            print(f"[Success] Aggregate report generated: {report_path}")
+            pdf_path = report_path.replace('.md', '.pdf')
+            if os.path.exists(pdf_path):
+                print(f"[Success] PDF report: {pdf_path}")
+            print(f"{'='*80}\n")
+        
+        except Exception as e:
+            print(f"\n❌ ERROR generating aggregate report: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        return  # Exit after generation
     
     # Handle individual pipeline steps - EXIT after each
     if args.prepare_corpus:
@@ -551,7 +617,7 @@ def main():
             if args.evaluate or args.all:
                 # If no timing data exists, we need to initialize first or skip timing in report
                 if not any(t[0] == model_name for t in timing_results):
-                    print(f"⚠️  Warning: No timing data available for {model_name}")
+                    print(f"[Warning] No timing data available for {model_name}")
                     print(f"   Run with --initialize first to get accurate timing metrics")
                     # Add empty timing data to indicate missing measurements
                     timing_results.append((model_name, {
@@ -580,7 +646,16 @@ def main():
         
         # Display and generate report ONLY ONCE
         if model_results:
-            print_results_summary(model_results)
+            print_results_summary(
+                model_results=model_results,
+                queries=queries,
+                corpus=corpus,
+                relevant_docs=relevant_docs,
+                timing_results=timing_results,
+                dataset_name=cfg.current_dataset,
+                output_dir=cfg.reports_dir,
+                save_raw_results=True
+            )
             report_files = generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results, output_dir=cfg.reports_dir)
             print_report_info(report_files)
     

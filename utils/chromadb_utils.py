@@ -227,12 +227,19 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
     if cfg.compute_mrr:
         print(f"MRR@{k}: {metrics['mrr']:.4f}")
     
-    return (
-        metrics["map"],
-        metrics["recall"],
-        metrics["precision"],
-        metrics["ndcg"],
-        metrics["mrr"]
-    )
+    # Build return tuple with only enabled metrics
+    result_metrics = []
+    if cfg.compute_map:
+        result_metrics.append(metrics["map"])
+    if cfg.compute_recall:
+        result_metrics.append(metrics["recall"])
+    if cfg.compute_precision:
+        result_metrics.append(metrics["precision"])
+    if cfg.compute_ndcg:
+        result_metrics.append(metrics["ndcg"])
+    if cfg.compute_mrr:
+        result_metrics.append(metrics["mrr"])
+    
+    return tuple(result_metrics)
 
 
