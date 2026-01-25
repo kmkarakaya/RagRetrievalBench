@@ -20,10 +20,23 @@ except ImportError:
 import subprocess
 import chromadb
 
-def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports"):
-    """Generate a comprehensive benchmark report suitable for a conference paper."""   
+def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports", dataset_name=None):
+    """Generate a comprehensive benchmark report suitable for a conference paper."""
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
+
+    # Extract dataset name from output_dir if not provided
+    if dataset_name is None:
+        # Extract dataset name from path like "datasets/education/reports"
+        if "datasets" in output_dir:
+            path_parts = output_dir.split(os.sep)
+            datasets_idx = path_parts.index("datasets") if "datasets" in path_parts else -1
+            if datasets_idx >= 0 and datasets_idx + 1 < len(path_parts):
+                dataset_name = path_parts[datasets_idx + 1]
+            else:
+                dataset_name = "unknown"
+        else:
+            dataset_name = "default"
 
     # Check if model_results is empty
     if not model_results:
@@ -38,7 +51,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
 
     # Generate timestamp for the report
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    report_file = os.path.join(output_dir, f"benchmark_report_{timestamp}.md")
+    report_file = os.path.join(output_dir, f"{dataset_name}_benchmark_report_{timestamp}.md")
     
     # Sort models by MAP score for easier comparison (if any results exist)
     if model_results:
@@ -80,7 +93,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     # Count document chunks from ChromaDB
     chunk_count = 0
     try:
-        client = chromadb.PersistentClient(path=cfg.chromadb_dir)
+        client = chromadb.PersistentClient(path=cfg.chroma_db_path)
         collection_name = cfg.embedding_models[0]["collection_name"]
         collection = client.get_collection(collection_name)
         chunk_count = collection.count()
@@ -91,9 +104,9 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     # Generate visualizations first so we can reference them in the report
     viz_files = {}
     try:
-        viz_files = generate_visualizations(sorted_results, output_dir, timestamp)
+        viz_files = generate_visualizations(sorted_results, output_dir, timestamp, dataset_name)
         # Generate additional statistics visualizations
-        viz_files.update(generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp))
+        viz_files.update(generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp, dataset_name))
         print(f"Generated {len(viz_files)} visualizations")
     except Exception as e:
         print(f"Warning: Could not generate visualizations: {e}")
@@ -101,13 +114,14 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     # Start writing the report
     with open(report_file, "w", encoding="utf-8") as f:
         # Write report header
-        f.write("# RAG Retrieval Benchmark: A Comprehensive Evaluation of Embedding Models\n\n")
+        f.write(f"# RAG Retrieval Benchmark: {dataset_name.title()} Dataset Evaluation\n\n")
+        f.write(f"**Dataset:** {dataset_name.title()}\n")
         f.write(f"**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
         # Abstract
         f.write("## Abstract\n\n")
-        f.write("This paper presents a systematic evaluation framework for embedding models in ")
-        f.write("Retrieval Augmented Generation (RAG) systems. We developed an automated pipeline ")
+        f.write(f"This paper presents a systematic evaluation of embedding models on the {dataset_name} dataset ")
+        f.write("within Retrieval Augmented Generation (RAG) systems. We developed an automated pipeline ")
         f.write("that processes PDF documents, generates synthetic queries using large language models, ")
         f.write("and evaluates retrieval performance across multiple embedding models using standardized ")
         f.write("information retrieval metrics. Our framework provides researchers and practitioners ")
@@ -116,7 +130,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Executive summary
         f.write("## Executive Summary\n\n")
-        f.write("This report presents a comparative analysis of embedding models for retrieval augmented generation (RAG). ")
+        f.write(f"This report presents a comparative analysis of embedding models for retrieval augmented generation (RAG) on the {dataset_name} dataset. ")
         f.write("The models were evaluated on their ability to retrieve relevant documents using ChromaDB as the vector database. ")
         f.write(f"The benchmark used **{pdf_count} PDF document(s)** that were processed into **{chunk_count} document chunks** and **{len(queries)} queries** with **{sum(len(v) for v in relevant_docs.values())} relevant document mappings**.\n\n")
         
@@ -175,7 +189,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("4. LLM-based relevance labeling for comprehensive qrels\n\n")
         
         # Dataset statistics
-        f.write("## Dataset Statistics\n\n")
+        f.write(f"## {dataset_name.title()} Dataset Statistics\n\n")
         
         # Corpus statistics table
         f.write("#### Corpus Characteristics\n\n")
@@ -515,7 +529,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             
             # Generate timing visualization if timing data exists
             try:
-                generate_timing_visualization(timing_results, output_dir, timestamp)
+                generate_timing_visualization(timing_results, output_dir, timestamp, dataset_name)
                 f.write(f"![Figure: Embedding Speed Comparison]({timing_viz_file})\n\n")
                 f.write("*Figure: Computational efficiency comparison showing embedding speed and processing time per document.*\n\n")
             except Exception as e:
@@ -686,7 +700,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         return report_file, None
 
 
-def generate_visualizations(model_results, output_dir, timestamp):
+def generate_visualizations(model_results, output_dir, timestamp, dataset_name="default"):
     """Generate visualizations for the benchmark report."""
     # Dictionary to store paths to generated visualization files
     viz_files = {}
@@ -737,7 +751,7 @@ def generate_visualizations(model_results, output_dir, timestamp):
     plt.tight_layout()
     
     # Save figure
-    viz_file = os.path.join(output_dir, f"model_comparison_{timestamp}.png")
+    viz_file = os.path.join(output_dir, f"{dataset_name}_model_comparison_{timestamp}.png")
     plt.savefig(viz_file, dpi=300, bbox_inches='tight')
     viz_files['overview'] = viz_file
     plt.close()
@@ -770,7 +784,7 @@ def generate_visualizations(model_results, output_dir, timestamp):
             plt.tight_layout()
             
             # Save figure
-            viz_file = os.path.join(output_dir, f"{metric_name.lower()}_comparison_{timestamp}.png")
+            viz_file = os.path.join(output_dir, f"{dataset_name}_{metric_name.lower()}_comparison_{timestamp}.png")
             plt.savefig(viz_file, dpi=300, bbox_inches='tight')
             viz_files[metric_name.lower()] = viz_file
             plt.close()
@@ -778,7 +792,7 @@ def generate_visualizations(model_results, output_dir, timestamp):
     return viz_files
 
 
-def generate_timing_visualization(timing_results, output_dir, timestamp):
+def generate_timing_visualization(timing_results, output_dir, timestamp, dataset_name="default"):
     """Generate timing performance visualization."""
     if not timing_results:
         return {}
@@ -833,7 +847,7 @@ def generate_timing_visualization(timing_results, output_dir, timestamp):
         plt.tight_layout()
         
         # Save figure
-        timing_viz_file = os.path.join(output_dir, f"timing_comparison_{timestamp}.png")
+        timing_viz_file = os.path.join(output_dir, f"{dataset_name}_timing_comparison_{timestamp}.png")
         plt.savefig(timing_viz_file, dpi=300, bbox_inches='tight')
         plt.close()
         
@@ -844,7 +858,7 @@ def generate_timing_visualization(timing_results, output_dir, timestamp):
         return {}
 
 
-def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp):
+def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp, dataset_name="default"):
     """Generate visualizations for corpus statistics."""
     viz_files = {}
     
@@ -896,7 +910,7 @@ def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distr
     plt.tight_layout()
     
     # Save the combined statistics figure
-    viz_file = os.path.join(output_dir, f"corpus_statistics_{timestamp}.png")
+    viz_file = os.path.join(output_dir, f"{dataset_name}_corpus_statistics_{timestamp}.png")
     plt.savefig(viz_file, dpi=300, bbox_inches='tight')
     viz_files['corpus_stats'] = viz_file
     plt.close()

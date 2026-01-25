@@ -421,8 +421,38 @@ def main():
         else:
             print(f"Failed to cancel batch job: {args.batch_cancel}")
         return
-    
-    # Handle complete pipeline
+
+    if args.batch_fetch:
+        bm = BatchManager()
+        # Get job details to determine type
+        try:
+            job = bm.client.batches.get(name=args.batch_fetch)
+            # Check batch history to determine job type
+            job_type = None
+            history_file = bm.history_file
+            if os.path.exists(history_file):
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            entry = json.loads(line.strip())
+                            if entry.get("batch_id") == args.batch_fetch:
+                                job_type = entry.get("type")
+                                break
+                        except:
+                            continue
+            
+            if job_type == "query_gen":
+                generate_queries_from_corpus(batch_fetch_id=args.batch_fetch)
+            elif job_type == "qrels_gen":
+                generate_qrels(batch_fetch_id=args.batch_fetch)
+            else:
+                print(f"Unknown job type '{job_type}' for batch {args.batch_fetch}")
+                print("Please specify the operation type explicitly:")
+                print("  --generate-queries --batch-fetch <id>")
+                print("  --generate-qrels --batch-fetch <id>")
+        except Exception as e:
+            print(f"Error fetching batch job {args.batch_fetch}: {e}")
+        return
     if args.all:
         if args.batch_submit or args.batch_fetch:
             print("Error: --all cannot be used with batch modes. Please run steps individually.")

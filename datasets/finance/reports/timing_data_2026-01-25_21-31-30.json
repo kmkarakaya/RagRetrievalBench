@@ -1,0 +1,26 @@
+{
+  "sentence-transformers/all-MiniLM-L6-v2": {
+    "embedding_time": 1.4197769165039062,
+    "docs_processed": 50,
+    "docs_per_second": 35.21680020204951,
+    "avg_time_per_doc": 0.028395538330078126
+  },
+  "sentence-transformers/all-mpnet-base-v2": {
+    "embedding_time": 11.734227895736694,
+    "docs_processed": 50,
+    "docs_per_second": 4.261038770021342,
+    "avg_time_per_doc": 0.2346845579147339
+  },
+  "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": {
+    "embedding_time": 1.5547912120819092,
+    "docs_processed": 50,
+    "docs_per_second": 32.158658739168324,
+    "avg_time_per_doc": 0.031095824241638183
+  },
+  "sentence-transformers/all-MiniLM-L12-v2": {
+    "embedding_time": 1.4523341655731201,
+    "docs_processed": 50,
+    "docs_per_second": 34.42733854592548,
+    "avg_time_per_doc": 0.0290466833114624
+  }
+}
