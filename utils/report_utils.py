@@ -18,6 +18,7 @@ except ImportError:
     print("Warning: sentence-transformers not available. Model dimensions will show as 'N/A'")
 
 import subprocess
+import chromadb
 
 def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports"):
     """Generate a comprehensive benchmark report suitable for a conference paper."""   
@@ -71,12 +72,28 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     query_lengths = [len(text.split()) for text in queries.values()]
     relevance_distribution = [len(v) for v in relevant_docs.values()]
     
+    # Count source PDF documents
+    pdf_count = 0
+    if os.path.exists(cfg.pdf_dir):
+        pdf_count = len([f for f in os.listdir(cfg.pdf_dir) if f.lower().endswith('.pdf')])
+    
+    # Count document chunks from ChromaDB
+    chunk_count = 0
+    try:
+        client = chromadb.PersistentClient(path=cfg.chromadb_dir)
+        collection_name = cfg.embedding_models[0]["collection_name"]
+        collection = client.get_collection(collection_name)
+        chunk_count = collection.count()
+    except Exception as e:
+        print(f"Warning: Could not get chunk count from ChromaDB: {e}. Using corpus length.")
+        chunk_count = len(corpus)
+    
     # Generate visualizations first so we can reference them in the report
     viz_files = {}
     try:
         viz_files = generate_visualizations(sorted_results, output_dir, timestamp)
         # Generate additional statistics visualizations
-        viz_files.update(generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, output_dir, timestamp))
+        viz_files.update(generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp))
         print(f"Generated {len(viz_files)} visualizations")
     except Exception as e:
         print(f"Warning: Could not generate visualizations: {e}")
@@ -101,7 +118,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("## Executive Summary\n\n")
         f.write("This report presents a comparative analysis of embedding models for retrieval augmented generation (RAG). ")
         f.write("The models were evaluated on their ability to retrieve relevant documents using ChromaDB as the vector database. ")
-        f.write(f"The benchmark used **{len(corpus)} documents** and **{len(queries)} queries** with **{sum(len(v) for v in relevant_docs.values())} relevant document mappings**.\n\n")
+        f.write(f"The benchmark used **{pdf_count} PDF document(s)** that were processed into **{chunk_count} document chunks** and **{len(queries)} queries** with **{sum(len(v) for v in relevant_docs.values())} relevant document mappings**.\n\n")
         
         # Best model highlight
         if sorted_results:  # Check if there are any results
@@ -136,11 +153,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         f.write("### Document Processing Pipeline\n\n")
         f.write("#### PDF Extraction and Chunking\n\n")
-        f.write(f"- **Source documents**: PDF files from `{cfg.pdf_dir}` directory\n")
+        f.write(f"- **Source PDF documents**: {pdf_count} file(s) from `{cfg.pdf_dir}` directory\n")
         f.write(f"- **Chunking strategy**: Recursive character text splitting\n")
         f.write(f"- **Chunk size**: {cfg.chunk_size} characters\n")
         f.write(f"- **Chunk overlap**: {cfg.chunk_overlap} characters\n")
-        f.write(f"- **Total chunks generated**: {len(corpus)}\n\n")
+        f.write(f"- **Total chunks generated**: {chunk_count}\n\n")
         
         f.write("The chunking process uses LangChain's `RecursiveCharacterTextSplitter` to ")
         f.write("maintain semantic coherence while ensuring manageable chunk sizes for embedding models.\n\n")
@@ -163,7 +180,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         # Corpus statistics table
         f.write("#### Corpus Characteristics\n\n")
         corpus_stats = [
-            ["Total Documents", f"{len(corpus):,}"],
+            ["Source PDF Documents", f"{pdf_count}"],
+            ["Total Document Chunks", f"{chunk_count:,}"],
             ["Average Chunk Length (words)", f"{np.mean(chunk_lengths):.1f}"],
             ["Median Chunk Length (words)", f"{np.median(chunk_lengths):.1f}"],
             ["Min Chunk Length (words)", f"{min(chunk_lengths)}"],
@@ -194,7 +212,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             ["Median Relevant Docs per Query", f"{np.median(relevance_distribution):.1f}"],
             ["Min Relevant Docs", f"{min(relevance_distribution)}"],
             ["Max Relevant Docs", f"{max(relevance_distribution)}"],
-            ["Coverage Ratio", f"{sum(relevance_distribution)/len(corpus)*100:.2f}%"]
+            ["Coverage Ratio", f"{sum(relevance_distribution)/chunk_count*100:.2f}%"]
         ]
         f.write(tabulate(relevance_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
@@ -441,7 +459,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write("## Embedding Performance Metrics\n\n")
             f.write("This section analyzes the computational efficiency of different embedding models ")
             f.write("during the corpus initialization phase, measuring the time required to embed ")
-            f.write(f"and index {len(corpus)} documents.\n\n")
+            f.write(f"and index {chunk_count} document chunks.\n\n")
             
             # Create timing table
             timing_headers = ["Model", "Embedding Time (s)", "Docs/Second", "Avg Time/Doc (ms)"]
@@ -826,7 +844,7 @@ def generate_timing_visualization(timing_results, output_dir, timestamp):
         return {}
 
 
-def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, output_dir, timestamp):
+def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp):
     """Generate visualizations for corpus statistics."""
     viz_files = {}
     
@@ -862,7 +880,7 @@ def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distr
     axes[1, 1].axis('off')
     summary_stats = [
         ['Metric', 'Chunks', 'Queries', 'Relevance'],
-        ['Count', f'{len(chunk_lengths)}', f'{len(query_lengths)}', f'{len(relevance_distribution)}'],
+        ['Count', f'{chunk_count}', f'{len(query_lengths)}', f'{len(relevance_distribution)}'],
         ['Mean', f'{np.mean(chunk_lengths):.1f}', f'{np.mean(query_lengths):.1f}', f'{np.mean(relevance_distribution):.1f}'],
         ['Median', f'{np.median(chunk_lengths):.1f}', f'{np.median(query_lengths):.1f}', f'{np.median(relevance_distribution):.1f}'],
         ['Std Dev', f'{np.std(chunk_lengths):.1f}', f'{np.std(query_lengths):.1f}', f'{np.std(relevance_distribution):.1f}']

@@ -90,8 +90,8 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dic
         requests = []
         for i, seed_id in enumerate(seed_ids):
              query_id = f"q{i+1}_for_{seed_id}"
-             prompt = f"Generate a search query for the following document:\n\n{corpus[seed_id]}\n\nQuery:"
-             req = bm.prepare_request(query_id, prompt, cfg.generate_query_system_instruction, cfg.temperature)
+             # Pass just the document chunk as the user message
+             req = bm.prepare_request(query_id, corpus[seed_id], cfg.generate_query_system_instruction, cfg.temperature)
              requests.append(req)
         
         bm.submit_batch(requests, "query_gen")
@@ -293,11 +293,16 @@ def main():
     parser.add_argument("--batch-submit", action="store_true", help="Submit tasks to Gemini Batch API instead of running locally")
     parser.add_argument("--batch-fetch", type=str, help="Fetch results for a specific Batch Job Name (ID)")
     parser.add_argument("--batch_status", action="store_true", help="List all batch jobs and their statuses")
+    parser.add_argument("--batch-cancel", type=str, help="Cancel a specific Batch Job Name (ID)")
+    parser.add_argument("--dataset", type=str, help="Dataset name to run benchmark on")
     
     args = parser.parse_args()
+    
+    if args.dataset:
+        cfg.configure_for_dataset(args.dataset)
 
     # Create necessary directories
-    os.makedirs("reports", exist_ok=True)
+    os.makedirs(cfg.reports_dir, exist_ok=True)
     os.makedirs(cfg.pdf_dir, exist_ok=True)
     
     # Handle individual pipeline steps - EXIT after each
@@ -314,15 +319,107 @@ def main():
         return
         
     if args.batch_status:
-        history_file = "reports/batch_history.jsonl"
-        if os.path.exists(history_file):
-            print("Batch Job History:")
-            with open(history_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    entry = json.loads(line.strip())
-                    print(f"- {entry['batch_id']}: {entry['status']} ({entry['type']}) - {entry['timestamp']}")
+        bm = BatchManager()
+        
+        # If no dataset specified, show all datasets
+        if not hasattr(args, 'dataset') or not args.dataset:
+            datasets_dir = os.path.join(os.path.dirname(cfg.reports_dir), 'datasets')
+            if os.path.exists(datasets_dir):
+                print("Batch Job History Across All Datasets (refreshed from API):")
+                dataset_dirs = [d for d in os.listdir(datasets_dir) if os.path.isdir(os.path.join(datasets_dir, d))]
+                all_jobs = []
+                
+                # Check default reports directory
+                default_history = os.path.join(os.path.dirname(cfg.reports_dir), 'reports', 'batch_history.jsonl')
+                if os.path.exists(default_history):
+                    with open(default_history, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            entry = json.loads(line.strip())
+                            entry['_dataset'] = 'default'
+                            all_jobs.append(entry)
+                
+                # Check each dataset directory
+                for dataset_name in dataset_dirs:
+                    dataset_reports_dir = os.path.join(datasets_dir, dataset_name, 'reports')
+                    history_file = os.path.join(dataset_reports_dir, 'batch_history.jsonl')
+                    if os.path.exists(history_file):
+                        with open(history_file, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                entry = json.loads(line.strip())
+                                entry['_dataset'] = dataset_name
+                                all_jobs.append(entry)
+                
+                # Sort by timestamp and display
+                all_jobs.sort(key=lambda x: x['timestamp'], reverse=True)
+                for entry in all_jobs:
+                    dataset_label = f" [{entry['_dataset']}]" if entry['_dataset'] != 'default' else ""
+                    current_status = bm.check_status(entry['batch_id'])
+                    if current_status != entry['status']:
+                        entry['status'] = current_status
+                        print(f"- {entry['batch_id']}: {entry['status']} ({entry['type']}) - {entry['timestamp']}{dataset_label} [UPDATED]")
+                    else:
+                        print(f"- {entry['batch_id']}: {entry['status']} ({entry['type']}) - {entry['timestamp']}{dataset_label}")
+                
+                # Update all history files with refreshed statuses
+                for entry in all_jobs:
+                    dataset_name = entry['_dataset']
+                    if dataset_name == 'default':
+                        history_file = os.path.join(os.path.dirname(cfg.reports_dir), 'reports', 'batch_history.jsonl')
+                    else:
+                        history_file = os.path.join(datasets_dir, dataset_name, 'reports', 'batch_history.jsonl')
+                    
+                    # Read current entries for this dataset
+                    current_entries = []
+                    if os.path.exists(history_file):
+                        with open(history_file, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                current_entries.append(json.loads(line.strip()))
+                    
+                    # Update the matching entry
+                    for i, current_entry in enumerate(current_entries):
+                        if current_entry['batch_id'] == entry['batch_id']:
+                            current_entries[i]['status'] = entry['status']
+                            break
+                    
+                    # Write back
+                    with open(history_file, 'w', encoding='utf-8') as f:
+                        for current_entry in current_entries:
+                            f.write(json.dumps(current_entry) + "\n")
+            else:
+                print("No datasets found.")
         else:
-            print("No batch history found.")
+            # Dataset-specific batch status (existing logic)
+            history_file = os.path.join(cfg.reports_dir, "batch_history.jsonl")
+            if os.path.exists(history_file):
+                print("Batch Job History (refreshed from API):")
+                updated_entries = []
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        entry = json.loads(line.strip())
+                        # Refresh status from API
+                        current_status = bm.check_status(entry['batch_id'])
+                        if current_status != entry['status']:
+                            entry['status'] = current_status
+                            print(f"- {entry['batch_id']}: {entry['status']} ({entry['type']}) - {entry['timestamp']} [UPDATED]")
+                        else:
+                            print(f"- {entry['batch_id']}: {entry['status']} ({entry['type']}) - {entry['timestamp']}")
+                        updated_entries.append(entry)
+                
+                # Update the history file with refreshed statuses
+                with open(history_file, 'w', encoding='utf-8') as f:
+                    for entry in updated_entries:
+                        f.write(json.dumps(entry) + "\n")
+            else:
+                print("No batch history found.")
+        return
+
+    if args.batch_cancel:
+        bm = BatchManager()
+        success = bm.cancel_batch(args.batch_cancel)
+        if success:
+            print(f"Successfully cancelled batch job: {args.batch_cancel}")
+        else:
+            print(f"Failed to cancel batch job: {args.batch_cancel}")
         return
     
     # Handle complete pipeline
@@ -362,7 +459,7 @@ def main():
             if timing_results:
                 import datetime
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                timing_file = f"reports/timing_data_{timestamp}.json"
+                timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
                 
                 with open(timing_file, 'w', encoding='utf-8') as f:
                     # Convert to dict format for JSON
@@ -391,7 +488,7 @@ def main():
         timing_results = []
         # Find the most recent timing data file
         import glob
-        timing_files = glob.glob("reports/timing_data_*.json")
+        timing_files = glob.glob(os.path.join(cfg.reports_dir, "timing_data_*.json"))
         if timing_files:
             # Sort by modification time, get the most recent
             latest_timing_file = max(timing_files, key=os.path.getmtime)
@@ -443,7 +540,7 @@ def main():
         if timing_results:
             import datetime
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            timing_file = f"reports/timing_data_{timestamp}.json"
+            timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
             
             with open(timing_file, 'w', encoding='utf-8') as f:
                 # Convert to dict format for JSON
@@ -454,7 +551,7 @@ def main():
         # Display and generate report ONLY ONCE
         if model_results:
             print_results_summary(model_results)
-            report_files = generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results)
+            report_files = generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results, output_dir=cfg.reports_dir)
             print_report_info(report_files)
     
     print("\nBenchmark completed!")

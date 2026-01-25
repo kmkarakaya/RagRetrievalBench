@@ -15,11 +15,14 @@ def get_chromadb_client():
     import chromadb
     import os
     
-    # Ensure the directory exists (same path as your chromadb_utils)
-    os.makedirs(os.path.join("utils", "chromadb_collections"), exist_ok=True)
+    # Use path from config, default to old path if not set
+    db_path = getattr(cfg, 'chroma_db_path', os.path.join("utils", "chromadb_collections"))
+
+    # Ensure the directory exists
+    os.makedirs(db_path, exist_ok=True)
     
     # Create persistent client
-    client = chromadb.PersistentClient(path=os.path.join("utils", "chromadb_collections"))
+    client = chromadb.PersistentClient(path=db_path)
     return client
 
 def initialize_collection(corpus, model_name, collection_name):

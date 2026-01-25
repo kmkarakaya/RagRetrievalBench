@@ -17,10 +17,12 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 - **Intelligent Relevance Assessment**: Automated qrels generation with LLM evaluation
 - **Multi-Model Comparison**: Benchmark multiple embedding models simultaneously
 - **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, and MRR evaluation
+- **Batch Processing Support**: Cost-effective asynchronous processing for large datasets
 - **Persistent Timing Data**: Timing metrics saved between pipeline runs for accurate performance tracking
 - **Professional Reporting**: Automated generation of markdown and PDF reports with visualizations
 - **ChromaDB Integration**: Efficient vector storage and retrieval
 - **Modular Pipeline**: Run individual components or complete end-to-end evaluation
+- **Multi-Dataset Support**: Run benchmarks on multiple datasets with complete isolation
 
 ## 📋 Table of Contents
 
@@ -92,66 +94,112 @@ After installing these tools, the framework will generate PDF reports automatica
 
 ## ⚡ Quick Start
 
-### Complete Pipeline (Recommended)
+### Complete Pipeline with Batch Processing (Recommended for Large Datasets)
 ```bash
 # Activate environment
 conda activate ragbenchmark
 
-# Run the entire benchmark pipeline
-python rag_benchmark.py --all
+# Full pipeline with batch processing on default dataset
+python rag_benchmark.py --prepare-corpus
+python rag_benchmark.py --generate-queries --batch-submit
+python rag_benchmark.py --generate-queries --batch-fetch <BATCH_ID>
+python rag_benchmark.py --generate-qrels --batch-submit
+python rag_benchmark.py --generate-qrels --batch-fetch <BATCH_ID>
+python rag_benchmark.py --initialize
+python rag_benchmark.py --evaluate
+
+# Full pipeline with batch processing on specific dataset
+python rag_benchmark.py --dataset finance --prepare-corpus
+python rag_benchmark.py --dataset finance --generate-queries --batch-submit
+python rag_benchmark.py --dataset finance --generate-queries --batch-fetch <BATCH_ID>
+python rag_benchmark.py --dataset finance --generate-qrels --batch-submit
+python rag_benchmark.py --dataset finance --generate-qrels --batch-fetch <BATCH_ID>
+python rag_benchmark.py --dataset finance --initialize
+python rag_benchmark.py --dataset finance --evaluate
 ```
 
 ### Step-by-Step Execution
 ```bash
-# 1. Process PDFs into document chunks
+# For default dataset
 python rag_benchmark.py --prepare-corpus
-
-# 2. Generate evaluation queries
 python rag_benchmark.py --generate-queries
-
-# 3. Create relevance judgments
 python rag_benchmark.py --generate-qrels
-
-# 4. Initialize embedding collections (timing data saved automatically)
 python rag_benchmark.py --initialize
-
-# 5. Run evaluation and generate reports (loads saved timing data)
 python rag_benchmark.py --evaluate
+
+# For a specific dataset (e.g., legal_docs)
+python rag_benchmark.py --dataset legal_docs --prepare-corpus
+python rag_benchmark.py --dataset legal_docs --generate-queries
+python rag_benchmark.py --dataset legal_docs --generate-qrels
+python rag_benchmark.py --dataset legal_docs --initialize
+python rag_benchmark.py --dataset legal_docs --evaluate
 ```
 
 **Note**: Steps 4 and 5 can be run separately - timing data from initialization is automatically saved and loaded for accurate performance reporting.
 
+**💡 Tip**: For datasets with more than 10 queries, consider using [Batch Processing](#batch-processing-optional) to reduce costs and avoid rate limits.
+
 ### ⚡ Batch Processing (Optional)
 
-For large datasets, use the Gemini Batch API to reduce costs (50% cheaper) and avoid rate limits. This process is split into two phases: **Submit** and **Fetch**.
+For large datasets, use the Gemini Batch API to reduce costs (50% cheaper) and avoid rate limits. Batch processing is recommended when:
+
+- You have more than 10 queries to generate
+- You want to minimize API costs
+- You need to process large amounts of data asynchronously
+- You want to avoid hitting rate limits during peak hours
+
+**How Batch Processing Works:**
+1. **Submit Phase**: Upload your requests to Google's Batch API and get a job ID
+2. **Processing Phase**: Google processes your requests asynchronously (can take minutes to hours)
+3. **Fetch Phase**: Download the results when processing is complete
+
+**Important Notes:**
+- Batch jobs are processed asynchronously - you can check status anytime
+- Results are saved to your dataset's `reports/` directory
+- Use `--batch_status` to monitor job progress (shows all datasets when no --dataset specified)
+- Batch processing costs ~50% less than real-time API calls
 
 **Phase 1: Query Generation (Batch Mode)**
 ```bash
-# 1. Submit the batch job
+# Submit batch job for query generation
 python rag_benchmark.py --generate-queries --batch-submit
+# Output: "Batch submitted successfully! Job Name: projects/.../locations/.../batchJobs/.../<BATCH_ID>"
 
-# Note the Batch ID from the output (saved in reports/batch_history.jsonl)
-# Wait for the job to complete (you can check status in Google AI Studio or logs)
+# Check status (optional)
+python rag_benchmark.py --batch_status
 
-# 2. Fetch and process results
+# Fetch results when ready (use the BATCH_ID from submit output)
 python rag_benchmark.py --generate-queries --batch-fetch <BATCH_ID>
 ```
 
 **Phase 2: Relevance Judgments (Batch Mode)**
 ```bash
-# 1. Submit the batch job
+# Submit batch job for qrels generation
 python rag_benchmark.py --generate-qrels --batch-submit
 
-# Note the Batch ID
-# Wait for completion...
+# Check status (optional)
+python rag_benchmark.py --batch_status
 
-# 2. Fetch and process results
+# Fetch results when ready
 python rag_benchmark.py --generate-qrels --batch-fetch <BATCH_ID>
 ```
 
-**Check Batch Status**
+**Cancelling Batch Jobs**
+If you need to cancel a running batch job:
 ```bash
-# List all batch jobs and their current statuses
+# Cancel a specific batch job
+python rag_benchmark.py --batch-cancel <BATCH_ID>
+```
+
+**For Specific Datasets:**
+```bash
+# All batch commands work with --dataset flag
+python rag_benchmark.py --dataset finance --generate-queries --batch-submit
+python rag_benchmark.py --dataset finance --batch_status
+python rag_benchmark.py --dataset finance --generate-queries --batch-fetch <BATCH_ID>
+python rag_benchmark.py --dataset finance --batch-cancel <BATCH_ID>
+
+# Check all datasets (run without --dataset)
 python rag_benchmark.py --batch_status
 ```
 
@@ -183,7 +231,7 @@ map_at_k = [k]
 ndcg_at_k = [k]
 
 # Document processing
-pdf_dir = "utils/pdfs"
+pdf_dir = "utils/pdfs"  # Default PDF directory (used when no --dataset specified)
 chunk_size = 1000
 chunk_overlap = 200
 
@@ -203,6 +251,16 @@ document_batch_size = 32
 reinitialize_collections = True
 ```
 
+### Multi-Dataset Support
+
+The framework supports running benchmarks on multiple datasets with complete isolation:
+
+- Use `--dataset <name>` to specify a dataset (e.g., `--dataset finance`)
+- Each dataset gets its own directory under `datasets/<name>/`
+- Place PDF files in `datasets/<name>/pdfs/`
+- All outputs (corpus, queries, qrels, reports, ChromaDB collections) are isolated per dataset
+- If no `--dataset` is specified, uses default paths for backward compatibility
+
 ## 📖 Usage
 
 ### Command Line Arguments
@@ -215,10 +273,15 @@ reinitialize_collections = True
 | `--initialize` | Build embedding collections in ChromaDB |
 | `--evaluate` | Run retrieval evaluation and generate reports |
 | `--all` | Execute complete pipeline end-to-end |
+| `--dataset <name>` | Run benchmark on specified dataset (isolates all data) |
+| `--batch-submit` | Submit tasks to Gemini Batch API |
+| `--batch-fetch <ID>` | Fetch results from Batch API job |
+| `--batch_status` | List all batch jobs and their statuses (across all datasets if no --dataset specified) |
+| `--batch-cancel <ID>` | Cancel a specific Batch Job |
 
 ### Input Requirements
 
-1. **PDF Documents**: Place your PDF files in `utils/pdfs/` directory
+1. **PDF Documents**: Place your PDF files in `datasets/<name>/pdfs/` directory (when using `--dataset`) or `utils/pdfs/` (default)
 2. **API Key**: Set up your Google AI API key in `.env` file
 3. **Configuration**: Adjust settings in `config.py`
 
@@ -281,17 +344,32 @@ The framework computes standard information retrieval metrics:
 ### Generated Files Structure
 ```
 RagRetrievalBench/
-├── corpus.jsonl                    # Processed document chunks
-├── queries.jsonl                   # Generated evaluation queries
-├── qrels.tsv                       # Relevance judgments (TREC format)
-├── reports/
+├── corpus.jsonl                    # Processed document chunks (default dataset)
+├── queries.jsonl                   # Generated evaluation queries (default)
+├── qrels.tsv                       # Relevance judgments (default)
+├── reports/                        # Reports for default dataset
 │   ├── benchmark_report_*.md       # Comprehensive evaluation report
 │   ├── benchmark_report_*.pdf      # PDF version (if Pandoc installed)
 │   ├── timing_data.json            # Persisted timing metrics for models
 │   ├── timing_comparison_*.png     # Performance comparison charts
 │   ├── model_comparison_*.png      # Model performance visualization
 │   └── corpus_statistics_*.png    # Dataset analysis charts
-└── utils/chromadb_collections/     # Vector database storage
+├── datasets/                       # Multi-dataset support
+│   └── <dataset_name>/             # Per-dataset isolated storage
+│       ├── corpus.jsonl            # Dataset-specific corpus
+│       ├── queries.jsonl           # Dataset-specific queries
+│       ├── qrels.tsv               # Dataset-specific relevance judgments
+│       ├── pdfs/                   # Input PDF documents for this dataset
+│       ├── reports/                # Dataset-specific reports
+│       │   ├── benchmark_report_*.md
+│       │   ├── benchmark_report_*.pdf
+│       │   ├── timing_data.json
+│       │   ├── batch_history.jsonl # Dataset-specific batch history
+│       │   └── *.png               # Dataset-specific visualizations
+│       └── chromadb_collections/   # Dataset-specific vector database
+│           ├── chroma.sqlite3      # ChromaDB metadata
+│           └── [collection_directories]/ # Individual model collections
+└── utils/chromadb_collections/     # Vector database storage (default)
     ├── chroma.sqlite3              # ChromaDB metadata
     └── [collection_directories]/   # Individual model collections
 ```
@@ -401,6 +479,14 @@ RagRetrievalBench/
 ├── test_plan.md                    # Placeholder (see docs/test_plan.md)
 ├── test_report_issues.py           # Test issue reporting script
 ├── backend/                        # Backend-related files
+├── datasets/                       # Multi-dataset storage (created dynamically)
+│   └── <dataset_name>/             # Per-dataset isolated directories
+│       ├── corpus.jsonl            # Dataset-specific corpus
+│       ├── queries.jsonl           # Dataset-specific queries
+│       ├── qrels.tsv               # Dataset-specific qrels
+│       ├── pdfs/                   # Input PDFs for this dataset
+│       ├── reports/                # Dataset-specific reports and data
+│       └── chromadb_collections/   # Dataset-specific vector DB
 ├── docs/                           # Documentation
 │   ├── benchmark_workflow.md      # Benchmark workflow documentation
 │   ├── MAP_CALCULATION_SUMMARY.md # MAP calculation summary
@@ -413,8 +499,8 @@ RagRetrievalBench/
 │   ├── llm.py                    # Google Gemini LLM integration
 │   ├── report_utils.py           # Report generation and visualization
 │   ├── text_splitter.py          # Document chunking utilities
-│   ├── chromadb_collections/     # ChromaDB collections storage
-│   └── pdfs/                     # Input PDF documents directory
+│   ├── chromadb_collections/     # ChromaDB collections storage (default)
+│   └── pdfs/                     # Input PDF documents directory (default)
 ├── tests/                         # Comprehensive test suite
 │   ├── __init__.py              # Test package initialization
 │   ├── conftest.py              # Shared test configuration

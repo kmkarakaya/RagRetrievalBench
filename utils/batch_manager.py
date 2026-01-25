@@ -11,19 +11,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config as cfg
 from utils.llm import initialize_genai_client
 
-HISTORY_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'reports', 'batch_history.jsonl')
-
 class BatchManager:
     def __init__(self):
         self.client = initialize_genai_client()
+        # Resolve history file path based on config
+        reports_dir = getattr(cfg, 'reports_dir', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'reports'))
+        self.history_file = os.path.join(reports_dir, 'batch_history.jsonl')
         self.ensure_history_file()
 
     def ensure_history_file(self):
-        dirname = os.path.dirname(HISTORY_FILE)
+        dirname = os.path.dirname(self.history_file)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        if not os.path.exists(HISTORY_FILE):
-             with open(HISTORY_FILE, 'w') as f: pass
+        if not os.path.exists(self.history_file):
+             with open(self.history_file, 'w') as f: pass
 
     def log_submission(self, batch_job, batch_type, input_file):
         entry = {
@@ -33,14 +34,14 @@ class BatchManager:
             "status": batch_job.state.name,
             "input_file": input_file
         }
-        with open(HISTORY_FILE, 'a', encoding='utf-8') as f:
+        with open(self.history_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry) + "\n")
             
     def get_last_batch_id(self, batch_type):
         """Helper to find the last submitted batch of a certain type"""
         last_id = None
-        if os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+        if os.path.exists(self.history_file):
+            with open(self.history_file, 'r', encoding='utf-8') as f:
                 for line in f:
                     try:
                         data = json.loads(line)
@@ -74,7 +75,7 @@ class BatchManager:
         # Always use file input to ensure keys are preserved and response format is consistent
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         filename = f"batch_req_{batch_type}_{timestamp}.jsonl"
-        batch_dir = os.path.join(os.path.dirname(HISTORY_FILE), 'batches')
+        batch_dir = os.path.join(os.path.dirname(self.history_file), 'batches')
         if not os.path.exists(batch_dir):
             os.makedirs(batch_dir)
         
@@ -120,15 +121,35 @@ class BatchManager:
             print(f"Error checking status: {e}")
             return "UNKNOWN"
 
+    def cancel_batch(self, batch_name):
+        """Cancel a batch job"""
+        try:
+            job = self.client.batches.get(name=batch_name)
+            if job.state.name in ["JOB_STATE_PENDING", "JOB_STATE_RUNNING"]:
+                # Try to cancel the job
+                self.client.batches.delete(name=batch_name)
+                print(f"Batch job {batch_name} cancelled successfully.")
+                # Update the history file
+                self.update_batch_status(batch_name, "JOB_STATE_CANCELLED")
+                return True
+            else:
+                print(f"Batch job {batch_name} is in state {job.state.name} and cannot be cancelled.")
+                # Still update the history file with current status
+                self.update_batch_status(batch_name, job.state.name)
+                return False
+        except Exception as e:
+            print(f"Error cancelling batch job {batch_name}: {e}")
+            return False
+
     def update_batch_status(self, batch_id, new_status):
         """Update the status of an existing batch in the history file"""
-        if not os.path.exists(HISTORY_FILE):
+        if not os.path.exists(self.history_file):
             return False
             
         # Read all entries
         entries = []
         updated = False
-        with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+        with open(self.history_file, 'r', encoding='utf-8') as f:
             for line in f:
                 try:
                     entry = json.loads(line.strip())
@@ -142,7 +163,7 @@ class BatchManager:
         
         # Write back all entries
         if updated:
-            with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
                 for entry in entries:
                     f.write(json.dumps(entry) + "\n")
         

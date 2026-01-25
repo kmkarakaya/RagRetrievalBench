@@ -1,9 +1,70 @@
+import os
+
 # Configuration file for benchmark.py
 
 # Path to the corpus, queries, and qrels files
 corpus_file = "corpus.jsonl"
 queries_file = "queries.jsonl"
 qrels_file = "qrels.tsv"
+reports_dir = "reports"
+chroma_db_path = os.path.join("utils", "chromadb_collections")
+
+def configure_for_dataset(dataset_name):
+    """
+    Configures paths and variables for a specific dataset.
+    Args:
+        dataset_name (str): Name of the dataset (folder name under datasets/).
+    """
+    global corpus_file, queries_file, qrels_file, pdf_dir, reports_dir, chroma_db_path, embedding_models
+    
+    # Define dataset root
+    dataset_root = os.path.join("datasets", dataset_name)
+    
+    # Ensure dataset directory exists
+    if not os.path.exists(dataset_root):
+        os.makedirs(dataset_root, exist_ok=True)
+        print(f"Created new dataset directory: {dataset_root}")
+        
+    # Update paths
+    corpus_file = os.path.join(dataset_root, "corpus.jsonl")
+    queries_file = os.path.join(dataset_root, "queries.jsonl")
+    qrels_file = os.path.join(dataset_root, "qrels.tsv")
+    
+    # PDFs are expected in a 'pdfs' subdirectory or directly in root? 
+    # Plan v2 decided on 'datasets/{dataset_name}/' for direct isolation or 'pdfs' folder.
+    # Let's use a 'pdfs' subfolder for cleanliness and to avoid scanning jsonl files as pdfs accidentally if loader is loose.
+    pdf_dir = os.path.join(dataset_root, "pdfs")
+    
+    # Reports
+    reports_dir = os.path.join(dataset_root, "reports")
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir, exist_ok=True)
+        
+    # ChromaDB
+    chroma_db_path = os.path.join(dataset_root, "chromadb_collections")
+    if not os.path.exists(chroma_db_path):
+        os.makedirs(chroma_db_path, exist_ok=True)
+        
+    # Update collection names in embedding_models to avoid collisions if using shared resources
+    # (Though with separate chroma_db_path, this is less critical, but strict separation is good)
+    # We create a new list to avoid mutating the original one multiple times if called repeatedly (though unlikely)
+    new_embedding_models = []
+    for model in embedding_models:
+        new_model = model.copy()
+        # Prefix collection name with dataset name
+        # sanitize dataset name for collection name (alphanumeric, underscores, hyphens)
+        clean_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in dataset_name)
+        if not new_model["collection_name"].startswith(f"{clean_name}_"):
+             new_model["collection_name"] = f"{clean_name}_{new_model['collection_name']}"
+        new_embedding_models.append(new_model)
+    embedding_models = new_embedding_models
+    
+    print(f"Configuration updated for dataset: {dataset_name}")
+    print(f"  Corpus: {corpus_file}")
+    print(f"  PDFs: {pdf_dir}")
+    print(f"  DB Path: {chroma_db_path}")
+
+
 
 # ChromaDB collection/model pairs to benchmark
 # for more info, visit https://www.sbert.net/docs/sentence_transformer/pretrained_models.html
@@ -87,9 +148,7 @@ the document. Do not include any personal opinions or irrelevant information.
 Focus on the main topics of the given document and prepare a query that is not just a replicate of the document.
 The query should be in the form of a natural language question or statement that can be used
  to search for the document in a vector database. Determine the given document's language and 
- and generate the query in the same language.
-Here is the document: 
-"""
+ generate the query in the same language."""
 
 generate_qrels_system_instruction ="""
 You are an expert Information Retrieval judge. 
