@@ -5,6 +5,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **Owner: Murat Karakaya**
+
 - Website: [www.muratkarakaya.net](https://www.muratkarakaya.net)
 - YouTube: [Murat Karakaya Akademi](https://www.youtube.com/@MuratKarakayaAkademi)
 
@@ -15,7 +16,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 - **Automated PDF Processing**: Extract and chunk documents from PDF files
 - **LLM-Powered Query Generation**: Generate realistic queries using Google Gemini AI
 - **Intelligent Relevance Assessment**: Automated qrels generation with LLM evaluation
-- **Multi-Model Comparison**: Benchmark multiple embedding models simultaneously
+- **Multi-Model Comparison**: Benchmark multiple SentenceTransformers embedding models simultaneously
 - **Cross-Dataset Analysis**: Compare embedding model performance across multiple datasets with statistical significance testing
 - **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, and MRR evaluation
 - **Statistical Analysis**: Paired t-tests, Cohen's d effect sizes, Friedman test, and consistency metrics
@@ -52,12 +53,14 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 ### Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/RagRetrievalBench.git
 cd RagRetrievalBench
 ```
 
 2. Create and activate a virtual environment:
+
 ```bash
 # Using conda (recommended)
 conda create -n ragbenchmark python=3.8
@@ -70,11 +73,13 @@ source ragbenchmark/bin/activate  # Linux/macOS
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Set up environment variables:
+
 ```bash
 # Copy the template
 cp .env.template .env
@@ -90,28 +95,20 @@ nano .env     # Linux/macOS
 
 To generate reports in PDF format, you need to install:
 
-1. **Pandoc**: Download from [Pandoc's official website](https://pandoc.org/installing.html)
-2. **LaTeX Distribution**: Download MikTeX from [MikTeX's official website](https://miktex.org/download)
+1. **Pandoc**: Download from [Pandoc&#39;s official website](https://pandoc.org/installing.html)
+2. **LaTeX Distribution**: Download MikTeX from [MikTeX&#39;s official website](https://miktex.org/download)
 
 After installing these tools, the framework will generate PDF reports automatically.
 
 ## ⚡ Quick Start
 
 ### Complete Pipeline with Batch Processing (Recommended for Large Datasets)
+
 ```bash
 # Activate environment
 conda activate ragbenchmark
 
-# Full pipeline with batch processing on default dataset
-python rag_benchmark.py --prepare-corpus
-python rag_benchmark.py --generate-queries --batch-submit
-python rag_benchmark.py --generate-queries --batch-fetch <BATCH_ID>
-python rag_benchmark.py --generate-qrels --batch-submit
-python rag_benchmark.py --generate-qrels --batch-fetch <BATCH_ID>
-python rag_benchmark.py --initialize
-python rag_benchmark.py --evaluate
-
-# Full pipeline with batch processing on specific dataset
+# Full pipeline with batch processing on a dataset
 python rag_benchmark.py --dataset finance --prepare-corpus
 python rag_benchmark.py --dataset finance --generate-queries --batch-submit
 python rag_benchmark.py --dataset finance --generate-queries --batch-fetch <BATCH_ID>
@@ -122,14 +119,8 @@ python rag_benchmark.py --dataset finance --evaluate
 ```
 
 ### Step-by-Step Execution
-```bash
-# For default dataset
-python rag_benchmark.py --prepare-corpus
-python rag_benchmark.py --generate-queries
-python rag_benchmark.py --generate-qrels
-python rag_benchmark.py --initialize
-python rag_benchmark.py --evaluate
 
+```bash
 # For a specific dataset (e.g., legal_docs)
 python rag_benchmark.py --dataset legal_docs --prepare-corpus
 python rag_benchmark.py --dataset legal_docs --generate-queries
@@ -140,6 +131,8 @@ python rag_benchmark.py --dataset legal_docs --evaluate
 # Combined initialization and evaluation (recommended for convenience)
 python rag_benchmark.py --dataset finance --initialize --evaluate
 ```
+
+**Note**: `--initialize`, `--evaluate`, and `--all` require `--dataset` to avoid ambiguity in multi-dataset setups.
 
 **Note**: Steps 4 and 5 can be run separately - timing data from initialization is automatically saved and loaded for accurate performance reporting.
 
@@ -175,49 +168,55 @@ For large datasets, use the Gemini Batch API to reduce costs (50% cheaper) and a
 - You want to avoid hitting rate limits during peak hours
 
 **How Batch Processing Works:**
+
 1. **Submit Phase**: Upload your requests to Google's Batch API and get a job ID
 2. **Processing Phase**: Google processes your requests asynchronously (can take minutes to hours)
 3. **Fetch Phase**: Download the results when processing is complete
 
 **Important Notes:**
+
 - Batch jobs are processed asynchronously - you can check status anytime
 - Results are saved to your dataset's `reports/` directory
 - Use `--batch_status` to monitor job progress (shows all datasets when no --dataset specified)
 - Batch processing costs ~50% less than real-time API calls
 
 **Phase 1: Query Generation (Batch Mode)**
+
 ```bash
-# Submit batch job for query generation
-python rag_benchmark.py --generate-queries --batch-submit
+# Submit batch job for query generation (specify dataset for isolation)
+python rag_benchmark.py --dataset finance --generate-queries --batch-submit
 # Output: "Batch submitted successfully! Job Name: projects/.../locations/.../batchJobs/.../<BATCH_ID>"
 
-# Check status (optional)
+# Check status (optional, shows all datasets if no --dataset specified)
 python rag_benchmark.py --batch_status
 
 # Fetch results when ready (use the BATCH_ID from submit output)
-python rag_benchmark.py --generate-queries --batch-fetch <BATCH_ID>
+python rag_benchmark.py --dataset finance --generate-queries --batch-fetch <BATCH_ID>
 ```
 
 **Phase 2: Relevance Judgments (Batch Mode)**
+
 ```bash
-# Submit batch job for qrels generation
-python rag_benchmark.py --generate-qrels --batch-submit
+# Submit batch job for qrels generation (specify dataset for isolation)
+python rag_benchmark.py --dataset finance --generate-qrels --batch-submit
 
 # Check status (optional)
 python rag_benchmark.py --batch_status
 
 # Fetch results when ready
-python rag_benchmark.py --generate-qrels --batch-fetch <BATCH_ID>
+python rag_benchmark.py --dataset finance --generate-qrels --batch-fetch <BATCH_ID>
 ```
 
 **Cancelling Batch Jobs**
 If you need to cancel a running batch job:
+
 ```bash
 # Cancel a specific batch job
 python rag_benchmark.py --batch-cancel <BATCH_ID>
 ```
 
 **For Specific Datasets:**
+
 ```bash
 # All batch commands work with --dataset flag
 python rag_benchmark.py --dataset finance --generate-queries --batch-submit
@@ -267,15 +266,17 @@ chunks_per_query = 1
 candidate_pool_size = 10
 
 # LLM settings
-llm_model = "gemini-2.5-flash-lite"
+llm_model = "models/gemini-2.5-flash-lite"
 temperature = 0.1
-llm_timeout = (60/15) + 1  # Rate limiting for API calls
+llm_timeout = (60/10) + 1  # Rate limiting for API calls
 
 # ChromaDB settings
 show_progress_bar = True
 document_batch_size = 32
 reinitialize_collections = True
 ```
+
+**Note**: Currently, only SentenceTransformers models are supported. Ensure model names follow the format 'sentence-transformers/model-name'.
 
 ### Multi-Dataset Support
 
@@ -285,82 +286,88 @@ The framework supports running benchmarks on multiple datasets with complete iso
 - Each dataset gets its own directory under `datasets/<name>/`
 - Place PDF files in `datasets/<name>/pdfs/`
 - All outputs (corpus, queries, qrels, reports, ChromaDB collections) are isolated per dataset
-- If no `--dataset` is specified, uses default paths for backward compatibility
+- If no `--dataset` is specified, only `--prepare-corpus`, `--generate-queries`, `--generate-qrels`, and batch status use default paths; `--initialize`, `--evaluate`, and `--all` require `--dataset`
 
 ## 📖 Usage
 
 ### Command Line Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `--prepare-corpus` | Extract and chunk PDF documents |
-| `--generate-queries` | Generate evaluation queries from corpus |
-| `--generate-qrels` | Create relevance judgments using LLM |
-| `--initialize` | Build embedding collections in ChromaDB |
-| `--evaluate` | Run retrieval evaluation and generate reports |
-| `--all` | Execute complete pipeline end-to-end |
-| `--dataset <name>` | Run benchmark on specified dataset (isolates all data) |
-| `--generate-aggregate-report` | Generate cross-dataset comparison report with statistical analysis (includes PDF) |
-| `--aggregate-datasets <list>` | Specify datasets for aggregate analysis (default: auto-discover) |
-| `--aggregate-output-dir <path>` | Custom output directory for aggregate reports (default: reports/aggregate/) |
-| `--aggregate-metrics <list>` | Metrics to include in aggregate analysis (default: all enabled) |
-| `--batch-submit` | Submit tasks to Gemini Batch API |
-| `--batch-fetch <ID>` | Fetch results from Batch API job |
-| `--batch_status` | List all batch jobs and their statuses (across all datasets if no --dataset specified) |
-| `--batch-cancel <ID>` | Cancel a specific Batch Job |
+| Argument                          | Description                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------- |
+| `--prepare-corpus`              | Extract and chunk PDF documents                                                        |
+| `--generate-queries`            | Generate evaluation queries from corpus                                                |
+| `--generate-qrels`              | Create relevance judgments using LLM                                                   |
+| `--initialize`                  | Build embedding collections in ChromaDB (requires `--dataset`)                       |
+| `--evaluate`                    | Run retrieval evaluation and generate reports (requires `--dataset`)                 |
+| `--all`                         | Execute complete pipeline end-to-end (requires `--dataset`)                          |
+| `--dataset <name>`              | Run benchmark on specified dataset (required for initialize/evaluate/all)              |
+| `--generate-aggregate-report`   | Generate cross-dataset comparison report with statistical analysis (includes PDF)      |
+| `--aggregate-datasets <list>`   | Specify datasets for aggregate analysis (default: auto-discover)                       |
+| `--aggregate-output-dir <path>` | Custom output directory for aggregate reports (default: aggregated_reports/)            |
+| `--aggregate-metrics <list>`    | Metrics to include in aggregate analysis (default: all enabled)                        |
+| `--batch-submit`                | Submit tasks to Gemini Batch API                                                       |
+| `--batch-fetch <ID>`            | Fetch results from Batch API job                                                       |
+| `--batch_status`                | List all batch jobs and their statuses (across all datasets if no --dataset specified) |
+| `--batch-cancel <ID>`           | Cancel a specific Batch Job                                                            |
 
 ### Input Requirements
 
-1. **PDF Documents**: Place your PDF files in `datasets/<name>/pdfs/` directory (when using `--dataset`) or `utils/pdfs/` (default)
+1. **PDF Documents**: Place your PDF files in `datasets/<name>/pdfs/` directory (when using `--dataset`) or `utils/pdfs/` (default for corpus/query/qrels generation)
 2. **API Key**: Set up your Google AI API key in `.env` file
 3. **Configuration**: Adjust settings in `config.py`
 
 ## 🔧 Pipeline Components
 
 ### 1. Document Processing (`--prepare-corpus`)
-- **Input**: PDF files in `utils/pdfs/`
+
+- **Input**: PDF files in `datasets/<name>/pdfs/` when using `--dataset`, or `utils/pdfs/` for default paths
 - **Process**: Text extraction and chunking using RecursiveCharacterTextSplitter
 - **Output**: `corpus.jsonl` with structured document chunks
 - **Features**: Configurable chunk size/overlap, automatic text cleaning
 
 ### 2. Query Generation (`--generate-queries`)
+
 - **Input**: Document corpus
 - **Process**: LLM-powered question generation from random document chunks
 - **Output**: `queries.jsonl` with realistic evaluation queries
 - **Quality**: Temperature-controlled generation for consistency
 
 ### 3. Relevance Assessment (`--generate-qrels`)
+
 - **Input**: Queries and document corpus
-- **Process**: 
+- **Process**:
   1. Retrieve candidate documents using first embedding model
   2. LLM-based relevance evaluation with structured JSON parsing
   3. Rate-limited API calls with configurable timeout
 - **Output**: `qrels.tsv` in TREC format
 
 ### 4. Collection Initialization (`--initialize`)
-- **Input**: Document corpus and embedding models
-- **Process**: 
-  1. Generate embeddings using SentenceTransformers
+
+- **Input**: Document corpus and embedding models (requires `--dataset`)
+- **Process**:
+  1. Generate embeddings using SentenceTransformers (currently the only supported embedding library)
   2. Store in ChromaDB collections with batch processing
   3. Performance timing and throughput measurement
-- **Output**: ChromaDB collections in `utils/chromadb_collections/`
+- **Output**: ChromaDB collections in `datasets/<name>/chromadb_collections/`
 
 ### 5. Evaluation & Reporting (`--evaluate`)
-- **Input**: Corpus, queries, qrels, and ChromaDB collections
-- **Process**: 
+
+- **Input**: Corpus, queries, qrels, and ChromaDB collections (requires `--dataset`)
+- **Process**:
   1. Load persisted timing data from previous initialization runs
   2. Multi-model retrieval evaluation with comprehensive metrics
   3. Generate timing data for any missing models
   4. Save updated timing data for future runs
   5. Save structured raw results JSON for aggregate analysis
-- **Output**: 
-  - Performance reports (markdown and PDF)
+- **Output**:
+  - Performance reports (markdown and PDF) named `<dataset>_benchmark_report_*.md/.pdf`
   - Visualization charts (PNG format)
   - Detailed timing analysis
   - Raw results JSON for cross-dataset comparison
 - **Features**: Persistent timing data allows running `--initialize` and `--evaluate` separately
 
 ### 6. Aggregate Analysis (`--generate-aggregate-report`)
+
 - **Input**: Raw results JSON from multiple dataset evaluations
 - **Process**:
   1. Load and validate results from multiple datasets
@@ -400,27 +407,21 @@ For cross-dataset comparison and statistical significance testing:
 ## 📁 Output Files
 
 ### Generated Files Structure
+
 ```
 RagRetrievalBench/
 ├── corpus.jsonl                    # Processed document chunks (default dataset)
 ├── queries.jsonl                   # Generated evaluation queries (default)
 ├── qrels.tsv                       # Relevance judgments (default)
-├── reports/                        # Reports for default dataset
-│   ├── aggregate/                  # Cross-dataset comparison reports
-│   │   ├── aggregate_report_*.md   # Comprehensive cross-dataset analysis
-│   │   ├── aggregate_report_*.pdf  # PDF version (if Pandoc installed)
-│   │   ├── cross_dataset_radar_chart.png
-│   │   ├── model_ranking_heatmap.png
-│   │   ├── pairwise_significance_heatmap.png
-│   │   ├── consistency_comparison.png
-│   │   └── [additional statistical visualizations]
-│   ├── benchmark_report_*.md       # Comprehensive evaluation report
-│   ├── benchmark_report_*.pdf      # PDF version (if Pandoc installed)
-│   ├── raw_results_*.json          # Structured results for aggregate analysis
-│   ├── timing_data.json            # Persisted timing metrics for models
-│   ├── timing_comparison_*.png     # Performance comparison charts
-│   ├── model_comparison_*.png      # Model performance visualization
-│   └── corpus_statistics_*.png    # Dataset analysis charts
+├── aggregated_reports/             # Cross-dataset comparison reports
+│   └── <timestamp>/                # Timestamped subdirectory for each run
+│       ├── aggregate_report_*.md   # Comprehensive cross-dataset analysis
+│       ├── aggregate_report_*.pdf  # PDF version (if Pandoc installed)
+│       ├── cross_dataset_radar_chart.png
+│       ├── model_ranking_heatmap.png
+│       ├── pairwise_significance_heatmap.png
+│       ├── consistency_comparison.png
+│       └── [additional statistical visualizations]
 ├── datasets/                       # Multi-dataset support
 │   └── <dataset_name>/             # Per-dataset isolated storage
 │       ├── corpus.jsonl            # Dataset-specific corpus
@@ -428,10 +429,10 @@ RagRetrievalBench/
 │       ├── qrels.tsv               # Dataset-specific relevance judgments
 │       ├── pdfs/                   # Input PDF documents for this dataset
 │       ├── reports/                # Dataset-specific reports
-│       │   ├── benchmark_report_*.md
-│       │   ├── benchmark_report_*.pdf
+│       │   ├── <dataset>_benchmark_report_*.md
+│       │   ├── <dataset>_benchmark_report_*.pdf
 │       │   ├── raw_results_*.json  # Dataset-specific raw results
-│       │   ├── timing_data.json
+│       │   ├── timing_data_*.json
 │       │   ├── batch_history.jsonl # Dataset-specific batch history
 │       │   └── *.png               # Dataset-specific visualizations
 │       └── chromadb_collections/   # Dataset-specific vector database
@@ -445,6 +446,7 @@ RagRetrievalBench/
 ### Report Contents
 
 #### Individual Dataset Reports
+
 - **Executive Summary**: Best performing models and key insights
 - **Methodology**: Experimental setup and evaluation procedure
 - **Dataset Statistics**: Corpus analysis and query characteristics
@@ -454,6 +456,7 @@ RagRetrievalBench/
 - **Technical Details**: Configuration and reproducibility information
 
 #### Aggregate Cross-Dataset Reports
+
 - **Executive Summary**: Overall best performers across datasets with consistency metrics
 - **Datasets Analyzed**: Summary of all included datasets (PDFs → chunks breakdown)
 - **Cross-Dataset Model Comparison**: Statistical rankings with significance testing
@@ -466,6 +469,7 @@ RagRetrievalBench/
 ## 🛠️ Development Tools
 
 ### Python Task Runner (`make.py`)
+
 ```bash
 # Format code
 python make.py format
@@ -485,7 +489,9 @@ python make.py help
 ```
 
 ### Cleanup Operations
+
 The `make.py clean` command removes:
+
 - Python cache files (`__pycache__/`, `*.pyc`)
 - Test artifacts (`.pytest_cache`, coverage reports)
 - Generated reports (`reports/` contents)
@@ -494,6 +500,7 @@ The `make.py clean` command removes:
 ## 🧪 Testing
 
 ### Running Tests
+
 ```bash
 # Activate environment
 conda activate ragbenchmark
@@ -513,16 +520,21 @@ pytest --cov=. --cov-report=html --cov-report=term
 ```
 
 ### Test Coverage
+
 Coverage varies by module and changes over time. To generate current numbers:
+
 ```bash
 python make.py test-cov
 ```
+
 For full-project coverage, use:
+
 ```bash
 pytest --cov=. --cov-report=html --cov-report=term
 ```
 
 ### Test Structure
+
 ```
 tests/
 ├── __init__.py
@@ -537,6 +549,7 @@ tests/
 ```
 
 ### Test Quality
+
 - **Unit + integration tests** across core utilities and reporting
 - **Comprehensive mocking** for external dependencies
 - **Integration tests** for complex workflows (marked `integration` in `pytest.ini`)
@@ -587,31 +600,26 @@ RagRetrievalBench/
 │   ├── conftest.py              # Shared test configuration
 │   └── test_*.py               # Individual test modules
 ├── reports/                       # Generated evaluation reports
-│   ├── benchmark_report_*.md      # Comprehensive evaluation report
-│   ├── benchmark_report_*.pdf     # PDF version (if Pandoc installed)
-│   ├── timing_data.json           # Persisted timing metrics
-│   ├── timing_comparison_*.png    # Performance comparison charts
-│   ├── model_comparison_*.png     # Model performance visualization
-│   ├── corpus_statistics_*.png   # Dataset analysis charts
-│   └── aggregate/                 # Cross-dataset aggregate reports
-│       ├── aggregate_report_*.md  # Statistical comparison reports
-│       ├── aggregate_report_*.pdf # PDF version (if Pandoc installed)
-│       ├── raw_results.json       # Structured results for analysis
-│       ├── statistical_tests_*.png # Statistical significance plots
-│       ├── effect_size_*.png      # Effect size visualizations
-│       ├── win_tie_loss_*.png     # Model ranking visualizations
-│       ├── consistency_*.png      # Performance consistency charts
-│       └── friedman_test_*.png   # Non-parametric test results
+│   └── aggregate/                     # Cross-dataset aggregate reports
+│       ├── aggregate_report_*.md      # Statistical comparison reports
+│       ├── aggregate_report_*.pdf     # PDF version (if Pandoc installed)
+│       ├── statistical_tests_*.png    # Statistical significance plots
+│       ├── effect_size_*.png          # Effect size visualizations
+│       ├── win_tie_loss_*.png         # Model ranking visualizations
+│       ├── consistency_*.png          # Performance consistency charts
+│       └── friedman_test_*.png       # Non-parametric test results
 ```
 
 ## 🚀 API Rate Limits & Best Practices
 
 ### Google Gemini API Limits
+
 - **Gemini 2.5 Flash-Lite**: 15 RPM, 250,000 TPM, 1,000 RPD
 - **Rate Limiting**: Built-in delays between API calls (configurable)
 - **Error Handling**: Graceful quota exhaustion handling with helpful messages
 
 ### Performance Optimization
+
 - **Batch Processing**: Documents processed in configurable batches (default: 32)
 - **Progress Tracking**: Real-time progress bars for long-running operations
 - **Caching**: ChromaDB collections persist between runs
@@ -629,6 +637,7 @@ RagRetrievalBench/
 8. Submit a pull request
 
 ### Development Standards
+
 - **Test Coverage**: Maintain >70% coverage for new code
 - **Code Quality**: Follow PEP 8 and use black formatting
 - **Documentation**: Update relevant docs for significant changes

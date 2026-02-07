@@ -307,7 +307,10 @@ def main():
                        help="Comma-separated metrics to analyze (e.g., map,ndcg). Default: common metrics across datasets")
     
     args = parser.parse_args()
-    
+
+    if (args.initialize or args.evaluate or args.all) and not args.dataset:
+        parser.error("--dataset is required when using --initialize, --evaluate, or --all")
+
     if args.dataset:
         cfg.configure_for_dataset(args.dataset)
 

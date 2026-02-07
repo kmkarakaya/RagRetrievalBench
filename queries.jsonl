@@ -1,5 +1,0 @@
-{"query_id": "q1_for_DeepSeek_chunk13", "text": "What are the key features and training methodologies of DeepSeek-V3?\n"}
-{"query_id": "q2_for_DeepSeek_chunk26", "text": "What is the process of low-rank compression for attention queries in DeepSeekMoE?\n"}
-{"query_id": "q3_for_Attention_chunk22", "text": "What are the key factors in sequence transduction tasks, focusing on computational complexity, parallelization, and path length?\n"}
-{"query_id": "q4_for_Attention_chunk19", "text": "What are the complexities and sequential operations of different layer types in a sequence processing model, including self-attention, recurrent, and convolutional layers, and how are positional encodings used?\n"}
-{"query_id": "q5_for_Attention_chunk31", "text": "What are the variations of the Transformer architecture and their performance on English-to-German translation?\n"}

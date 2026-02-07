@@ -125,7 +125,7 @@ chunk_size = 1000
 chunk_overlap = 200
 
 # Aggregate Reporting Configuration
-aggregate_results_dir = "reports/aggregate"  # Root output directory for aggregate reports
+aggregate_results_dir = "aggregated_reports"  # Root output directory for aggregate reports
 aggregate_include_datasets = []  # List of dataset names to include (empty = auto-discover all)
 aggregate_exclude_datasets = []  # Datasets to exclude from aggregation
 aggregate_statistical_tests = True  # Enable paired t-tests and effect size calculations

@@ -35,10 +35,25 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
         relevant_docs: Dict of relevance judgments
         output_path: Path to save JSON file
     """
-    # Compute corpus statistics
+    # Compute corpus/query/relevance statistics
     chunk_lengths = [len(text.split()) for text in corpus.values()]
+    query_lengths = [len(text.split()) for text in queries.values()]
+    relevance_distribution = [len(v) for v in relevant_docs.values()]
+
     total_chunks = len(corpus)
-    avg_chunks_per_doc = total_chunks  # Simplified - could be enhanced
+    total_queries = len(queries)
+    total_qrels = sum(relevance_distribution)
+
+    pdf_files = [f for f in os.listdir(cfg.pdf_dir) if f.lower().endswith('.pdf')] if os.path.exists(cfg.pdf_dir) else []
+    pdf_count = len(pdf_files)
+
+    avg_chunks_per_pdf = round(total_chunks / pdf_count, 1) if pdf_count > 0 else 0
+    avg_qrels_per_query = round(total_qrels / total_queries, 2) if total_queries > 0 else 0
+
+    coverage_ratio = (total_qrels / total_chunks * 100) if total_chunks > 0 else 0.0
+
+    def _safe_stat(values, func, default=0.0):
+        return float(func(values)) if values else float(default)
     
     # Build results structure
     results_dict = {
@@ -48,6 +63,17 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
             "k": cfg.k,
             "chunk_size": cfg.chunk_size,
             "chunk_overlap": cfg.chunk_overlap,
+            "llm_model": cfg.llm_model,
+            "candidate_pool_size": cfg.candidate_pool_size,
+            "document_batch_size": cfg.document_batch_size,
+            "reinitialize_collections": cfg.reinitialize_collections,
+            "embedding_models": [
+                {
+                    "model_name": model_cfg["model_name"],
+                    "collection_name": model_cfg["collection_name"]
+                }
+                for model_cfg in cfg.embedding_models
+            ],
             "metric_flags": {
                 "compute_map": cfg.compute_map,
                 "compute_recall": cfg.compute_recall,
@@ -58,25 +84,78 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
         },
         "models": {},
         "corpus_stats": {
-            "total_pdfs": len([f for f in os.listdir(cfg.pdf_dir) if f.endswith('.pdf')]) if os.path.exists(cfg.pdf_dir) else 0,
+            "total_pdfs": pdf_count,
             "total_chunks": total_chunks,
-            "avg_chunks_per_pdf": round(total_chunks / len([f for f in os.listdir(cfg.pdf_dir) if f.endswith('.pdf')]), 1) if os.path.exists(cfg.pdf_dir) and len([f for f in os.listdir(cfg.pdf_dir) if f.endswith('.pdf')]) > 0 else 0,
-            "total_queries": len(queries),
-            "total_qrels": sum(len(v) for v in relevant_docs.values()),
-            "avg_qrels_per_query": round(sum(len(v) for v in relevant_docs.values()) / len(relevant_docs), 2) if relevant_docs else 0
-        }
+            "avg_chunks_per_pdf": avg_chunks_per_pdf,
+            "total_queries": total_queries,
+            "total_qrels": total_qrels,
+            "avg_qrels_per_query": avg_qrels_per_query
+        },
+        "corpus_characteristics": {
+            "avg_chunk_length": _safe_stat(chunk_lengths, np.mean),
+            "median_chunk_length": _safe_stat(chunk_lengths, np.median),
+            "min_chunk_length": _safe_stat(chunk_lengths, min),
+            "max_chunk_length": _safe_stat(chunk_lengths, max),
+            "std_chunk_length": _safe_stat(chunk_lengths, np.std)
+        },
+        "query_characteristics": {
+            "total_queries": total_queries,
+            "avg_query_length": _safe_stat(query_lengths, np.mean),
+            "median_query_length": _safe_stat(query_lengths, np.median),
+            "min_query_length": _safe_stat(query_lengths, min),
+            "max_query_length": _safe_stat(query_lengths, max),
+            "std_query_length": _safe_stat(query_lengths, np.std)
+        },
+        "relevance_characteristics": {
+            "total_relevance_judgments": total_qrels,
+            "avg_relevant_docs_per_query": _safe_stat(relevance_distribution, np.mean),
+            "median_relevant_docs_per_query": _safe_stat(relevance_distribution, np.median),
+            "min_relevant_docs_per_query": _safe_stat(relevance_distribution, min),
+            "max_relevant_docs_per_query": _safe_stat(relevance_distribution, max),
+            "coverage_ratio": float(coverage_ratio)
+        },
+        "representative_queries": [
+            {
+                "query_id": qid,
+                "query_text": qtext,
+                "relevant_docs": len(relevant_docs.get(qid, []))
+            }
+            for qid, qtext in list(queries.items())[:5]
+        ]
     }
     
+    # Build metric index mapping based on enabled metrics
+    metric_indices = {}
+    current_idx = 1  # Start after model name (index 0)
+    if cfg.compute_map:
+        metric_indices["map"] = current_idx
+        current_idx += 1
+    if cfg.compute_recall:
+        metric_indices["recall"] = current_idx
+        current_idx += 1
+    if cfg.compute_precision:
+        metric_indices["precision"] = current_idx
+        current_idx += 1
+    if cfg.compute_ndcg:
+        metric_indices["ndcg"] = current_idx
+        current_idx += 1
+    if cfg.compute_mrr:
+        metric_indices["mrr"] = current_idx
+
     # Process model results
     for result in model_results:
         model_name = result[0]
-        metrics = {
-            "map": float(result[1]),
-            "recall": float(result[2]),
-            "precision": float(result[3]),
-            "ndcg": float(result[4]),
-            "mrr": float(result[5])
-        }
+        metrics = {}
+        if cfg.compute_map:
+            metrics["map"] = float(result[metric_indices["map"]])
+        if cfg.compute_recall:
+            metrics["recall"] = float(result[metric_indices["recall"]])
+        if cfg.compute_precision:
+            metrics["precision"] = float(result[metric_indices["precision"]])
+        if cfg.compute_ndcg:
+            metrics["ndcg"] = float(result[metric_indices["ndcg"]])
+        if cfg.compute_mrr:
+            metrics["mrr"] = float(result[metric_indices["mrr"]])
         
         # Get timing data if available
         timing = {}

@@ -32,6 +32,13 @@ except ImportError:
     print("Warning: matplotlib not available for visualizations")
 
 
+# Shared colormap for aggregate heatmaps (aligned with significance heatmap)
+AGG_HEATMAP_CMAP = "Reds_r"
+HEATMAP_TITLE_SIZE = 16
+HEATMAP_TICK_SIZE = 10
+HEATMAP_ANNOT_SIZE = 10
+
+
 def check_aggregate_dependencies():
     """
     Check if required dependencies for aggregate reporting are installed.
@@ -83,6 +90,20 @@ def load_dataset_results(dataset_name: str) -> Optional[Dict]:
             if field not in data:
                 print(f"Warning: Missing field '{field}' in {raw_results_path}")
                 return None
+
+        # Warn on missing detailed fields (backward compatibility)
+        optional_fields = [
+            "corpus_characteristics",
+            "query_characteristics",
+            "relevance_characteristics",
+            "representative_queries"
+        ]
+        missing_optional = [field for field in optional_fields if field not in data]
+        if missing_optional:
+            print(
+                f"Warning: Missing detailed fields in {raw_results_path}: "
+                f"{', '.join(missing_optional)}. Aggregate report will show N/A."
+            )
         
         return data
     
@@ -191,6 +212,32 @@ def validate_metric_compatibility(datasets: Dict[str, Dict]) -> Dict[str, Any]:
         )
     
     return report
+
+
+def validate_config_consistency(datasets: Dict[str, Dict]) -> None:
+    """
+    Enforce identical dataset configs required for aggregation.
+    Raises ValueError on mismatch.
+    """
+    if not datasets:
+        raise ValueError("No datasets provided")
+
+    first_ds = list(datasets.values())[0]
+    first_config = first_ds.get("config", {})
+    required_keys = ["k", "chunk_size", "chunk_overlap", "metric_flags"]
+
+    for key in required_keys:
+        if key not in first_config:
+            raise ValueError(f"Missing config '{key}' in dataset '{first_ds.get('dataset', 'unknown')}'")
+
+    for ds_name, ds_data in datasets.items():
+        config = ds_data.get("config", {})
+        for key in required_keys:
+            if config.get(key) != first_config.get(key):
+                raise ValueError(
+                    f"Dataset '{ds_name}' has different config for '{key}'. "
+                    "Aggregation requires identical k, chunking, and metric flags across datasets."
+                )
 
 
 # ============================================================================
@@ -703,6 +750,7 @@ def generate_cross_dataset_radar_chart(
     model_results: Dict[str, Dict],
     metrics: List[str],
     output_dir: str,
+    timestamp: str,
     top_n_models: int = 5
 ) -> str:
     """
@@ -761,7 +809,7 @@ def generate_cross_dataset_radar_chart(
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.title("Cross-Dataset Model Performance Comparison", size=16, pad=20)
     
-    output_path = os.path.join(output_dir, "cross_dataset_radar_chart.png")
+    output_path = os.path.join(output_dir, f"cross_dataset_radar_chart_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -770,7 +818,8 @@ def generate_cross_dataset_radar_chart(
 
 def generate_model_ranking_heatmap(
     rankings: Dict[str, List[Tuple[str, int]]],
-    output_dir: str
+    output_dir: str,
+    timestamp: str
 ) -> str:
     """
     Heatmap showing model ranks per dataset.
@@ -810,13 +859,14 @@ def generate_model_ranking_heatmap(
     fig, ax = plt.subplots(figsize=(max(8, len(datasets) * 1.5), max(6, len(all_models) * 0.5)))
     
     # Create heatmap (invert colormap so green=1, red=high)
-    im = ax.imshow(df.values, cmap='RdYlGn_r', aspect='auto', vmin=1, vmax=len(all_models))
+    im = ax.imshow(df.values, cmap=AGG_HEATMAP_CMAP, aspect='auto', vmin=1, vmax=len(all_models))
     
     # Set ticks
     ax.set_xticks(np.arange(len(datasets)))
     ax.set_yticks(np.arange(len(all_models)))
     ax.set_xticklabels(datasets)
     ax.set_yticklabels(df.index)
+    ax.tick_params(axis='both', labelsize=HEATMAP_TICK_SIZE)
     
     # Rotate x labels
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
@@ -825,13 +875,15 @@ def generate_model_ranking_heatmap(
     for i in range(len(all_models)):
         for j in range(len(datasets)):
             if not np.isnan(df.values[i, j]):
-                text = ax.text(j, i, int(df.values[i, j]),
-                             ha="center", va="center", color="black", fontweight='bold')
+                text = ax.text(
+                    j, i, int(df.values[i, j]),
+                    ha="center", va="center", color="black", fontweight='bold', fontsize=HEATMAP_ANNOT_SIZE
+                )
     
-    ax.set_title("Model Rankings Across Datasets", fontsize=16, pad=20)
+    ax.set_title("Model Rankings Across Datasets", fontsize=HEATMAP_TITLE_SIZE, pad=20)
     fig.colorbar(im, ax=ax, label='Rank (1=Best)')
     
-    output_path = os.path.join(output_dir, "model_ranking_heatmap.png")
+    output_path = os.path.join(output_dir, f"model_ranking_heatmap_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -841,7 +893,8 @@ def generate_model_ranking_heatmap(
 def generate_performance_distribution_plots(
     model_results: Dict[str, Dict],
     metric: str,
-    output_dir: str
+    output_dir: str,
+    timestamp: str
 ) -> str:
     """
     Box plot for score distributions across datasets.
@@ -889,7 +942,7 @@ def generate_performance_distribution_plots(
     
     fig.suptitle(f"{metric.upper()} Distribution Across Datasets", fontsize=16)
     
-    output_path = os.path.join(output_dir, f"performance_distribution_{metric}.png")
+    output_path = os.path.join(output_dir, f"performance_distribution_{metric}_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -899,7 +952,8 @@ def generate_performance_distribution_plots(
 def generate_dataset_difficulty_chart(
     datasets: Dict[str, Dict],
     metric: str,
-    output_dir: str
+    output_dir: str,
+    timestamp: str
 ) -> str:
     """
     Bar chart showing mean model performance per dataset.
@@ -956,16 +1010,206 @@ def generate_dataset_difficulty_chart(
     for i, (mean, std) in enumerate(zip(means, stds)):
         ax.text(mean + std + 0.02, i, f"{mean:.3f}", va='center')
     
-    output_path = os.path.join(output_dir, f"dataset_difficulty_{metric}.png")
+    output_path = os.path.join(output_dir, f"dataset_difficulty_{metric}_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     
     return output_path
 
 
+def generate_dataset_characteristics_chart(
+    datasets: Dict[str, Dict],
+    output_dir: str,
+    timestamp: str
+) -> str:
+    """
+    Overview chart for dataset sizes (PDFs, chunks, queries, qrels).
+
+    Returns: Path to saved PNG file.
+    """
+    if not MATPLOTLIB_AVAILABLE:
+        print("Warning: matplotlib not available, skipping dataset characteristics chart")
+        return ""
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    dataset_stats = []
+    for ds_name, ds_data in datasets.items():
+        stats = ds_data.get("corpus_stats", {})
+        dataset_stats.append({
+            "name": ds_name,
+            "pdfs": int(stats.get("total_pdfs", 0)),
+            "chunks": int(stats.get("total_chunks", 0)),
+            "queries": int(stats.get("total_queries", 0)),
+            "qrels": int(stats.get("total_qrels", 0))
+        })
+
+    if not dataset_stats:
+        return ""
+
+    names = [ds["name"] for ds in dataset_stats]
+    pdfs = [ds["pdfs"] for ds in dataset_stats]
+    chunks = [ds["chunks"] for ds in dataset_stats]
+    queries = [ds["queries"] for ds in dataset_stats]
+    qrels = [ds["qrels"] for ds in dataset_stats]
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+
+    axes[0, 0].barh(names, pdfs, color="#4c78a8", alpha=0.8)
+    axes[0, 0].set_title("PDFs")
+
+    axes[0, 1].barh(names, chunks, color="#f58518", alpha=0.8)
+    axes[0, 1].set_title("Chunks")
+
+    axes[1, 0].barh(names, queries, color="#54a24b", alpha=0.8)
+    axes[1, 0].set_title("Queries")
+
+    axes[1, 1].barh(names, qrels, color="#e45756", alpha=0.8)
+    axes[1, 1].set_title("Qrels")
+
+    for ax in axes.flat:
+        ax.grid(axis='x', alpha=0.3)
+
+    fig.suptitle("Dataset Characteristics Overview", fontsize=14)
+    plt.tight_layout()
+
+    output_path = os.path.join(output_dir, f"dataset_characteristics_{timestamp}.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    return output_path
+
+
+def generate_model_performance_heatmap(
+    datasets: Dict[str, Dict],
+    metric: str,
+    output_dir: str,
+    timestamp: str
+) -> str:
+    """
+    Heatmap of model performance by dataset for a single metric.
+
+    Returns: Path to saved PNG file.
+    """
+    if not MATPLOTLIB_AVAILABLE or not PANDAS_AVAILABLE:
+        print("Warning: matplotlib/pandas not available, skipping performance heatmap")
+        return ""
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    all_models = get_all_models(datasets)
+    dataset_names = sorted(datasets.keys())
+
+    matrix = []
+    for model_name in all_models:
+        row = []
+        for ds_name in dataset_names:
+            ds_data = datasets.get(ds_name, {})
+            score = ds_data.get("models", {}).get(model_name, {}).get("metrics", {}).get(metric)
+            row.append(score if score is not None else np.nan)
+        matrix.append(row)
+
+    df = pd.DataFrame(matrix, index=[m.split("/")[-1] for m in all_models], columns=dataset_names)
+
+    fig, ax = plt.subplots(figsize=(max(10, len(dataset_names) * 1.2), max(6, len(all_models) * 0.4)))
+    im = ax.imshow(df.values, cmap=AGG_HEATMAP_CMAP, aspect='auto', vmin=0, vmax=1)
+
+    ax.set_xticks(np.arange(len(dataset_names)))
+    ax.set_yticks(np.arange(len(all_models)))
+    ax.set_xticklabels(dataset_names)
+    ax.set_yticklabels(df.index)
+    ax.tick_params(axis='both', labelsize=HEATMAP_TICK_SIZE)
+    ax.tick_params(axis='both', labelsize=HEATMAP_TICK_SIZE)
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    for i in range(len(all_models)):
+        for j in range(len(dataset_names)):
+            if not np.isnan(df.values[i, j]):
+                ax.text(
+                    j, i, f"{df.values[i, j]:.3f}",
+                    ha="center", va="center", color="black", fontsize=HEATMAP_ANNOT_SIZE
+                )
+
+    ax.set_title(
+        f"Model Performance Heatmap ({metric.upper()})",
+        fontsize=HEATMAP_TITLE_SIZE,
+        pad=16
+    )
+    fig.colorbar(im, ax=ax, label=f"{metric.upper()} Score")
+
+    output_path = os.path.join(output_dir, f"model_performance_heatmap_{metric}_{timestamp}.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    return output_path
+
+
+def generate_embedding_speed_heatmap(
+    datasets: Dict[str, Dict],
+    output_dir: str,
+    timestamp: str
+) -> str:
+    """
+    Heatmap of embedding throughput (docs/sec) by model and dataset.
+
+    Returns: Path to saved PNG file.
+    """
+    if not MATPLOTLIB_AVAILABLE or not PANDAS_AVAILABLE:
+        print("Warning: matplotlib/pandas not available, skipping speed heatmap")
+        return ""
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    all_models = get_all_models(datasets)
+    dataset_names = sorted(datasets.keys())
+
+    matrix = []
+    for model_name in all_models:
+        row = []
+        for ds_name in dataset_names:
+            timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
+            docs_per_second = timing.get("docs_per_second")
+            row.append(docs_per_second if isinstance(docs_per_second, (int, float)) else np.nan)
+        matrix.append(row)
+
+    df = pd.DataFrame(matrix, index=[m.split("/")[-1] for m in all_models], columns=dataset_names)
+
+    if df.isna().all().all():
+        return ""
+
+    fig, ax = plt.subplots(figsize=(max(10, len(dataset_names) * 1.2), max(6, len(all_models) * 0.4)))
+    im = ax.imshow(df.values, cmap=AGG_HEATMAP_CMAP, aspect='auto')
+
+    ax.set_xticks(np.arange(len(dataset_names)))
+    ax.set_yticks(np.arange(len(all_models)))
+    ax.set_xticklabels(dataset_names)
+    ax.set_yticklabels(df.index)
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    for i in range(len(all_models)):
+        for j in range(len(dataset_names)):
+            if not np.isnan(df.values[i, j]):
+                ax.text(
+                    j, i, f"{df.values[i, j]:.1f}",
+                    ha="center", va="center", color="black", fontsize=HEATMAP_ANNOT_SIZE
+                )
+
+    ax.set_title("Embedding Throughput (Docs/sec)", fontsize=HEATMAP_TITLE_SIZE, pad=16)
+    fig.colorbar(im, ax=ax, label="Docs per Second")
+
+    output_path = os.path.join(output_dir, f"embedding_speed_heatmap_{timestamp}.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    return output_path
+
+
 def generate_pairwise_significance_heatmap(
     significance_matrix: 'pd.DataFrame',
     output_dir: str,
+    timestamp: str,
     alpha: float = 0.05
 ) -> str:
     """
@@ -984,10 +1228,14 @@ def generate_pairwise_significance_heatmap(
     models = significance_matrix.index.tolist()
     n_models = len(models)
     
+    # Set diagonal to vmax for white color
+    for i in range(n_models):
+        significance_matrix.values[i, i] = alpha * 2
+    
     fig, ax = plt.subplots(figsize=(max(10, n_models * 0.8), max(8, n_models * 0.8)))
     
     # Create heatmap
-    im = ax.imshow(significance_matrix.values, cmap='Reds_r', aspect='auto', vmin=0, vmax=alpha*2)
+    im = ax.imshow(significance_matrix.values, cmap=AGG_HEATMAP_CMAP, aspect='auto', vmin=0, vmax=alpha*2)
     
     # Set ticks
     ax.set_xticks(np.arange(n_models))
@@ -995,6 +1243,7 @@ def generate_pairwise_significance_heatmap(
     short_names = [m.split("/")[-1] for m in models]
     ax.set_xticklabels(short_names)
     ax.set_yticklabels(short_names)
+    ax.tick_params(axis='both', labelsize=HEATMAP_TICK_SIZE)
     
     # Rotate labels
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
@@ -1002,26 +1251,29 @@ def generate_pairwise_significance_heatmap(
     # Add significance annotations
     for i in range(n_models):
         for j in range(n_models):
-            p_val = significance_matrix.values[i, j]
-            
-            if np.isnan(p_val):
-                text_str = "-"
-            elif p_val < 0.001:
-                text_str = "***"
-            elif p_val < 0.01:
-                text_str = "**"
-            elif p_val < alpha:
-                text_str = "*"
+            if i == j:
+                text_str = ""
             else:
-                text_str = "ns"
+                p_val = significance_matrix.values[i, j]
+                
+                if np.isnan(p_val):
+                    text_str = ""
+                else:
+                    text_str = f"{p_val:.3f}"
             
-            text = ax.text(j, i, text_str, ha="center", va="center",
-                         color="black", fontweight='bold', fontsize=10)
+            text = ax.text(
+                j, i, text_str, ha="center", va="center",
+                color="black", fontweight='bold', fontsize=HEATMAP_ANNOT_SIZE
+            )
     
-    ax.set_title(f"Pairwise Statistical Significance (alpha={alpha})", fontsize=14, pad=20)
+    ax.set_title(
+        f"Pairwise Statistical Significance (alpha={alpha})",
+        fontsize=HEATMAP_TITLE_SIZE,
+        pad=20
+    )
     fig.colorbar(im, ax=ax, label='p-value')
     
-    output_path = os.path.join(output_dir, "pairwise_significance_heatmap.png")
+    output_path = os.path.join(output_dir, f"pairwise_significance_heatmap_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -1030,7 +1282,8 @@ def generate_pairwise_significance_heatmap(
 
 def generate_consistency_comparison_chart(
     consistency_scores: Dict[str, Dict],
-    output_dir: str
+    output_dir: str,
+    timestamp: str
 ) -> str:
     """
     Grouped bar chart comparing consistency metrics across models.
@@ -1066,7 +1319,7 @@ def generate_consistency_comparison_chart(
     ax.legend()
     ax.grid(axis='y', alpha=0.3)
     
-    output_path = os.path.join(output_dir, "consistency_comparison.png")
+    output_path = os.path.join(output_dir, f"consistency_comparison_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -1103,7 +1356,9 @@ def generate_aggregate_report(
     
     # Set output directory
     if output_dir is None:
-        output_dir = cfg.aggregate_results_dir
+        # Generate timestamp for this report run
+        timestamp = __import__('datetime').datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        output_dir = os.path.join(cfg.aggregate_results_dir, timestamp)
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -1125,6 +1380,9 @@ def generate_aggregate_report(
     
     for warning in validation.get("warnings", []):
         print(f"⚠️  {warning}")
+
+    print("\n🔒 Validating config consistency...")
+    validate_config_consistency(datasets)
     
     # Determine metrics to analyze
     if metrics is None:
@@ -1146,6 +1404,7 @@ def generate_aggregate_report(
     
     # Calculate rankings
     primary_metric = metrics[0]  # Use first metric as primary
+    heatmap_metric = "map" if "map" in metrics else primary_metric
     rankings = calculate_model_rankings(datasets, primary_metric)
     avg_ranks = calculate_average_ranks(rankings)
     
@@ -1162,53 +1421,76 @@ def generate_aggregate_report(
     
     friedman_stat, friedman_p = perform_friedman_test(datasets, primary_metric)
     
+    # Generate timestamp for files
+    timestamp = __import__('datetime').datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
     # Generate visualizations
     print("\n🎨 Generating visualizations...")
     viz_paths = {}
     
     if cfg.aggregate_generate_visualizations and MATPLOTLIB_AVAILABLE:
         try:
-            viz_paths["radar"] = generate_cross_dataset_radar_chart(model_results, metrics, output_dir)
+            viz_paths["radar"] = generate_cross_dataset_radar_chart(model_results, metrics, output_dir, timestamp)
             print("  ✓ Radar chart")
         except Exception as e:
             print(f"  ⚠️  Radar chart failed: {e}")
         
         try:
-            viz_paths["heatmap"] = generate_model_ranking_heatmap(rankings, output_dir)
+            viz_paths["heatmap"] = generate_model_ranking_heatmap(rankings, output_dir, timestamp)
             print("  ✓ Ranking heatmap")
         except Exception as e:
             print(f"  ⚠️  Ranking heatmap failed: {e}")
+
+        try:
+            viz_paths["dataset_characteristics"] = generate_dataset_characteristics_chart(datasets, output_dir, timestamp)
+            print("  ✓ Dataset characteristics chart")
+        except Exception as e:
+            print(f"  ⚠️  Dataset characteristics chart failed: {e}")
+
+        try:
+            viz_paths[f"performance_heatmap_{heatmap_metric}"] = generate_model_performance_heatmap(
+                datasets, heatmap_metric, output_dir, timestamp
+            )
+            print(f"  ✓ Performance heatmap ({heatmap_metric.upper()})")
+        except Exception as e:
+            print(f"  ⚠️  Performance heatmap ({heatmap_metric.upper()}) failed: {e}")
+
+        try:
+            viz_paths["speed_heatmap"] = generate_embedding_speed_heatmap(datasets, output_dir, timestamp)
+            if viz_paths["speed_heatmap"]:
+                print("  ✓ Embedding speed heatmap")
+        except Exception as e:
+            print(f"  ⚠️  Embedding speed heatmap failed: {e}")
         
         for metric in metrics:
             try:
-                viz_paths[f"dist_{metric}"] = generate_performance_distribution_plots(model_results, metric, output_dir)
+                viz_paths[f"dist_{metric}"] = generate_performance_distribution_plots(model_results, metric, output_dir, timestamp)
                 print(f"  ✓ Distribution plot ({metric.upper()})")
             except Exception as e:
                 print(f"  ⚠️  Distribution plot ({metric.upper()}) failed: {e}")
             
             try:
-                viz_paths[f"difficulty_{metric}"] = generate_dataset_difficulty_chart(datasets, metric, output_dir)
+                viz_paths[f"difficulty_{metric}"] = generate_dataset_difficulty_chart(datasets, metric, output_dir, timestamp)
                 print(f"  ✓ Difficulty chart ({metric.upper()})")
             except Exception as e:
                 print(f"  ⚠️  Difficulty chart ({metric.upper()}) failed: {e}")
         
         if significance_matrix is not None:
             try:
-                viz_paths["significance"] = generate_pairwise_significance_heatmap(significance_matrix, output_dir)
+                viz_paths["significance"] = generate_pairwise_significance_heatmap(significance_matrix, output_dir, timestamp)
                 print("  ✓ Significance heatmap")
             except Exception as e:
                 print(f"  ⚠️  Significance heatmap failed: {e}")
         
         try:
-            viz_paths["consistency"] = generate_consistency_comparison_chart(consistency, output_dir)
+            viz_paths["consistency"] = generate_consistency_comparison_chart(consistency, output_dir, timestamp)
             print("  ✓ Consistency chart")
         except Exception as e:
             print(f"  ⚠️  Consistency chart failed: {e}")
     
     # Generate Markdown report
     print("\n📝 Writing report...")
-    timestamp = __import__('datetime').datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    report_path = os.path.join(output_dir, f"aggregate_report_{timestamp}.md")
+    report_path = os.path.join(output_dir, "aggregate_report.md")
     
     _write_markdown_report(
         report_path=report_path,
@@ -1261,6 +1543,11 @@ def _write_markdown_report(
     with open(report_path, 'w', encoding='utf-8') as f:
         # Header
         timestamp = __import__('datetime').datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        def _fmt(value, digits=2):
+            if isinstance(value, (int, float)) and not np.isnan(value):
+                return f"{value:.{digits}f}"
+            return "N/A"
+
         f.write(f"# Cross-Dataset Embedding Model Comparison Report\n\n")
         f.write(f"*Generated: {timestamp}*\n\n")
         f.write(f"---\n\n")
@@ -1381,13 +1668,114 @@ def _write_markdown_report(
             f.write(f"- **Friedman Test**: chi-squared={friedman_result[0]:.2f}, p={friedman_result[1]:.3f}\n")
         
         f.write("\n---\n\n")
+
+        # Dataset characteristics
+        heatmap_metric = "map" if "map" in metrics else metrics[0]
+        f.write("## Dataset Characteristics\n\n")
+        
+        from tabulate import tabulate
+        
+        dataset_rows = []
+        total_pdfs = 0
+        total_chunks = 0
+        total_queries = 0
+        total_qrels = 0
+
+        for ds_name, ds_data in datasets.items():
+            stats = ds_data.get("corpus_stats", {})
+            pdfs = int(stats.get("total_pdfs", 0))
+            chunks = int(stats.get("total_chunks", 0))
+            queries = int(stats.get("total_queries", 0))
+            qrels = int(stats.get("total_qrels", 0))
+
+            total_pdfs += pdfs
+            total_chunks += chunks
+            total_queries += queries
+            total_qrels += qrels
+
+            dataset_rows.append([ds_name, pdfs, chunks, queries, qrels])
+
+        dataset_rows.append(["Total", total_pdfs, total_chunks, total_queries, total_qrels])
+
+        f.write(tabulate(
+            dataset_rows,
+            headers=["Dataset", "PDFs", "Chunks", "Queries", "Qrels"],
+            tablefmt="pipe"
+        ))
+        f.write("\n\n")
+        f.write("**Table: Dataset Statistics Summary**\n\n")
+        f.write("**Column Explanations:**\n")
+        f.write("- **Dataset**: Dataset identifier used in the benchmark\n")
+        f.write("- **PDFs**: Number of source PDF documents\n")
+        f.write("- **Chunks**: Total text chunks created from PDFs\n")
+        f.write("- **Queries**: Number of evaluation queries generated\n")
+        f.write("- **Qrels**: Number of relevance judgments (query-document labels)\n\n")
+        f.write("**How to interpret:**\n")
+        f.write("- **More chunks** generally indicate larger corpora and higher retrieval complexity\n")
+        f.write("- **More queries and qrels** increase evaluation coverage and statistical power\n\n")
+
+        detail_rows = []
+        avg_chunk_vals = []
+        avg_query_vals = []
+        avg_rel_vals = []
+        coverage_vals = []
+
+        for ds_name, ds_data in datasets.items():
+            corpus_chars = ds_data.get("corpus_characteristics", {})
+            query_chars = ds_data.get("query_characteristics", {})
+            relevance_chars = ds_data.get("relevance_characteristics", {})
+
+            avg_chunk = corpus_chars.get("avg_chunk_length")
+            avg_query = query_chars.get("avg_query_length")
+            avg_rel = relevance_chars.get("avg_relevant_docs_per_query")
+            coverage = relevance_chars.get("coverage_ratio")
+
+            if isinstance(avg_chunk, (int, float)):
+                avg_chunk_vals.append(avg_chunk)
+            if isinstance(avg_query, (int, float)):
+                avg_query_vals.append(avg_query)
+            if isinstance(avg_rel, (int, float)):
+                avg_rel_vals.append(avg_rel)
+            if isinstance(coverage, (int, float)):
+                coverage_vals.append(coverage)
+
+            detail_rows.append([
+                ds_name,
+                _fmt(avg_chunk, 1),
+                _fmt(avg_query, 1),
+                _fmt(avg_rel, 1),
+                f"{_fmt(coverage, 2)}%"
+            ])
+
+        if detail_rows:
+            detail_rows.append([
+                "Average",
+                _fmt(np.mean(avg_chunk_vals) if avg_chunk_vals else None, 1),
+                _fmt(np.mean(avg_query_vals) if avg_query_vals else None, 1),
+                _fmt(np.mean(avg_rel_vals) if avg_rel_vals else None, 1),
+                f"{_fmt(np.mean(coverage_vals) if coverage_vals else None, 2)}%"
+            ])
+
+            f.write(tabulate(
+                detail_rows,
+                headers=["Dataset", "Avg Chunk Length", "Avg Query Length", "Avg Relevant Docs", "Coverage Ratio"],
+                tablefmt="pipe"
+            ))
+            f.write("\n\n")
+            f.write("**Table: Aggregated Dataset Characteristics**\n\n")
+
+        if viz_paths.get("dataset_characteristics"):
+            f.write(f"![Dataset Characteristics Overview]({os.path.basename(viz_paths['dataset_characteristics'])})\n\n")
+            f.write("**Figure: Dataset Characteristics Overview**\n\n")
+            f.write("This figure compares dataset size indicators (PDFs, chunks, queries, qrels) across all datasets.\n\n")
+
+        f.write("---\n\n")
         
         # Cross-Dataset Model Comparison
         f.write("## Cross-Dataset Model Comparison\n\n")
         f.write(f"### Overall Performance Rankings (by {metrics[0].upper()})\n\n")
         
         # Create ranking table
-        from tabulate import tabulate
         
         table_data = []
         for model_name, avg_rank in avg_ranks:
@@ -1429,6 +1817,59 @@ def _write_markdown_report(
         f.write("- **Check CV values**: Lower CV indicates more consistent performance\n")
         f.write("- **Compare Mean vs Std**: High mean with low std = reliable excellence\n")
         f.write("- **Datasets Won**: Shows how often a model is the best choice\n\n")
+
+        f.write(f"### Model Performance by Dataset ({heatmap_metric.upper()})\n\n")
+
+        dataset_names = sorted(datasets.keys())
+        all_models = get_all_models(datasets)
+        perf_rows = []
+        for model_name in all_models:
+            row = [model_name.split("/")[-1]]
+            for ds_name in dataset_names:
+                score = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("metrics", {}).get(heatmap_metric)
+                row.append(_fmt(score, 4) if isinstance(score, (int, float)) else "N/A")
+            perf_rows.append(row)
+
+        if dataset_names and perf_rows:
+            f.write(tabulate(
+                perf_rows,
+                headers=["Model"] + dataset_names,
+                tablefmt="github"
+            ))
+            f.write("\n\n")
+
+        if viz_paths.get(f"performance_heatmap_{heatmap_metric}"):
+            f.write(
+                f"![Model Performance Heatmap]({os.path.basename(viz_paths[f'performance_heatmap_{heatmap_metric}'])})\n\n"
+            )
+            f.write("**Figure: Model Performance by Dataset**\n\n")
+            f.write(
+                f"This heatmap shows {heatmap_metric.upper()} scores for each model across all datasets. "
+                "Darker colors indicate stronger performance.\n\n"
+            )
+
+        f.write("### Embedding Speed Comparison (Docs/sec)\n\n")
+        speed_rows = []
+        for model_name in all_models:
+            row = [model_name.split("/")[-1]]
+            for ds_name in dataset_names:
+                timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
+                docs_per_second = timing.get("docs_per_second")
+                row.append(_fmt(docs_per_second, 1) if isinstance(docs_per_second, (int, float)) else "N/A")
+            speed_rows.append(row)
+
+        if dataset_names and speed_rows:
+            f.write(tabulate(
+                speed_rows,
+                headers=["Model"] + dataset_names,
+                tablefmt="github"
+            ))
+            f.write("\n\n")
+
+        if viz_paths.get("speed_heatmap"):
+            f.write(f"![Embedding Speed Heatmap]({os.path.basename(viz_paths['speed_heatmap'])})\n\n")
+            f.write("**Figure: Embedding Throughput by Dataset**\n\n")
+            f.write("This heatmap compares embedding throughput in documents per second across datasets.\n\n")
         
         # Add visualization references
         if viz_paths.get("radar"):
@@ -1470,9 +1911,9 @@ def _write_markdown_report(
                 f.write("Darker colors indicate more significant differences.\n\n")
                 f.write("**Statistical terms explained:**\n")
                 f.write("- **p-value**: Probability that observed differences occurred by chance\n")
-                f.write("- **α (alpha)**: Significance threshold (0.05 = 5% chance)\n")
+                f.write("- **alpha**: Significance threshold (0.05 = 5% chance)\n")
                 f.write("- **p < 0.05**: Differences are statistically significant\n")
-                f.write("- **p ≥ 0.05**: Differences may be due to random variation\n\n")
+                f.write("- **p >= 0.05**: Differences may be due to random variation\n\n")
                 f.write("**How to interpret:**\n")
                 f.write("- **Dark cells**: Strong evidence that models truly perform differently\n")
                 f.write("- **Light cells**: Models perform similarly (differences likely random)\n")
@@ -1492,11 +1933,21 @@ def _write_markdown_report(
             
             ds_data = datasets[ds_name]
             stats = ds_data.get("corpus_stats", {})
+            corpus_chars = ds_data.get("corpus_characteristics", {})
+            query_chars = ds_data.get("query_characteristics", {})
+            relevance_chars = ds_data.get("relevance_characteristics", {})
+            representative_queries = ds_data.get("representative_queries", [])
+            best_model_name = None
+            best_score_value = None
             
             # Dataset statistics
             total_pdfs = stats.get('total_pdfs', 'N/A')
             f.write(f"- **PDFs**: {total_pdfs} original document{'s' if total_pdfs != 1 else ''}\n")
-            f.write(f"- **Chunks**: {stats.get('total_chunks', 'N/A')} text chunks (avg {stats.get('avg_chunks_per_pdf', 'N/A'):.1f} per PDF)\n")
+            avg_chunks_per_pdf = stats.get('avg_chunks_per_pdf', None)
+            f.write(
+                f"- **Chunks**: {stats.get('total_chunks', 'N/A')} text chunks "
+                f"(avg {_fmt(avg_chunks_per_pdf, 1)} per PDF)\n"
+            )
             f.write(f"- **Queries**: {stats.get('total_queries', 'N/A')} queries, ")
             f.write(f"{stats.get('total_qrels', 'N/A')} relevance judgments\n")
             
@@ -1520,9 +1971,122 @@ def _write_markdown_report(
             if ds_name in rankings and rankings[ds_name]:
                 best_model, best_rank = rankings[ds_name][0]
                 best_score = models_data.get(best_model, {}).get("metrics", {}).get(metrics[0], 0)
+                best_model_name = best_model.split('/')[-1]
+                best_score_value = best_score
                 f.write(f"- **Best Model**: {best_model.split('/')[-1]} ")
                 f.write(f"({metrics[0].upper()}={best_score:.4f})\n")
             
+            f.write("\n")
+
+            # Corpus characteristics
+            f.write("#### Corpus Characteristics\n\n")
+            corpus_table = [
+                ["Source PDF Documents", f"{stats.get('total_pdfs', 'N/A')}"] ,
+                ["Total Document Chunks", f"{stats.get('total_chunks', 'N/A')}"] ,
+                ["Average Chunk Length (words)", _fmt(corpus_chars.get("avg_chunk_length", None), 1)],
+                ["Median Chunk Length (words)", _fmt(corpus_chars.get("median_chunk_length", None), 1)],
+                ["Min Chunk Length (words)", _fmt(corpus_chars.get("min_chunk_length", None), 0)],
+                ["Max Chunk Length (words)", _fmt(corpus_chars.get("max_chunk_length", None), 0)],
+                ["Standard Deviation", _fmt(corpus_chars.get("std_chunk_length", None), 1)]
+            ]
+            f.write(tabulate(corpus_table, headers=["Metric", "Value"], tablefmt="pipe"))
+            f.write("\n\n")
+
+            # Query characteristics
+            f.write("#### Query Characteristics\n\n")
+            query_table = [
+                ["Total Queries", f"{query_chars.get('total_queries', 'N/A')}"] ,
+                ["Average Query Length (words)", _fmt(query_chars.get("avg_query_length", None), 1)],
+                ["Median Query Length (words)", _fmt(query_chars.get("median_query_length", None), 1)],
+                ["Min Query Length (words)", _fmt(query_chars.get("min_query_length", None), 0)],
+                ["Max Query Length (words)", _fmt(query_chars.get("max_query_length", None), 0)],
+                ["Standard Deviation", _fmt(query_chars.get("std_query_length", None), 1)]
+            ]
+            f.write(tabulate(query_table, headers=["Metric", "Value"], tablefmt="pipe"))
+            f.write("\n\n")
+
+            # Relevance distribution
+            f.write("#### Relevance Distribution\n\n")
+            relevance_table = [
+                ["Total Relevance Judgments", f"{relevance_chars.get('total_relevance_judgments', 'N/A')}"] ,
+                ["Average Relevant Docs per Query", _fmt(relevance_chars.get("avg_relevant_docs_per_query", None), 1)],
+                ["Median Relevant Docs per Query", _fmt(relevance_chars.get("median_relevant_docs_per_query", None), 1)],
+                ["Min Relevant Docs", _fmt(relevance_chars.get("min_relevant_docs_per_query", None), 0)],
+                ["Max Relevant Docs", _fmt(relevance_chars.get("max_relevant_docs_per_query", None), 0)],
+                ["Coverage Ratio", f"{_fmt(relevance_chars.get('coverage_ratio', None), 2)}%"]
+            ]
+            f.write(tabulate(relevance_table, headers=["Metric", "Value"], tablefmt="pipe"))
+            f.write("\n\n")
+
+            # Representative queries
+            if representative_queries:
+                f.write("#### Representative Query Examples\n\n")
+                query_rows = []
+                for item in representative_queries:
+                    query_rows.append([
+                        item.get("query_id", "N/A"),
+                        item.get("query_text", ""),
+                        item.get("relevant_docs", "N/A")
+                    ])
+                f.write(tabulate(query_rows, headers=["Query ID", "Query Text", "# Relevant Docs"], tablefmt="pipe"))
+                f.write("\n\n")
+
+            # Model performance metrics
+            f.write("#### Embedding Performance Metrics\n\n")
+            models_data = ds_data.get("models", {})
+            metric_headers = ["Model"] + [f"{m.upper()}@{k_val}" for m in metrics]
+            metric_rows = []
+            for model_name, model_data in sorted(models_data.items()):
+                short_name = model_name.split("/")[-1]
+                row = [short_name]
+                for metric in metrics:
+                    score = model_data.get("metrics", {}).get(metric)
+                    row.append(_fmt(score, 4) if isinstance(score, (int, float)) else "N/A")
+                metric_rows.append(row)
+            f.write(tabulate(metric_rows, headers=metric_headers, tablefmt="pipe"))
+            f.write("\n\n")
+
+            # Embedding speed comparison
+            f.write("#### Embedding Speed Comparison\n\n")
+            timing_rows = []
+            for model_name, model_data in sorted(models_data.items()):
+                timing = model_data.get("timing", {})
+                if timing:
+                    timing_rows.append([
+                        model_name.split("/")[-1],
+                        _fmt(timing.get("embedding_time"), 2),
+                        f"{timing.get('docs_processed', 'N/A')}",
+                        _fmt(timing.get("docs_per_second"), 2),
+                        _fmt((timing.get("avg_time_per_doc") or 0) * 1000, 2)
+                    ])
+            if timing_rows:
+                f.write(tabulate(
+                    timing_rows,
+                    headers=["Model", "Embedding Time (s)", "Docs Processed", "Docs/sec", "Avg Time per Doc (ms)"],
+                    tablefmt="pipe"
+                ))
+                f.write("\n\n")
+            else:
+                f.write("No timing data available for this dataset.\n\n")
+
+            mean_metric = np.mean(primary_scores) if primary_scores else None
+            summary_items = []
+            if best_model_name:
+                summary_items.append(
+                    f"Best model: {best_model_name} ({metrics[0].upper()}={_fmt(best_score_value, 4)})"
+                )
+            if mean_metric is not None:
+                summary_items.append(
+                    f"Mean {metrics[0].upper()} across models: {_fmt(mean_metric, 4)}"
+                )
+            if timing_rows:
+                summary_items.append(f"Timing data available for {len(timing_rows)} model(s)")
+            else:
+                summary_items.append("Timing data not available for this dataset")
+
+            f.write("#### Dataset Summary Notes\n\n")
+            for item in summary_items:
+                f.write(f"- {item}\n")
             f.write("\n")
         
         # Add difficulty chart
