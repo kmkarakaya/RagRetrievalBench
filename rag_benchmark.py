@@ -227,6 +227,7 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
     qrels = []
     for query_id, query_text in queries.items():
         print(f"Query ID: {query_id}, Query Text: {query_text}")
+        source_chunk_id = None
         
         # Parse the source chunk ID from query_id
         parts = query_id.split('_chunk')
@@ -248,7 +249,7 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
         print(f"Retrieved {len(results['ids'][0])} documents for query {query_id}.")
         
         for i, (doc_id, text) in enumerate(zip(results['ids'][0], results['documents'][0])):
-            if doc_id == source_chunk_id:
+            if source_chunk_id and doc_id == source_chunk_id:
                 continue  # Skip if already added
             prompt = f"Question: {query_text}\n"
             prompt += f"{i+1}. [{doc_id}] \"{text}\"\n\n"

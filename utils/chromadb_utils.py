@@ -125,21 +125,21 @@ def initialize_collection(corpus, model_name, collection_name):
     
     # Calculate embedding time and performance metrics
     embedding_time = time.time() - embedding_start_time
-    docs_per_second = len(corpus_ids) / embedding_time
-    avg_time_per_doc = embedding_time / len(corpus_ids)
+    chunks_per_second = len(corpus_ids) / embedding_time
+    avg_time_per_chunk = embedding_time / len(corpus_ids)
     
     print(f"Finished initializing collection: {collection_name}")
     print(f"Embedding performance:")
     print(f"  Embedding time: {embedding_time:.2f} seconds")
-    print(f"  Documents processed: {len(corpus_ids)}")
-    print(f"  Documents per second: {docs_per_second:.2f}")
-    print(f"  Average time per document: {avg_time_per_doc:.4f} seconds")
+    print(f"  Chunks processed: {len(corpus_ids)}")
+    print(f"  Chunks per second: {chunks_per_second:.2f}")
+    print(f"  Average time per chunk: {avg_time_per_chunk:.4f} seconds")
     
     timing_data = {
         "embedding_time": embedding_time,
-        "docs_processed": len(corpus_ids),
-        "docs_per_second": docs_per_second,
-        "avg_time_per_doc": avg_time_per_doc
+        "chunks_processed": len(corpus_ids),
+        "chunks_per_second": chunks_per_second,
+        "avg_time_per_chunk": avg_time_per_chunk
     }
     
 

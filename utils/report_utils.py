@@ -41,11 +41,11 @@ METRIC_HEADERS = {
 
 METRIC_DOCS = {
     "map": ("Mean Average Precision at rank k", "Ranking quality"),
-    "recall": ("Proportion of relevant docs in top k", "Coverage"),
-    "precision": ("Proportion of relevant docs among retrieved", "Accuracy"),
+    "recall": ("Proportion of relevant documents in top k", "Coverage"),
+    "precision": ("Proportion of relevant documents among retrieved", "Accuracy"),
     "ndcg": ("Normalized Discounted Cumulative Gain", "Ranking with position bias"),
     "mrr": ("Mean Reciprocal Rank", "First relevant position"),
-    "hit_rate": ("Fraction of queries with at least one relevant doc in top k", "Query-level success"),
+    "hit_rate": ("Fraction of queries with at least one relevant document in top k", "Query-level success"),
 }
 
 
@@ -90,7 +90,7 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
         model_results: List of tuples (model_name, enabled_metrics...) where enabled_metrics
                       are in order: MAP, Recall, Precision, NDCG, MRR (only enabled ones included)
         timing_data: Dict with timing information per model
-        corpus: Dict of document chunks
+        corpus: Dict of chunks
         queries: Dict of queries
         relevant_docs: Dict of relevance judgments
         output_path: Path to save JSON file
@@ -267,13 +267,29 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     chunk_lengths = [len(text.split()) for text in corpus.values()]
     query_lengths = [len(text.split()) for text in queries.values()]
     relevance_distribution = [len(v) for v in relevant_docs.values()]
+
+    def _fmt_stat(values, func, fmt):
+        if not values:
+            return "N/A"
+        try:
+            return f"{func(values):{fmt}}"
+        except Exception:
+            return "N/A"
+
+    def _fmt_int(values, func):
+        if not values:
+            return "N/A"
+        try:
+            return str(func(values))
+        except Exception:
+            return "N/A"
     
-    # Count source PDF documents
+    # Count source documents (PDFs)
     pdf_count = 0
     if os.path.exists(cfg.pdf_dir):
         pdf_count = len([f for f in os.listdir(cfg.pdf_dir) if f.lower().endswith('.pdf')])
     
-    # Count document chunks from ChromaDB
+    # Count chunks from ChromaDB
     chunk_count = 0
     try:
         client = chromadb.PersistentClient(path=cfg.chroma_db_path)
@@ -305,7 +321,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("## Abstract\n\n")
         f.write(f"This paper presents a systematic evaluation of embedding models on the {dataset_name} dataset ")
         f.write("within Retrieval Augmented Generation (RAG) systems. We developed an automated pipeline ")
-        f.write("that processes PDF documents, generates synthetic queries using large language models, ")
+        f.write("that processes documents (PDFs), generates synthetic queries using large language models, ")
         f.write("and evaluates retrieval performance across multiple embedding models using standardized ")
         f.write("information retrieval metrics. Our framework provides researchers and practitioners ")
         f.write("with a reproducible methodology for selecting optimal embedding models for their ")
@@ -315,7 +331,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("## Executive Summary\n\n")
         f.write(f"This report presents a comparative analysis of embedding models for retrieval augmented generation (RAG) on the {dataset_name} dataset. ")
         f.write("The models were evaluated on their ability to retrieve relevant documents using ChromaDB as the vector database. ")
-        f.write(f"The benchmark used **{pdf_count} PDF document(s)** that were processed into **{chunk_count} document chunks** and **{len(queries)} queries** with **{sum(len(v) for v in relevant_docs.values())} relevant document mappings**.\n\n")
+        f.write(f"The benchmark used **{pdf_count} document(s) (PDFs)** that were processed into **{chunk_count} chunks** and **{len(queries)} queries** with **{sum(len(v) for v in relevant_docs.values())} relevant document mappings**.\n\n")
         
         # Best model highlight
         if sorted_results:  # Check if there are any results
@@ -334,15 +350,15 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("## Methodology\n\n")
         f.write("### Automated Pipeline Overview\n\n")
         f.write("Our evaluation framework consists of five main stages:\n\n")
-        f.write("1. **PDF Processing**: Document ingestion and chunking\n")
-        f.write("2. **Corpus Generation**: Creation of standardized document chunks\n")
+        f.write("1. **Document (PDF) Processing**: Document ingestion and chunking\n")
+        f.write("2. **Corpus Generation**: Creation of standardized chunks\n")
         f.write("3. **Query Generation**: LLM-assisted query synthesis\n")
         f.write("4. **Relevance Assessment**: Automated qrels generation\n")
         f.write("5. **Embedding Evaluation**: Multi-model performance comparison\n\n")
         
         f.write("### Document Processing Pipeline\n\n")
         f.write("#### PDF Extraction and Chunking\n\n")
-        f.write(f"- **Source PDF documents**: {pdf_count} file(s) from `{cfg.pdf_dir}` directory\n")
+        f.write(f"- **Source documents (PDFs)**: {pdf_count} file(s) from `{cfg.pdf_dir}` directory\n")
         f.write(f"- **Chunking strategy**: Recursive character text splitting\n")
         f.write(f"- **Chunk size**: {cfg.chunk_size} characters\n")
         f.write(f"- **Chunk overlap**: {cfg.chunk_overlap} characters\n")
@@ -369,21 +385,21 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         # Corpus statistics table
         f.write("#### Corpus Characteristics\n\n")
         corpus_stats = [
-            ["Source PDF Documents", f"{pdf_count}"],
-            ["Total Document Chunks", f"{chunk_count:,}"],
-            ["Average Chunk Length (words)", f"{np.mean(chunk_lengths):.1f}"],
-            ["Median Chunk Length (words)", f"{np.median(chunk_lengths):.1f}"],
-            ["Min Chunk Length (words)", f"{min(chunk_lengths)}"],
-            ["Max Chunk Length (words)", f"{max(chunk_lengths)}"],
-            ["Standard Deviation", f"{np.std(chunk_lengths):.1f}"]
+            ["Source Documents (PDFs)", f"{pdf_count}"],
+            ["Total Chunks", f"{chunk_count:,}"],
+            ["Average Chunk Length (words)", _fmt_stat(chunk_lengths, np.mean, ".1f")],
+            ["Median Chunk Length (words)", _fmt_stat(chunk_lengths, np.median, ".1f")],
+            ["Min Chunk Length (words)", _fmt_int(chunk_lengths, min)],
+            ["Max Chunk Length (words)", _fmt_int(chunk_lengths, max)],
+            ["Standard Deviation", _fmt_stat(chunk_lengths, np.std, ".1f")]
         ]
         f.write(tabulate(corpus_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
         
         f.write("**Table: Corpus Characteristics Summary**\n\n")
         f.write("**Column Explanations:**\n")
-        f.write("- **Source PDF Documents**: Number of original PDF files processed\n")
-        f.write("- **Total Document Chunks**: Number of text chunks created from PDFs\n")
+        f.write("- **Source Documents (PDFs)**: Number of source documents (PDF files) processed\n")
+        f.write("- **Total Chunks**: Number of text chunks created from documents (PDFs)\n")
         f.write("- **Average Chunk Length**: Mean number of words per chunk\n")
         f.write("- **Median Chunk Length**: Middle value of chunk lengths (resistant to outliers)\n")
         f.write("- **Min/Max Chunk Length**: Range of chunk sizes\n")
@@ -398,11 +414,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("#### Query Characteristics\n\n")
         query_stats = [
             ["Total Queries", f"{len(queries)}"],
-            ["Average Query Length (words)", f"{np.mean(query_lengths):.1f}"],
-            ["Median Query Length (words)", f"{np.median(query_lengths):.1f}"],
-            ["Min Query Length (words)", f"{min(query_lengths)}"],
-            ["Max Query Length (words)", f"{max(query_lengths)}"],
-            ["Standard Deviation", f"{np.std(query_lengths):.1f}"]
+            ["Average Query Length (words)", _fmt_stat(query_lengths, np.mean, ".1f")],
+            ["Median Query Length (words)", _fmt_stat(query_lengths, np.median, ".1f")],
+            ["Min Query Length (words)", _fmt_int(query_lengths, min)],
+            ["Max Query Length (words)", _fmt_int(query_lengths, max)],
+            ["Standard Deviation", _fmt_stat(query_lengths, np.std, ".1f")]
         ]
         f.write(tabulate(query_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
@@ -422,13 +438,14 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Relevance statistics
         f.write("#### Relevance Distribution\n\n")
+        coverage_ratio = (sum(relevance_distribution) / chunk_count * 100) if chunk_count else None
         relevance_stats = [
             ["Total Relevance Judgments", f"{sum(relevance_distribution)}"],
-            ["Average Relevant Docs per Query", f"{np.mean(relevance_distribution):.1f}"],
-            ["Median Relevant Docs per Query", f"{np.median(relevance_distribution):.1f}"],
-            ["Min Relevant Docs", f"{min(relevance_distribution)}"],
-            ["Max Relevant Docs", f"{max(relevance_distribution)}"],
-            ["Coverage Ratio", f"{sum(relevance_distribution)/chunk_count*100:.2f}%"]
+            ["Average Relevant Documents per Query", _fmt_stat(relevance_distribution, np.mean, ".1f")],
+            ["Median Relevant Documents per Query", _fmt_stat(relevance_distribution, np.median, ".1f")],
+            ["Min Relevant Documents", _fmt_int(relevance_distribution, min)],
+            ["Max Relevant Documents", _fmt_int(relevance_distribution, max)],
+            ["Coverage Ratio", f"{coverage_ratio:.2f}%" if isinstance(coverage_ratio, (int, float)) else "N/A"]
         ]
         f.write(tabulate(relevance_stats, headers=["Metric", "Value"], tablefmt="pipe"))
         f.write("\n\n")
@@ -436,13 +453,13 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("**Table: Relevance Distribution Summary**\n\n")
         f.write("**Column Explanations:**\n")
         f.write("- **Total Relevance Judgments**: Total number of relevant document-query pairs\n")
-        f.write("- **Average Relevant Docs per Query**: Mean number of relevant documents per query\n")
-        f.write("- **Median Relevant Docs per Query**: Middle value of relevant docs per query\n")
-        f.write("- **Min/Max Relevant Docs**: Range of relevant documents per query\n")
+        f.write("- **Average Relevant Documents per Query**: Mean number of relevant documents per query\n")
+        f.write("- **Median Relevant Documents per Query**: Middle value of relevant documents per query\n")
+        f.write("- **Min/Max Relevant Documents**: Range of relevant documents per query\n")
         f.write("- **Coverage Ratio**: Percentage of corpus that is relevant to queries\n\n")
         
         f.write("**How to interpret:**\n")
-        f.write("- **High average relevant docs** = easier retrieval task\n")
+        f.write("- **High average relevant documents** = easier retrieval task\n")
         f.write("- **Low coverage ratio** = sparse relevance (harder evaluation)\n")
         f.write("- **High variability** indicates inconsistent query difficulty\n\n")
         
@@ -516,10 +533,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("**Metric Details:**\n")
         metric_details = {
             "map": "Mean Average Precision - balances precision and recall across ranks",
-            "recall": "Coverage - fraction of relevant docs retrieved in top k",
-            "precision": "Accuracy - fraction of retrieved docs that are relevant",
+            "recall": "Coverage - fraction of relevant documents retrieved in top k",
+            "precision": "Accuracy - fraction of retrieved documents that are relevant",
             "ndcg": "Position-aware ranking quality with logarithmic discounting",
-            "mrr": "First relevant position - emphasizes finding relevant docs early",
+            "mrr": "First relevant position - emphasizes finding relevant documents early",
             "hit_rate": "Success@k / Hit Rate@k - fraction of queries with at least one relevant hit in top k",
         }
         for metric_name in get_enabled_metric_names():
@@ -541,7 +558,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Representative Query Examples
         f.write("### Representative Query Examples\n\n")
-        headers = ["Query ID", "Query Text", "# Relevant Docs"]
+        headers = ["Query ID", "Query Text", "# Relevant Documents"]
         rep_rows = []
         for qid in list(queries)[:5]:
             # wrap long IDs at ~20 chars with HTML line breaks for clean table layout
@@ -554,11 +571,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("**Column Explanations:**\n")
         f.write("- **Query ID**: Unique identifier for each query\n")
         f.write("- **Query Text**: The actual query text used for retrieval\n")
-        f.write("- **# Relevant Docs**: Number of ground truth relevant documents\n\n")
+        f.write("- **# Relevant Documents**: Number of ground truth relevant documents\n\n")
         
         f.write("**How to interpret:**\n")
         f.write("- **Query diversity** shows the range of information needs tested\n")
-        f.write("- **Relevant docs count** indicates query specificity (fewer = more specific)\n")
+        f.write("- **Relevant document count** indicates query specificity (fewer = more specific)\n")
         f.write("- **Query length** may correlate with retrieval difficulty\n\n")
         
         # Results section
@@ -675,7 +692,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 f.write("**Figure: Dataset Characteristics and Distributions**\n\n")
                 f.write("This figure contains four subplots showing the statistical properties of your evaluation dataset:\n\n")
                 f.write("**Top-left: Chunk Length Distribution**\n")
-                f.write("- Shows how document chunk sizes vary across the corpus\n")
+                f.write("- Shows how chunk sizes vary across the corpus\n")
                 f.write("- **Normal distribution** indicates consistent chunking\n")
                 f.write("- **Skewed distribution** suggests chunking strategy issues\n\n")
                 
@@ -686,8 +703,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 
                 f.write("**Bottom-left: Relevance Distribution**\n")
                 f.write("- Shows how many relevant documents exist per query\n")
-                f.write("- **Right-skewed** = most queries have few relevant docs (harder task)\n")
-                f.write("- **Left-skewed** = most queries have many relevant docs (easier task)\n\n")
+                f.write("- **Right-skewed** = most queries have few relevant documents (harder task)\n")
+                f.write("- **Left-skewed** = most queries have many relevant documents (easier task)\n\n")
                 
                 f.write("**Bottom-right: Summary Statistics Table**\n")
                 f.write("- Key metrics for chunk lengths, query lengths, and relevance\n")
@@ -804,8 +821,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             timing_headers = [
                 "Model",
                 "Embedding Time (s)",
-                "Docs/Second",
-                "Avg Time/Doc (ms)",
+                "Chunks/Second",
+                "Avg Time/Chunk (ms)",
                 "Avg Query Latency (ms/query)",
                 "Queries Timed",
             ]
@@ -818,14 +835,14 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                         continue  # Skip invalid data
 
                     embedding_time = timing_data.get("embedding_time")
-                    docs_per_second = timing_data.get("docs_per_second")
-                    avg_time_per_doc = timing_data.get("avg_time_per_doc")
+                    chunks_per_second = timing_data.get("chunks_per_second")
+                    avg_time_per_chunk = timing_data.get("avg_time_per_chunk")
                     avg_query_latency_ms = timing_data.get("avg_query_latency_ms")
                     queries_timed = timing_data.get("queries_timed")
 
                     has_embedding_data = all(
                         isinstance(value, (int, float))
-                        for value in (embedding_time, docs_per_second, avg_time_per_doc)
+                        for value in (embedding_time, chunks_per_second, avg_time_per_chunk)
                     )
                     has_latency_data = isinstance(avg_query_latency_ms, (int, float)) and isinstance(queries_timed, int)
 
@@ -836,8 +853,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                     timing_records.append({
                         "model": model_name,
                         "embedding_time": embedding_time if has_embedding_data else None,
-                        "docs_per_second": docs_per_second if has_embedding_data else None,
-                        "avg_time_per_doc_ms": (avg_time_per_doc * 1000.0) if has_embedding_data else None,
+                        "chunks_per_second": chunks_per_second if has_embedding_data else None,
+                        "avg_time_per_chunk_ms": (avg_time_per_chunk * 1000.0) if has_embedding_data else None,
                         "avg_query_latency_ms": avg_query_latency_ms if has_latency_data else None,
                         "queries_timed": queries_timed if has_latency_data else None,
                     })
@@ -845,11 +862,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                     print(f"Warning: Invalid timing data for {model_name}: {e}")
                     continue
 
-            # Sort by retrieval latency (lower is better), then by docs/sec (higher is better)
+            # Sort by retrieval latency (lower is better), then by chunks/sec (higher is better)
             timing_records.sort(
                 key=lambda rec: (
                     rec["avg_query_latency_ms"] if isinstance(rec["avg_query_latency_ms"], (int, float)) else float("inf"),
-                    -(rec["docs_per_second"] if isinstance(rec["docs_per_second"], (int, float)) else 0.0),
+                    -(rec["chunks_per_second"] if isinstance(rec["chunks_per_second"], (int, float)) else 0.0),
                 )
             )
 
@@ -858,8 +875,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 timing_rows.append([
                     rec["model"],
                     f"{rec['embedding_time']:.2f}" if isinstance(rec["embedding_time"], (int, float)) else "N/A",
-                    f"{rec['docs_per_second']:.2f}" if isinstance(rec["docs_per_second"], (int, float)) else "N/A",
-                    f"{rec['avg_time_per_doc_ms']:.2f}" if isinstance(rec["avg_time_per_doc_ms"], (int, float)) else "N/A",
+                    f"{rec['chunks_per_second']:.2f}" if isinstance(rec["chunks_per_second"], (int, float)) else "N/A",
+                    f"{rec['avg_time_per_chunk_ms']:.2f}" if isinstance(rec["avg_time_per_chunk_ms"], (int, float)) else "N/A",
                     f"{rec['avg_query_latency_ms']:.2f}" if isinstance(rec["avg_query_latency_ms"], (int, float)) else "N/A",
                     f"{rec['queries_timed']}" if isinstance(rec["queries_timed"], int) else "N/A",
                 ])
@@ -871,15 +888,15 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write("**Table: Compute And Retrieval Performance Metrics**\n\n")
             f.write("**Column Explanations:**\n")
             f.write("- **Model**: Embedding model name\n")
-            f.write("- **Embedding Time (s)**: Total time to embed all document chunks\n")
-            f.write("- **Docs/Second**: Processing throughput (higher = faster)\n")
-            f.write("- **Avg Time/Doc (ms)**: Average time per document chunk\n")
+            f.write("- **Embedding Time (s)**: Total time to embed all chunks\n")
+            f.write("- **Chunks/Second**: Processing throughput (higher = faster)\n")
+            f.write("- **Avg Time/Chunk (ms)**: Average time per chunk\n")
             f.write("- **Avg Query Latency (ms/query)**: Average DB retrieval time per query (lower = faster)\n")
             f.write("- **Queries Timed**: Number of queries included in retrieval latency measurement\n\n")
             
             f.write("**How to interpret:**\n")
-            f.write("- **Higher Docs/Second** = more efficient processing\n")
-            f.write("- **Lower Avg Time/Doc** = faster embedding of individual chunks\n")
+            f.write("- **Higher Chunks/Second** = more efficient processing\n")
+            f.write("- **Lower Avg Time/Chunk** = faster embedding of individual chunks\n")
             f.write("- **Lower Avg Query Latency** = faster retrieval responsiveness at runtime\n")
             f.write("- **Trade-offs**: Speed often correlates with model size/complexity\n")
             f.write("- **Production considerations**: Balance speed with retrieval quality\n\n")
@@ -888,20 +905,20 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             if timing_records:  # Only proceed if there are valid timing rows
                 f.write("#### Performance Insights\n\n")
 
-                embedding_records = [rec for rec in timing_records if isinstance(rec["docs_per_second"], (int, float))]
+                embedding_records = [rec for rec in timing_records if isinstance(rec["chunks_per_second"], (int, float))]
                 if embedding_records:
-                    fastest_embed = max(embedding_records, key=lambda rec: rec["docs_per_second"])
-                    slowest_embed = min(embedding_records, key=lambda rec: rec["docs_per_second"])
+                    fastest_embed = max(embedding_records, key=lambda rec: rec["chunks_per_second"])
+                    slowest_embed = min(embedding_records, key=lambda rec: rec["chunks_per_second"])
                     f.write(
                         f"- **Fastest embedding model**: `{fastest_embed['model']}` "
-                        f"at {fastest_embed['docs_per_second']:.2f} docs/second\n"
+                        f"at {fastest_embed['chunks_per_second']:.2f} chunks/second\n"
                     )
                     f.write(
                         f"- **Slowest embedding model**: `{slowest_embed['model']}` "
-                        f"at {slowest_embed['docs_per_second']:.2f} docs/second\n"
+                        f"at {slowest_embed['chunks_per_second']:.2f} chunks/second\n"
                     )
-                    if slowest_embed["docs_per_second"] > 0:
-                        speedup = fastest_embed["docs_per_second"] / slowest_embed["docs_per_second"]
+                    if slowest_embed["chunks_per_second"] > 0:
+                        speedup = fastest_embed["chunks_per_second"] / slowest_embed["chunks_per_second"]
                         f.write(f"- **Embedding performance ratio**: {speedup:.2f}x (fastest vs slowest)\n")
 
                 latency_records = [rec for rec in timing_records if isinstance(rec["avg_query_latency_ms"], (int, float))]
@@ -1181,23 +1198,23 @@ def generate_timing_visualization(timing_results, output_dir, timestamp, dataset
             if not isinstance(timing_data, dict):
                 continue
             short_name = model_name.split('/')[-1]
-            avg_time_per_doc = timing_data.get('avg_time_per_doc')
+            avg_time_per_chunk = timing_data.get('avg_time_per_chunk')
             records.append({
                 "model": short_name,
-                "docs_per_second": timing_data.get('docs_per_second'),
-                "avg_time_per_doc_ms": (avg_time_per_doc * 1000.0) if isinstance(avg_time_per_doc, (int, float)) else None,
+                "chunks_per_second": timing_data.get('chunks_per_second'),
+                "avg_time_per_chunk_ms": (avg_time_per_chunk * 1000.0) if isinstance(avg_time_per_chunk, (int, float)) else None,
                 "avg_query_latency_ms": timing_data.get('avg_query_latency_ms'),
             })
 
-        throughput_records = [r for r in records if isinstance(r["docs_per_second"], (int, float))]
-        per_doc_records = [r for r in records if isinstance(r["avg_time_per_doc_ms"], (int, float))]
+        throughput_records = [r for r in records if isinstance(r["chunks_per_second"], (int, float))]
+        per_doc_records = [r for r in records if isinstance(r["avg_time_per_chunk_ms"], (int, float))]
         latency_records = [r for r in records if isinstance(r["avg_query_latency_ms"], (int, float))]
 
         panels = []
         if throughput_records:
-            panels.append(("Embedding Throughput", "Documents per Second", throughput_records, "docs_per_second", "skyblue", "{:.1f}"))
+            panels.append(("Embedding Throughput", "Chunks per Second", throughput_records, "chunks_per_second", "skyblue", "{:.1f}"))
         if per_doc_records:
-            panels.append(("Embedding Time per Document", "Average Time per Document (ms)", per_doc_records, "avg_time_per_doc_ms", "lightcoral", "{:.1f} ms"))
+            panels.append(("Embedding Time per Chunk", "Average Time per Chunk (ms)", per_doc_records, "avg_time_per_chunk_ms", "lightcoral", "{:.1f} ms"))
         if latency_records:
             panels.append(("Query Retrieval Latency", "Average Query Latency (ms/query)", latency_records, "avg_query_latency_ms", "mediumseagreen", "{:.2f} ms"))
 
@@ -1247,42 +1264,65 @@ def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distr
     """Generate visualizations for corpus statistics."""
     viz_files = {}
     
+    def _fmt_stat(values, func, fmt):
+        if not values:
+            return "N/A"
+        try:
+            return f"{func(values):{fmt}}"
+        except Exception:
+            return "N/A"
+
     # Create figure with subplots for different statistics
     fig, axes = plt.subplots(2, 2, figsize=(15, 12))
     fig.suptitle('Dataset Characteristics and Statistics', fontsize=16, fontweight='bold')
     
     # 1. Chunk length distribution
-    axes[0, 0].hist(chunk_lengths, bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+    if chunk_lengths:
+        axes[0, 0].hist(chunk_lengths, bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+        axes[0, 0].axvline(np.mean(chunk_lengths), color='red', linestyle='--', label=f'Mean: {np.mean(chunk_lengths):.1f}')
+        axes[0, 0].legend()
+    else:
+        axes[0, 0].text(0.5, 0.5, "No data", ha='center', va='center')
+        axes[0, 0].set_xlim(0, 1)
+        axes[0, 0].set_ylim(0, 1)
     axes[0, 0].set_xlabel('Chunk Length (words)')
     axes[0, 0].set_ylabel('Frequency')
     axes[0, 0].set_title('Distribution of Chunk Lengths')
-    axes[0, 0].axvline(np.mean(chunk_lengths), color='red', linestyle='--', label=f'Mean: {np.mean(chunk_lengths):.1f}')
-    axes[0, 0].legend()
     
     # 2. Query length distribution
-    axes[0, 1].hist(query_lengths, bins=20, alpha=0.7, color='lightgreen', edgecolor='black')
+    if query_lengths:
+        axes[0, 1].hist(query_lengths, bins=20, alpha=0.7, color='lightgreen', edgecolor='black')
+        axes[0, 1].axvline(np.mean(query_lengths), color='red', linestyle='--', label=f'Mean: {np.mean(query_lengths):.1f}')
+        axes[0, 1].legend()
+    else:
+        axes[0, 1].text(0.5, 0.5, "No data", ha='center', va='center')
+        axes[0, 1].set_xlim(0, 1)
+        axes[0, 1].set_ylim(0, 1)
     axes[0, 1].set_xlabel('Query Length (words)')
     axes[0, 1].set_ylabel('Frequency')
     axes[0, 1].set_title('Distribution of Query Lengths')
-    axes[0, 1].axvline(np.mean(query_lengths), color='red', linestyle='--', label=f'Mean: {np.mean(query_lengths):.1f}')
-    axes[0, 1].legend()
     
     # 3. Relevance distribution
-    axes[1, 0].hist(relevance_distribution, bins=max(relevance_distribution)+1, alpha=0.7, color='orange', edgecolor='black')
+    if relevance_distribution:
+        axes[1, 0].hist(relevance_distribution, bins=max(relevance_distribution) + 1, alpha=0.7, color='orange', edgecolor='black')
+        axes[1, 0].axvline(np.mean(relevance_distribution), color='red', linestyle='--', label=f'Mean: {np.mean(relevance_distribution):.1f}')
+        axes[1, 0].legend()
+    else:
+        axes[1, 0].text(0.5, 0.5, "No data", ha='center', va='center')
+        axes[1, 0].set_xlim(0, 1)
+        axes[1, 0].set_ylim(0, 1)
     axes[1, 0].set_xlabel('Number of Relevant Documents per Query')
     axes[1, 0].set_ylabel('Frequency')
     axes[1, 0].set_title('Relevance Distribution')
-    axes[1, 0].axvline(np.mean(relevance_distribution), color='red', linestyle='--', label=f'Mean: {np.mean(relevance_distribution):.1f}')
-    axes[1, 0].legend()
     
     # 4. Summary statistics table as text
     axes[1, 1].axis('off')
     summary_stats = [
         ['Metric', 'Chunks', 'Queries', 'Relevance'],
         ['Count', f'{chunk_count}', f'{len(query_lengths)}', f'{len(relevance_distribution)}'],
-        ['Mean', f'{np.mean(chunk_lengths):.1f}', f'{np.mean(query_lengths):.1f}', f'{np.mean(relevance_distribution):.1f}'],
-        ['Median', f'{np.median(chunk_lengths):.1f}', f'{np.median(query_lengths):.1f}', f'{np.median(relevance_distribution):.1f}'],
-        ['Std Dev', f'{np.std(chunk_lengths):.1f}', f'{np.std(query_lengths):.1f}', f'{np.std(relevance_distribution):.1f}']
+        ['Mean', _fmt_stat(chunk_lengths, np.mean, '.1f'), _fmt_stat(query_lengths, np.mean, '.1f'), _fmt_stat(relevance_distribution, np.mean, '.1f')],
+        ['Median', _fmt_stat(chunk_lengths, np.median, '.1f'), _fmt_stat(query_lengths, np.median, '.1f'), _fmt_stat(relevance_distribution, np.median, '.1f')],
+        ['Std Dev', _fmt_stat(chunk_lengths, np.std, '.1f'), _fmt_stat(query_lengths, np.std, '.1f'), _fmt_stat(relevance_distribution, np.std, '.1f')]
     ]
     
     table = axes[1, 1].table(cellText=summary_stats[1:], colLabels=summary_stats[0], 

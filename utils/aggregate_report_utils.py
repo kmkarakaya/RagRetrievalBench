@@ -1114,7 +1114,7 @@ def generate_dataset_characteristics_chart(
     timestamp: str
 ) -> str:
     """
-    Overview chart for dataset sizes (PDFs, chunks, queries, qrels).
+    Overview chart for dataset sizes (Documents (PDFs), chunks, queries, qrels).
 
     Returns: Path to saved PNG file.
     """
@@ -1147,7 +1147,7 @@ def generate_dataset_characteristics_chart(
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
     axes[0, 0].barh(names, pdfs, color="#4c78a8", alpha=0.8)
-    axes[0, 0].set_title("PDFs")
+    axes[0, 0].set_title("Documents (PDFs)")
 
     axes[0, 1].barh(names, chunks, color="#f58518", alpha=0.8)
     axes[0, 1].set_title("Chunks")
@@ -1242,7 +1242,7 @@ def generate_embedding_speed_heatmap(
     timestamp: str
 ) -> str:
     """
-    Heatmap of embedding throughput (docs/sec) by model and dataset.
+    Heatmap of embedding throughput (chunks/sec) by model and dataset.
 
     Returns: Path to saved PNG file.
     """
@@ -1260,8 +1260,8 @@ def generate_embedding_speed_heatmap(
         row = []
         for ds_name in dataset_names:
             timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
-            docs_per_second = timing.get("docs_per_second")
-            row.append(docs_per_second if isinstance(docs_per_second, (int, float)) else np.nan)
+            chunks_per_second = timing.get("chunks_per_second")
+            row.append(chunks_per_second if isinstance(chunks_per_second, (int, float)) else np.nan)
         matrix.append(row)
 
     df = pd.DataFrame(matrix, index=[m.split("/")[-1] for m in all_models], columns=dataset_names)
@@ -1287,8 +1287,8 @@ def generate_embedding_speed_heatmap(
                     ha="center", va="center", color="black", fontsize=HEATMAP_ANNOT_SIZE
                 )
 
-    ax.set_title("Embedding Throughput (Docs/sec)", fontsize=HEATMAP_TITLE_SIZE, pad=16)
-    fig.colorbar(im, ax=ax, label="Docs per Second")
+    ax.set_title("Embedding Throughput (Chunks/sec)", fontsize=HEATMAP_TITLE_SIZE, pad=16)
+    fig.colorbar(im, ax=ax, label="Chunks per Second")
 
     output_path = os.path.join(output_dir, f"embedding_speed_heatmap_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -1724,11 +1724,11 @@ def _write_markdown_report(
         for ds_name, ds_data in datasets.items():
             stats = ds_data.get("corpus_stats", {})
             num_pdfs = stats.get('total_pdfs', 0)
-            f.write(f"- **{ds_name}**: {num_pdfs} PDF{'s' if num_pdfs != 1 else ''} → {stats.get('total_chunks', 'N/A')} chunks, ")
+            f.write(f"- **{ds_name}**: {num_pdfs} document{'s' if num_pdfs != 1 else ''} (PDFs) → {stats.get('total_chunks', 'N/A')} chunks, ")
             f.write(f"{stats.get('total_queries', 'N/A')} queries, ")
             f.write(f"{stats.get('total_qrels', 'N/A')} qrels\n")
         
-        f.write(f"- **Total**: {len(datasets)} datasets, {total_pdfs} PDF{'s' if total_pdfs != 1 else ''} → {total_chunks} chunks, {total_queries} queries\n\n")
+        f.write(f"- **Total**: {len(datasets)} datasets, {total_pdfs} document{'s' if total_pdfs != 1 else ''} (PDFs) → {total_chunks} chunks, {total_queries} queries\n\n")
         
         # Best performers
         f.write("### Overall Best Performers (by Average Rank)\n\n")
@@ -1859,15 +1859,15 @@ def _write_markdown_report(
 
         f.write(tabulate(
             dataset_rows,
-            headers=["Dataset", "PDFs", "Chunks", "Queries", "Qrels"],
+            headers=["Dataset", "Documents (PDFs)", "Chunks", "Queries", "Qrels"],
             tablefmt="pipe"
         ))
         f.write("\n\n")
         f.write("**Table: Dataset Statistics Summary**\n\n")
         f.write("**Column Explanations:**\n")
         f.write("- **Dataset**: Dataset identifier used in the benchmark\n")
-        f.write("- **PDFs**: Number of source PDF documents\n")
-        f.write("- **Chunks**: Total text chunks created from PDFs\n")
+        f.write("- **Documents (PDFs)**: Number of source documents (PDF files)\n")
+        f.write("- **Chunks**: Total text chunks created from documents (PDFs)\n")
         f.write("- **Queries**: Number of evaluation queries generated\n")
         f.write("- **Qrels**: Number of relevance judgments (query-document labels)\n\n")
         f.write("**How to interpret:**\n")
@@ -1910,7 +1910,7 @@ def _write_markdown_report(
         if viz_paths.get("dataset_characteristics"):
             f.write(f"![Dataset Characteristics Overview]({os.path.basename(viz_paths['dataset_characteristics'])})\n\n")
             f.write("**Figure: Dataset Characteristics Overview**\n\n")
-            f.write("This figure compares dataset size indicators (PDFs, chunks, queries, qrels) across all datasets.\n\n")
+            f.write("This figure compares dataset size indicators (documents (PDFs), chunks, queries, qrels) across all datasets.\n\n")
 
         if detail_rows:
             detail_rows.append([
@@ -1923,7 +1923,7 @@ def _write_markdown_report(
 
             f.write(tabulate(
                 detail_rows,
-                headers=["Dataset", "Avg Chunk Length (words)", "Avg Query Length (words)", "Avg Relevant Docs", "Coverage Ratio"],
+                headers=["Dataset", "Avg Chunk Length (words)", "Avg Query Length (words)", "Avg Relevant Documents", "Coverage Ratio"],
                 tablefmt="pipe"
             ))
             f.write("\n\n")
@@ -2008,20 +2008,20 @@ def _write_markdown_report(
             ))
             f.write("\n\n")
 
-        f.write("### Embedding Speed Comparison (Docs/sec)\n\n")
+        f.write("### Embedding Speed Comparison (Chunks/sec)\n\n")
 
         if viz_paths.get("speed_heatmap"):
             f.write(f"![Embedding Speed Heatmap]({os.path.basename(viz_paths['speed_heatmap'])})\n\n")
             f.write("**Figure: Embedding Throughput by Dataset**\n\n")
-            f.write("This heatmap compares embedding throughput in documents per second across datasets.\n\n")
+            f.write("This heatmap compares embedding throughput in chunks per second across datasets.\n\n")
 
         speed_rows = []
         for model_name in all_models:
             row = [model_name.split("/")[-1]]
             for ds_name in dataset_names:
                 timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
-                docs_per_second = timing.get("docs_per_second")
-                row.append(_fmt(docs_per_second, 1) if isinstance(docs_per_second, (int, float)) else "N/A")
+                chunks_per_second = timing.get("chunks_per_second")
+                row.append(_fmt(chunks_per_second, 1) if isinstance(chunks_per_second, (int, float)) else "N/A")
             speed_rows.append(row)
 
         if dataset_names and speed_rows:
@@ -2162,11 +2162,11 @@ def _write_markdown_report(
             
             # Dataset statistics
             total_pdfs = stats.get('total_pdfs', 'N/A')
-            f.write(f"- **PDFs**: {total_pdfs} original document{'s' if total_pdfs != 1 else ''}\n")
+            f.write(f"- **Documents (PDFs)**: {total_pdfs} original document{'s' if total_pdfs != 1 else ''}\n")
             avg_chunks_per_pdf = stats.get('avg_chunks_per_pdf', None)
             f.write(
                 f"- **Chunks**: {stats.get('total_chunks', 'N/A')} text chunks "
-                f"(avg {_fmt(avg_chunks_per_pdf, 1)} per PDF)\n"
+                f"(avg {_fmt(avg_chunks_per_pdf, 1)} per document (PDF))\n"
             )
             f.write(f"- **Queries**: {stats.get('total_queries', 'N/A')} queries, ")
             f.write(f"{stats.get('total_qrels', 'N/A')} relevance judgments\n")
@@ -2201,8 +2201,8 @@ def _write_markdown_report(
             # Corpus characteristics
             f.write("#### Corpus Characteristics\n\n")
             corpus_table = [
-                ["Source PDF Documents", f"{stats.get('total_pdfs', 'N/A')}"] ,
-                ["Total Document Chunks", f"{stats.get('total_chunks', 'N/A')}"] ,
+                ["Source Documents (PDFs)", f"{stats.get('total_pdfs', 'N/A')}"] ,
+                ["Total Chunks", f"{stats.get('total_chunks', 'N/A')}"] ,
                 ["Average Chunk Length (words)", _fmt(corpus_chars.get("avg_chunk_length", None), 1)],
                 ["Median Chunk Length (words)", _fmt(corpus_chars.get("median_chunk_length", None), 1)],
                 ["Min Chunk Length (words)", _fmt(corpus_chars.get("min_chunk_length", None), 0)],
@@ -2229,10 +2229,10 @@ def _write_markdown_report(
             f.write("#### Relevance Distribution\n\n")
             relevance_table = [
                 ["Total Relevance Judgments", f"{relevance_chars.get('total_relevance_judgments', 'N/A')}"] ,
-                ["Average Relevant Docs per Query", _fmt(relevance_chars.get("avg_relevant_docs_per_query", None), 1)],
-                ["Median Relevant Docs per Query", _fmt(relevance_chars.get("median_relevant_docs_per_query", None), 1)],
-                ["Min Relevant Docs", _fmt(relevance_chars.get("min_relevant_docs_per_query", None), 0)],
-                ["Max Relevant Docs", _fmt(relevance_chars.get("max_relevant_docs_per_query", None), 0)],
+                ["Average Relevant Documents per Query", _fmt(relevance_chars.get("avg_relevant_docs_per_query", None), 1)],
+                ["Median Relevant Documents per Query", _fmt(relevance_chars.get("median_relevant_docs_per_query", None), 1)],
+                ["Min Relevant Documents", _fmt(relevance_chars.get("min_relevant_docs_per_query", None), 0)],
+                ["Max Relevant Documents", _fmt(relevance_chars.get("max_relevant_docs_per_query", None), 0)],
                 ["Coverage Ratio", f"{_fmt(relevance_chars.get('coverage_ratio', None), 2)}%"]
             ]
             f.write(tabulate(relevance_table, headers=["Metric", "Value"], tablefmt="pipe"))
@@ -2248,7 +2248,7 @@ def _write_markdown_report(
                         item.get("query_text", ""),
                         item.get("relevant_docs", "N/A")
                     ])
-                f.write(tabulate(query_rows, headers=["Query ID", "Query Text", "# Relevant Docs"], tablefmt="pipe"))
+                f.write(tabulate(query_rows, headers=["Query ID", "Query Text", "# Relevant Documents"], tablefmt="pipe"))
                 f.write("\n\n")
 
             # Model performance metrics
@@ -2275,15 +2275,15 @@ def _write_markdown_report(
                     continue
 
                 embedding_time = timing.get("embedding_time")
-                docs_processed = timing.get("docs_processed")
-                docs_per_second = timing.get("docs_per_second")
-                avg_time_per_doc = timing.get("avg_time_per_doc")
+                chunks_processed = timing.get("chunks_processed")
+                chunks_per_second = timing.get("chunks_per_second")
+                avg_time_per_chunk = timing.get("avg_time_per_chunk")
                 avg_query_latency_ms = timing.get("avg_query_latency_ms")
                 queries_timed = timing.get("queries_timed")
 
                 has_embedding_data = all(
                     isinstance(value, (int, float))
-                    for value in (embedding_time, docs_per_second, avg_time_per_doc)
+                    for value in (embedding_time, chunks_per_second, avg_time_per_chunk)
                 )
                 has_latency_data = isinstance(avg_query_latency_ms, (int, float)) and isinstance(queries_timed, (int, float))
 
@@ -2293,9 +2293,9 @@ def _write_markdown_report(
                 timing_rows.append([
                     model_name.split("/")[-1],
                     _fmt(embedding_time, 2) if has_embedding_data else "N/A",
-                    f"{int(docs_processed)}" if isinstance(docs_processed, (int, float)) else "N/A",
-                    _fmt(docs_per_second, 2) if has_embedding_data else "N/A",
-                    _fmt((avg_time_per_doc or 0) * 1000, 2) if has_embedding_data else "N/A",
+                    f"{int(chunks_processed)}" if isinstance(chunks_processed, (int, float)) else "N/A",
+                    _fmt(chunks_per_second, 2) if has_embedding_data else "N/A",
+                    _fmt((avg_time_per_chunk or 0) * 1000, 2) if has_embedding_data else "N/A",
                     _fmt(avg_query_latency_ms, 2) if has_latency_data else "N/A",
                     f"{int(queries_timed)}" if has_latency_data else "N/A",
                 ])
@@ -2305,9 +2305,9 @@ def _write_markdown_report(
                     headers=[
                         "Model",
                         "Embedding Time (s)",
-                        "Docs Processed",
-                        "Docs/sec",
-                        "Avg Time per Doc (ms)",
+                        "Chunks Processed",
+                        "Chunks/sec",
+                        "Avg Time per Chunk (ms)",
                         "Avg Query Latency (ms/query)",
                         "Queries Timed",
                     ],
