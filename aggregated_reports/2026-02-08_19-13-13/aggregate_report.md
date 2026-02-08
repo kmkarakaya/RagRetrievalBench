@@ -1,6 +1,6 @@
 # Cross-Dataset Embedding Model Comparison Report
 
-*Generated: 2026-02-07 16:03:57*
+*Generated: 2026-02-08 19:13:21*
 
 ---
 
@@ -10,31 +10,32 @@
 
 - **education**: 1 PDF → 189 chunks, 5 queries, 21 qrels
 - **finance**: 1 PDF → 50 chunks, 5 queries, 17 qrels
-- **Total**: 2 datasets, 2 PDFs → 239 chunks, 10 queries
+- **law**: 1 PDF → 306 chunks, 5 queries, 14 qrels
+- **Total**: 3 datasets, 3 PDFs → 545 chunks, 15 queries
 
 ### Overall Best Performers (by Average Rank)
 
-1. **all-MiniLM-L6-v2** (Avg Rank: 1.00)
+1. **all-MiniLM-L6-v2** (Avg Rank: 2.00)
    - Best on: finance (MAP=0.84), education (MAP=0.80)
-   - Consistency: CV=0.297
+   - Consistency: CV=0.655
 
 2. **all-MiniLM-L12-v2** (Avg Rank: 2.00)
    - Best on: finance (MAP=0.75), education (MAP=0.51)
-   - Consistency: CV=0.379
+   - Consistency: CV=0.591
 
-3. **all-mpnet-base-v2** (Avg Rank: 3.50)
+3. **paraphrase-multilingual-MiniLM-L12-v2** (Avg Rank: 2.67)
+   - Best on: law (MAP=0.64), finance (MAP=0.56)
+   - Consistency: CV=0.382
+
+4. **all-mpnet-base-v2** (Avg Rank: 3.33)
    - Best on: finance (MAP=0.54), education (MAP=0.43)
-   - Consistency: CV=0.353
-
-4. **paraphrase-multilingual-MiniLM-L12-v2** (Avg Rank: 3.50)
-   - Best on: finance (MAP=0.56), education (MAP=0.38)
-   - Consistency: CV=0.389
+   - Consistency: CV=0.509
 
 ### Key Findings
 
-- **Statistical Significance**: all-MiniLM-L6-v2 does not significantly differ from all-MiniLM-L12-v2 on MAP (p=0.299)
-- **Dataset Difficulty**: education dataset is harder (mean MAP=0.53 vs finance=0.67)
-- **Performance Variability**: all-MiniLM-L6-v2 shows most consistent performance (CV=0.30)
+- **Statistical Significance**: all-MiniLM-L6-v2 does not significantly differ from all-MiniLM-L12-v2 on MAP (p=0.514)
+- **Dataset Difficulty**: law dataset is harder (mean MAP=0.27 vs finance=0.67)
+- **Performance Variability**: paraphrase-multilingual-MiniLM-L12-v2 shows most consistent performance (CV=0.38)
 
 ---
 
@@ -52,7 +53,7 @@
 - **Paired t-tests**: Comparing models across datasets (alpha=0.05)
 - **Effect Size**: Cohen's d for practical significance
 - **Consistency Metrics**: Coefficient of variation, worst-case drop
-- **Friedman Test**: chi-squared=5.40, p=0.145
+- **Friedman Test**: chi-squared=2.20, p=0.532
 
 ---
 
@@ -62,7 +63,8 @@
 |:----------|-------:|---------:|----------:|--------:|
 | education |      1 |      189 |         5 |      21 |
 | finance   |      1 |       50 |         5 |      17 |
-| Total     |      2 |      239 |        10 |      38 |
+| law       |      1 |      306 |         5 |      14 |
+| Total     |      3 |      545 |        15 |      52 |
 
 **Table: Dataset Statistics Summary**
 
@@ -77,19 +79,20 @@
 - **More chunks** generally indicate larger corpora and higher retrieval complexity
 - **More queries and qrels** increase evaluation coverage and statistical power
 
-| Dataset   |   Avg Chunk Length |   Avg Query Length |   Avg Relevant Docs | Coverage Ratio   |
-|:----------|-------------------:|-------------------:|--------------------:|:-----------------|
-| education |              158.3 |               12.8 |                 4.2 | 11.11%           |
-| finance   |              146.2 |               11.8 |                 3.4 | 34.00%           |
-| Average   |              152.3 |               12.3 |                 3.8 | 22.56%           |
-
-**Table: Aggregated Dataset Characteristics**
-
-![Dataset Characteristics Overview](dataset_characteristics_2026-02-07_16-03-50.png)
+![Dataset Characteristics Overview](dataset_characteristics_2026-02-08_19-13-13.png)
 
 **Figure: Dataset Characteristics Overview**
 
 This figure compares dataset size indicators (PDFs, chunks, queries, qrels) across all datasets.
+
+| Dataset   |   Avg Chunk Length (words) |   Avg Query Length (words) |   Avg Relevant Docs | Coverage Ratio   |
+|:----------|---------------------------:|---------------------------:|--------------------:|:-----------------|
+| education |                      158.3 |                       12.8 |                 4.2 | 11.11%           |
+| finance   |                      146.2 |                       11.8 |                 3.4 | 34.00%           |
+| law       |                      120.2 |                        8.6 |                 2.8 | 4.58%            |
+| Average   |                      141.6 |                       11.1 |                 3.5 | 16.56%           |
+
+**Table: Aggregated Dataset Characteristics**
 
 ---
 
@@ -99,10 +102,10 @@ This figure compares dataset size indicators (PDFs, chunks, queries, qrels) acro
 
 | Model                                 |   Avg Rank |   Mean MAP |    Std |    CV |   Datasets Won |
 |---------------------------------------|------------|------------|--------|-------|----------------|
-| all-MiniLM-L6-v2                      |        1   |     0.8209 | 0.0297 | 0.297 |              2 |
-| all-MiniLM-L12-v2                     |        2   |     0.6287 | 0.1678 | 0.379 |              0 |
-| all-mpnet-base-v2                     |        3.5 |     0.4872 | 0.077  | 0.353 |              0 |
-| paraphrase-multilingual-MiniLM-L12-v2 |        3.5 |     0.4701 | 0.1244 | 0.389 |              0 |
+| all-MiniLM-L6-v2                      |       2    |     0.5769 | 0.4232 | 0.655 |              2 |
+| all-MiniLM-L12-v2                     |       2    |     0.4858 | 0.2745 | 0.591 |              0 |
+| paraphrase-multilingual-MiniLM-L12-v2 |       2.67 |     0.5264 | 0.1313 | 0.382 |              1 |
+| all-mpnet-base-v2                     |       3.33 |     0.374  | 0.2035 | 0.509 |              0 |
 
 **Table: Cross-Dataset Model Performance Summary**
 
@@ -121,35 +124,35 @@ This figure compares dataset size indicators (PDFs, chunks, queries, qrels) acro
 
 ### Model Performance by Dataset (MAP)
 
-| Model                                 |   education |   finance |
-|---------------------------------------|-------------|-----------|
-| all-MiniLM-L12-v2                     |      0.5101 |    0.7474 |
-| all-MiniLM-L6-v2                      |      0.7999 |    0.8419 |
-| all-mpnet-base-v2                     |      0.4328 |    0.5417 |
-| paraphrase-multilingual-MiniLM-L12-v2 |      0.3821 |    0.558  |
-
-![Model Performance Heatmap](model_performance_heatmap_map_2026-02-07_16-03-50.png)
+![Model Performance Heatmap](model_performance_heatmap_map_2026-02-08_19-13-13.png)
 
 **Figure: Model Performance by Dataset**
 
-This heatmap shows MAP scores for each model across all datasets. Darker colors indicate stronger performance.
+This heatmap shows MAP scores for each model across all datasets. Darker colors indicate lower scores (weaker performance).
+
+| Model                                 |   education |   finance |    law |
+|---------------------------------------|-------------|-----------|--------|
+| all-MiniLM-L12-v2                     |      0.5101 |    0.7474 | 0.2    |
+| all-MiniLM-L6-v2                      |      0.7999 |    0.8419 | 0.0889 |
+| all-mpnet-base-v2                     |      0.4328 |    0.5417 | 0.1476 |
+| paraphrase-multilingual-MiniLM-L12-v2 |      0.3821 |    0.558  | 0.6389 |
 
 ### Embedding Speed Comparison (Docs/sec)
 
-| Model                                 |   education |   finance |
-|---------------------------------------|-------------|-----------|
-| all-MiniLM-L12-v2                     |        47.8 |      47.9 |
-| all-MiniLM-L6-v2                      |        45.1 |      45.9 |
-| all-mpnet-base-v2                     |         4.1 |       4.8 |
-| paraphrase-multilingual-MiniLM-L12-v2 |        47.3 |      47.9 |
-
-![Embedding Speed Heatmap](embedding_speed_heatmap_2026-02-07_16-03-50.png)
+![Embedding Speed Heatmap](embedding_speed_heatmap_2026-02-08_19-13-13.png)
 
 **Figure: Embedding Throughput by Dataset**
 
 This heatmap compares embedding throughput in documents per second across datasets.
 
-![Cross-Dataset Radar Chart](cross_dataset_radar_chart_2026-02-07_16-03-50.png)
+| Model                                 |   education |   finance |   law |
+|---------------------------------------|-------------|-----------|-------|
+| all-MiniLM-L12-v2                     |        47.8 |      47.9 |  45.7 |
+| all-MiniLM-L6-v2                      |        45.1 |      45.9 |  46.9 |
+| all-mpnet-base-v2                     |         4.1 |       4.8 |   3.9 |
+| paraphrase-multilingual-MiniLM-L12-v2 |        47.3 |      47.9 |  46.6 |
+
+![Cross-Dataset Radar Chart](cross_dataset_radar_chart_2026-02-08_19-13-13.png)
 
 **Figure: Cross-Dataset Performance Comparison**
 
@@ -163,7 +166,7 @@ This radar chart shows how each embedding model performs across all evaluated me
 
 **Why it matters:** Identifies models with well-rounded capabilities vs. specialized models, helping you choose based on your specific requirements.
 
-![Model Ranking Heatmap](model_ranking_heatmap_2026-02-07_16-03-50.png)
+![Model Ranking Heatmap](model_ranking_heatmap_2026-02-08_19-13-13.png)
 
 **Figure: Model Rankings Across Individual Datasets**
 
@@ -181,7 +184,7 @@ This heatmap displays the ranking position (1=best, higher numbers=worse) of eac
 
 This section determines whether observed performance differences between models are statistically significant (real differences) rather than random chance.
 
-![Pairwise Significance Heatmap](pairwise_significance_heatmap_2026-02-07_16-03-50.png)
+![Pairwise Significance Heatmap](pairwise_significance_heatmap_2026-02-08_19-13-13.png)
 
 **Figure: Statistical Significance of Performance Differences**
 
@@ -358,7 +361,83 @@ This heatmap shows p-values from paired t-tests comparing each model pair across
 - Mean MAP across models: 0.6723
 - Timing data available for 4 model(s)
 
-![Dataset Difficulty Analysis](dataset_difficulty_map_2026-02-07_16-03-50.png)
+### Law Dataset
+
+- **PDFs**: 1 original document
+- **Chunks**: 306 text chunks (avg 306.0 per PDF)
+- **Queries**: 5 queries, 14 relevance judgments
+- **Difficulty**: Hard (mean MAP=0.27 across models)
+- **Best Model**: paraphrase-multilingual-MiniLM-L12-v2 (MAP=0.6389)
+
+#### Corpus Characteristics
+
+| Metric                       |   Value |
+|:-----------------------------|--------:|
+| Source PDF Documents         |     1   |
+| Total Document Chunks        |   306   |
+| Average Chunk Length (words) |   120.2 |
+| Median Chunk Length (words)  |   120   |
+| Min Chunk Length (words)     |    56   |
+| Max Chunk Length (words)     |   214   |
+| Standard Deviation           |    12.3 |
+
+#### Query Characteristics
+
+| Metric                       |   Value |
+|:-----------------------------|--------:|
+| Total Queries                |     5   |
+| Average Query Length (words) |     8.6 |
+| Median Query Length (words)  |     7   |
+| Min Query Length (words)     |     5   |
+| Max Query Length (words)     |    15   |
+| Standard Deviation           |     3.4 |
+
+#### Relevance Distribution
+
+| Metric                          | Value   |
+|:--------------------------------|:--------|
+| Total Relevance Judgments       | 14      |
+| Average Relevant Docs per Query | 2.8     |
+| Median Relevant Docs per Query  | 3.0     |
+| Min Relevant Docs               | 1       |
+| Max Relevant Docs               | 6       |
+| Coverage Ratio                  | 4.58%   |
+
+#### Representative Query Examples
+
+| Query ID                                            | Query Text                                                                                                                                  |   # Relevant Docs |
+|:----------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|------------------:|
+| q1_for_6362 sayılı Sermaye Piyasası Kanunu_chunk160 | Merkezi Kayıt Kuruluşu'nun görevleri ve yetkileri nelerdir?                                                                                 |                 1 |
+| q2_for_6362 sayılı Sermaye Piyasası Kanunu_chunk144 | Değerleme uzmanları ve kuruluşlarının Türkiye Değerleme Uzmanları Birliğine üyelik yükümlülükleri ve uyulmaması halinde sonuçları nelerdir? |                 3 |
+| q3_for_6362 sayılı Sermaye Piyasası Kanunu_chunk71  | Faaliyet izninin iptali ve sonuçları                                                                                                        |                 1 |
+| q4_for_6362 sayılı Sermaye Piyasası Kanunu_chunk200 | İzinsiz sermaye piyasası faaliyetlerinin internet üzerinden yürütülmesi ve engellenmesi.                                                    |                 3 |
+| q5_for_6362 sayılı Sermaye Piyasası Kanunu_chunk21  | Sermaye piyasası araçlarının kaydileştirilmesi ve ihraç süreçleri                                                                           |                 6 |
+
+#### Embedding Performance Metrics
+
+| Model                                 |   MAP@10 |   MRR@10 |   NDCG@10 |   PRECISION@10 |   RECALL@10 |
+|:--------------------------------------|---------:|---------:|----------:|---------------:|------------:|
+| all-MiniLM-L12-v2                     |   0.2    |   0.4    |    0.2469 |           0.06 |      0.2    |
+| all-MiniLM-L6-v2                      |   0.0889 |   0.1067 |    0.1508 |           0.08 |      0.2667 |
+| all-mpnet-base-v2                     |   0.1476 |   0.4286 |    0.2523 |           0.08 |      0.3667 |
+| paraphrase-multilingual-MiniLM-L12-v2 |   0.6389 |   0.75   |    0.7668 |           0.26 |      0.9667 |
+
+#### Embedding Speed Comparison
+
+| Model                                 |   Embedding Time (s) |   Docs Processed |   Docs/sec |   Avg Time per Doc (ms) |
+|:--------------------------------------|---------------------:|-----------------:|-----------:|------------------------:|
+| all-MiniLM-L12-v2                     |                 6.69 |              306 |      45.72 |                   21.87 |
+| all-MiniLM-L6-v2                      |                 6.52 |              306 |      46.95 |                   21.3  |
+| all-mpnet-base-v2                     |                78.44 |              306 |       3.9  |                  256.34 |
+| paraphrase-multilingual-MiniLM-L12-v2 |                 6.57 |              306 |      46.57 |                   21.47 |
+
+#### Dataset Summary Notes
+
+- Best model: paraphrase-multilingual-MiniLM-L12-v2 (MAP=0.6389)
+- Mean MAP across models: 0.2689
+- Timing data available for 4 model(s)
+
+![Dataset Difficulty Analysis](dataset_difficulty_map_2026-02-08_19-13-13.png)
 
 **Figure: Dataset Difficulty Assessment**
 
@@ -374,10 +453,11 @@ This chart shows the average MAP performance across all models for each dataset.
 
 ### Dataset Summary
 
-| Dataset   | Best Model       |   Top MAP |   Models Tested |   Difficulty |
-|-----------|------------------|-----------|-----------------|--------------|
-| education | all-MiniLM-L6-v2 |    0.7999 |               4 |         0.47 |
-| finance   | all-MiniLM-L6-v2 |    0.8419 |               4 |         0.33 |
+| Dataset   | Best Model                            |   Top MAP |   Models Tested |   Difficulty |
+|-----------|---------------------------------------|-----------|-----------------|--------------|
+| education | all-MiniLM-L6-v2                      |    0.7999 |               4 |         0.47 |
+| finance   | all-MiniLM-L6-v2                      |    0.8419 |               4 |         0.33 |
+| law       | paraphrase-multilingual-MiniLM-L12-v2 |    0.6389 |               4 |         0.73 |
 
 **Table: Dataset Performance Summary**
 
@@ -399,7 +479,7 @@ This chart shows the average MAP performance across all models for each dataset.
 
 This section measures how reliably each model performs across different datasets. A consistent model delivers similar performance regardless of the domain.
 
-![Consistency Comparison Chart](consistency_comparison_2026-02-07_16-03-50.png)
+![Consistency Comparison Chart](consistency_comparison_2026-02-08_19-13-13.png)
 
 **Figure: Model Performance Consistency**
 
@@ -419,10 +499,10 @@ This bar chart shows two key consistency metrics for each model:
 
 | Model                                 |    CV |   Worst Drop |   Score Range |
 |---------------------------------------|-------|--------------|---------------|
-| all-MiniLM-L6-v2                      | 0.297 |        0.66  |          0.66 |
-| all-MiniLM-L12-v2                     | 0.379 |        0.72  |          0.72 |
-| all-mpnet-base-v2                     | 0.353 |        0.718 |          0.61 |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.389 |        0.718 |          0.61 |
+| all-MiniLM-L6-v2                      | 0.655 |        0.92  |         0.92  |
+| all-MiniLM-L12-v2                     | 0.591 |        0.94  |         0.94  |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.382 |        0.752 |         0.727 |
+| all-mpnet-base-v2                     | 0.509 |        0.906 |         0.77  |
 
 **Table: Consistency Metrics Explanation**
 
@@ -439,12 +519,12 @@ This bar chart shows two key consistency metrics for each model:
 ### For Production Deployment
 
 1. **General Purpose**: Use all-MiniLM-L6-v2
-   - Best overall performance (avg rank 1.00)
-   - Strong performance (mean MAP=0.8209)
+   - Best overall performance (avg rank 2.00)
+   - Strong performance (mean MAP=0.5769)
 
 ### Limitations
 
-- Evaluation limited to 2 datasets
+- Evaluation limited to 3 datasets
 - Single k value (10) - performance may vary at different k
 - All datasets are document retrieval tasks
 - Statistical power limited by number of datasets
@@ -457,6 +537,7 @@ This bar chart shows two key consistency metrics for each model:
 
 - **education**: `datasets\education\reports\raw_results_2026-02-07_15-14-37.json`
 - **finance**: `datasets\finance\reports\raw_results_2026-02-07_15-12-28.json`
+- **law**: `datasets\law\reports\raw_results_2026-02-07_21-10-50.json`
 
 ### B. Configuration
 

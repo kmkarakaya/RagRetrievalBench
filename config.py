@@ -89,6 +89,7 @@ embedding_models = [
     {"model_name": "sentence-transformers/all-mpnet-base-v2", "collection_name": "coll_v2"},
     {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
     {"model_name": "sentence-transformers/all-MiniLM-L12-v2", "collection_name": "coll_v4"},
+    {"model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2", "collection_name": "coll_v5"},
 
 ]
 
@@ -144,6 +145,9 @@ chunks_per_query = 1
 # How many candidates to retrieve for labeling
 candidate_pool_size = 10
 
+# Index of the embedding model to use for qrels generation (0-based, from embedding_models list)
+qrels_embedding_model_index = 4  # Use paraphrase-multilingual-mpnet-base-v2 for better Turkish support
+
 # LLM settings
 llm_model = "models/gemini-2.5-flash-lite"
 
@@ -151,11 +155,12 @@ llm_model = "models/gemini-2.5-flash-lite"
 # Tokens per minute (TPM)
 # Requests per day (RPD)
 # Gemini 2.0 Flash-Lite	30 RPM	1,000,000 TPM	200 RPD
-# Gemini 2.0 Flash	    15 RPM 	1,000,000 TPM   200 RPD
-# Gemini 2.5 Flash-Lite	15 RPM	  250,000 TPM 1,000 RPD
-llm_timeout = (60/10) + 1    #  wait for a short time in seconds to avoid hitting API limits
-
-
+# Free Tier limits for Gemini 2.5 Flash-Lite are not publicly documented as of Jan 2026
+# Gemini 2.5 Flash-Lite	10 RPM	  250,000 TPM 20 RPD
+#llm_timeout = (60/10) + 1    #  wait for a short time in seconds to avoid hitting API limits
+# For paid API with known limits, we can set a more aggressive timeout. 
+llm_timeout = 0.01  
+# For local LLMs or paid APIs with high limits, we can set a very short timeout to maximize speed. Adjust as needed.  
 
 generate_query_system_instruction = """You are an expert in generating search queries. 
 Given a document, generate a query that would retrieve this document 
@@ -163,8 +168,8 @@ from a vector database. The query should be concise and relevant to the content 
 the document. Do not include any personal opinions or irrelevant information. 
 Focus on the main topics of the given document and prepare a query that is not just a replicate of the document.
 The query should be in the form of a natural language question or statement that can be used
- to search for the document in a vector database. Determine the given document's language and 
- generate the query in the same language."""
+to search for the document in a vector database. Determine the given document's language and 
+generate the query in the same language."""
 
 generate_qrels_system_instruction ="""
 You are an expert Information Retrieval judge. 

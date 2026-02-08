@@ -50,7 +50,7 @@ def prepare_corpus_from_pdfs(pdf_dir: str, chunk_size: int, chunk_overlap: int, 
             f.write(json.dumps({
                 "doc_id": chunk.doc_id, 
                 "text": chunk.page_content
-            }) + "\n")
+            }, ensure_ascii=False) + "\n")
     
     print("Corpus preparation complete.")
     

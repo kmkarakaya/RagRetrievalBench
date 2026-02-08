@@ -49,7 +49,7 @@ def extract_response_text(batch_result):
 
 
 
-def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dict[str,str]:
+def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> bool:
     # --- Batch Fetch Mode ---
     if batch_fetch_id:
         print(f"Fetching QUERY results for batch {batch_fetch_id}...")
@@ -66,12 +66,12 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dic
                 text = extract_response_text(res)
                 
                 if key and text:
-                    f.write(json.dumps({"query_id": key, "text": text}) + "\n")
+                    f.write(json.dumps({"query_id": key, "text": text}, ensure_ascii=False) + "\n")
         
         # Update batch history to indicate successful fetch
         bm.update_batch_status(batch_fetch_id, "FETCHED_SUCCESSFULLY")
         print("Done.")
-        return
+        return True
 
     # --- Normal / Submit Mode ---
     print("Selecting seed chunks from corpus...")
@@ -79,9 +79,19 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dic
     # Use the refactored load_corpus function
     corpus = load_corpus_from_file(cfg.corpus_file)
     print(f"Loaded {len(corpus)} corpus chunks.")
+    
+    if len(corpus) == 0:
+        print("ERROR: Corpus is empty. Cannot generate queries. Please ensure PDFs are present in the pdf_dir and run --prepare-corpus first.")
+        return False
+    
     all_ids = list(corpus.keys())
-    seed_ids = random.sample(all_ids, cfg.n_queries * cfg.chunks_per_query)
-    print(f"Selected {len(seed_ids)} seed chunks for query generation ({cfg.n_queries,cfg.chunks_per_query}) .")
+    needed_chunks = cfg.n_queries * cfg.chunks_per_query
+    if len(all_ids) < needed_chunks:
+        print(f"ERROR: Not enough corpus chunks ({len(all_ids)}) to generate {cfg.n_queries} queries with {cfg.chunks_per_query} chunks each. Need at least {needed_chunks} chunks.")
+        return False
+    
+    seed_ids = random.sample(all_ids, needed_chunks)
+    print(f"Selected {len(seed_ids)} seed chunks for query generation ({cfg.n_queries} queries, {cfg.chunks_per_query} chunks per query).")
 
     # Batch Submission
     if batch_submit:
@@ -96,7 +106,7 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dic
         
         bm.submit_batch(requests, "query_gen")
         print("Batch processing started. Please note the Job Name above for fetching results.")
-        return
+        return True
     
     # Generate and save queries in same loop
     print(f"Generating and saving queries to {cfg.queries_file}...")
@@ -111,11 +121,12 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> dic
             
             # Save query immediately
             query_id = f"q{i+1}_for_{seed_id}"
-            f.write(json.dumps({"query_id": query_id, "text": generated_query}) + "\n")
+            f.write(json.dumps({"query_id": query_id, "text": generated_query}, ensure_ascii=False) + "\n")
             
     print("Query generation and saving complete. Queries saved to", cfg.queries_file)
+    return True
  
-def generate_qrels(batch_submit=False, batch_fetch_id=None):
+def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
     # --- Batch Fetch Mode ---
     if batch_fetch_id:
         print(f"Fetching QRELS results for batch {batch_fetch_id}...")
@@ -159,20 +170,29 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None):
         # Update batch history to indicate successful fetch
         bm.update_batch_status(batch_fetch_id, "FETCHED_SUCCESSFULLY")
         print("Done.")
-        return
+        return True
 
     # Use refactored load_corpus function
     corpus = load_corpus_from_file(cfg.corpus_file)
-    # Use the first configured model and collection for qrels generation
-    first_model = cfg.embedding_models[0]
-    model_name = first_model["model_name"]
-    collection_name = first_model["collection_name"] + "_qrels"  # Avoid conflict with benchmark collections
     
-    print(f"Generating qrels using model: {model_name}")
-    print(f"Using temporary collection: {collection_name}")
+    if len(corpus) == 0:
+        print("ERROR: Corpus is empty. Cannot generate qrels. Please ensure PDFs are present and run --prepare-corpus first.")
+        return False
+    
+    # Load queries using refactored function
+    queries = load_queries_from_file(cfg.queries_file)
+    print(f"Loaded {len(queries)} queries.")
+    
+    if len(queries) == 0:
+        print("ERROR: No queries found. Cannot generate qrels. Please run --generate-queries first.")
+        return False
+
+    # Initialize ChromaDB collection for retrieval
+    qrels_model = cfg.embedding_models[cfg.qrels_embedding_model_index]
+    model_name = qrels_model["model_name"]
+    collection_name = qrels_model["collection_name"] + "_qrels"
     
     initialize_collection(corpus, model_name, collection_name)
-    # Use persistent client instead of chromadb.Client()
     client = get_chromadb_client()
     try:
         collection = client.get_collection(collection_name)
@@ -180,10 +200,6 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None):
         print(f"Error: Collection {collection_name} not found. Did you run initialization?")
         raise e
     print(f"Collection {collection_name} initialized successfully.")
-    
-    # Load queries using refactored function
-    queries = load_queries_from_file(cfg.queries_file)
-    print(f"Loaded {len(queries)} queries.")
 
     # Batch Submission
     if batch_submit:
@@ -205,54 +221,68 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None):
         
         bm.submit_batch(requests, "qrels_gen")
         print(f"Submitted {len(requests)} judgments.")
-        return
+        return True
 
     print("Generating qrels file...")
-    # Create qrels file outside the loop
-    with open(cfg.qrels_file, 'w', encoding='utf-8') as f:
-        for query_id, query_text in queries.items():
-            print(f"Query ID: {query_id}, Query Text: {query_text}")
-            # Retrieve candidates for labeling related to a query from chromadb
-            # Query ChromaDB directly with text - the embedding function will handle conversion
-            results = collection.query(
-                query_texts=[query_text],
-                n_results=cfg.candidate_pool_size  # Get more results than needed to ensure we have enough
-            )
-            print(f"Retrieved {len(results['ids'][0])} documents for query {query_id}.")
-            # Build prompt with query and retrieved chunks
-            
-            for i, (doc_id, text) in enumerate(zip(results['ids'][0], results['documents'][0])):
-                prompt = f"Question: {query_text}\n"
-                prompt += f"{i+1}. [{doc_id}] \"{text}\"\n\n"
-                print(f"Generated prompt for query {query_id}:\n{prompt}")
-                # Send prompt to LLM to get relevance judgments
-                relevance = generate_content(cfg.generate_qrels_system_instruction, prompt)
-                print(f"Relevance judgment for {doc_id}: {relevance}")
-                try:
-                    # Look for JSON pattern in the response
-                    json_pattern = r'({[\s\S]*?})'
-                    match = re.search(json_pattern, relevance)
-                    if match:
-                        json_str = match.group(1)
-                        relevance_json = json.loads(json_str)
-                        rel_score = relevance_json.get("relevance", 0)
-                        print(f"Relevance score extracted: {rel_score}")
-                    else:
-                        # If no JSON pattern found, try direct parsing
-                        relevance_json = json.loads(relevance)
-                        rel_score = relevance_json.get("relevance", 0)
-                        print(f"Relevance score extracted: {rel_score}")
-                except json.JSONDecodeError:
-                    print(f"*** Error parsing relevance JSON for {doc_id}, using default score of 0 ****")
-                    rel_score = 0
+    qrels = []
+    for query_id, query_text in queries.items():
+        print(f"Query ID: {query_id}, Query Text: {query_text}")
+        
+        # Parse the source chunk ID from query_id
+        parts = query_id.split('_chunk')
+        if len(parts) == 2:
+            pdf_part = parts[0].split('_for_')
+            if len(pdf_part) == 2:
+                pdf_name = pdf_part[1]
+                chunk_num = parts[1]
+                source_chunk_id = f"{pdf_name}_chunk{chunk_num}"
+                # Force-add the source chunk as relevant
+                qrels.append(f"{query_id}\t{source_chunk_id}\t1")
+                print(f"Forced relevant: {query_id}, {source_chunk_id}, 1")
+        
+        # Retrieve candidates for labeling related to a query from chromadb
+        results = collection.query(
+            query_texts=[query_text],
+            n_results=cfg.candidate_pool_size
+        )
+        print(f"Retrieved {len(results['ids'][0])} documents for query {query_id}.")
+        
+        for i, (doc_id, text) in enumerate(zip(results['ids'][0], results['documents'][0])):
+            if doc_id == source_chunk_id:
+                continue  # Skip if already added
+            prompt = f"Question: {query_text}\n"
+            prompt += f"{i+1}. [{doc_id}] \"{text}\"\n\n"
+            print(f"Generated prompt for query {query_id}:\n{prompt}")
+            # Send prompt to LLM to get relevance judgments
+            relevance = generate_content(cfg.generate_qrels_system_instruction, prompt)
+            print(f"Relevance judgment for {doc_id}: {relevance}")
+            try:
+                # Look for JSON pattern in the response
+                json_pattern = r'({[\s\S]*?})'
+                match = re.search(json_pattern, relevance)
+                if match:
+                    json_str = match.group(1)
+                    relevance_json = json.loads(json_str)
+                    rel_score = relevance_json.get("relevance", 0)
+                    print(f"Relevance score extracted: {rel_score}")
+                else:
+                    relevance_json = json.loads(relevance)
+                    rel_score = relevance_json.get("relevance", 0)
+                    print(f"Relevance score extracted: {rel_score}")
+            except json.JSONDecodeError:
+                print(f"*** Error parsing relevance JSON for {doc_id}, using default score of 0 ****")
+                rel_score = 0
 
-                # Write results to qrels file
-                if rel_score > 0:  # Only write relevant documents
-                    print(f"Writing to qrels: {query_id}, {doc_id}, {rel_score}")
-                    # Write in TREC format: query_id, doc_id, rel_score
-                    f.write(f"{query_id}\t{doc_id}\t{rel_score}\n")
-                # wait for a short time to avoid hitting API limits
-                time.sleep(cfg.llm_timeout)
+            if rel_score > 0:
+                print(f"Writing to qrels: {query_id}, {doc_id}, {rel_score}")
+                qrels.append(f"{query_id}\t{doc_id}\t{rel_score}")
+            # wait for a short time to avoid hitting API limits
+            time.sleep(cfg.llm_timeout)
+
+    # Write all qrels to file
+    with open(cfg.qrels_file, 'w', encoding='utf-8') as f:
+        for line in qrels:
+            f.write(line + '\n')
 
     print(f"Generated qrels file at {cfg.qrels_file} with {len(queries)} queries.")
     # Ensure the qrels file is created
@@ -261,7 +291,7 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None):
     else:
         print(f"Created qrels file: {cfg.qrels_file}")
 
-    return
+    return True
 
 def load_queries() -> dict[str,str]:
     """
@@ -528,9 +558,14 @@ def main():
             return
 
         print("Starting complete RAG benchmark pipeline...")
-        prepare_corpus_from_pdfs_wrapper()
-        generate_queries_from_corpus()
-        generate_qrels()
+        result = prepare_corpus_from_pdfs_wrapper()
+        if result['chunks_created'] == 0:
+            print("ERROR: No chunks created from PDFs. Please ensure PDFs are present in the pdf_dir.")
+            return
+        if not generate_queries_from_corpus():
+            return
+        if not generate_qrels():
+            return
         # Continue to evaluation section below
         
     # Handle initialization and evaluation

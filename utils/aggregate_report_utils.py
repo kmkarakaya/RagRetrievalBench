@@ -1747,6 +1747,11 @@ def _write_markdown_report(
                 f"{_fmt(coverage, 2)}%"
             ])
 
+        if viz_paths.get("dataset_characteristics"):
+            f.write(f"![Dataset Characteristics Overview]({os.path.basename(viz_paths['dataset_characteristics'])})\n\n")
+            f.write("**Figure: Dataset Characteristics Overview**\n\n")
+            f.write("This figure compares dataset size indicators (PDFs, chunks, queries, qrels) across all datasets.\n\n")
+
         if detail_rows:
             detail_rows.append([
                 "Average",
@@ -1758,16 +1763,11 @@ def _write_markdown_report(
 
             f.write(tabulate(
                 detail_rows,
-                headers=["Dataset", "Avg Chunk Length", "Avg Query Length", "Avg Relevant Docs", "Coverage Ratio"],
+                headers=["Dataset", "Avg Chunk Length (words)", "Avg Query Length (words)", "Avg Relevant Docs", "Coverage Ratio"],
                 tablefmt="pipe"
             ))
             f.write("\n\n")
             f.write("**Table: Aggregated Dataset Characteristics**\n\n")
-
-        if viz_paths.get("dataset_characteristics"):
-            f.write(f"![Dataset Characteristics Overview]({os.path.basename(viz_paths['dataset_characteristics'])})\n\n")
-            f.write("**Figure: Dataset Characteristics Overview**\n\n")
-            f.write("This figure compares dataset size indicators (PDFs, chunks, queries, qrels) across all datasets.\n\n")
 
         f.write("---\n\n")
         
@@ -1820,6 +1820,16 @@ def _write_markdown_report(
 
         f.write(f"### Model Performance by Dataset ({heatmap_metric.upper()})\n\n")
 
+        if viz_paths.get(f"performance_heatmap_{heatmap_metric}"):
+            f.write(
+                f"![Model Performance Heatmap]({os.path.basename(viz_paths[f'performance_heatmap_{heatmap_metric}'])})\n\n"
+            )
+            f.write("**Figure: Model Performance by Dataset**\n\n")
+            f.write(
+                f"This heatmap shows {heatmap_metric.upper()} scores for each model across all datasets. "
+                "Darker colors indicate lower scores (weaker performance).\n\n"
+            )
+
         dataset_names = sorted(datasets.keys())
         all_models = get_all_models(datasets)
         perf_rows = []
@@ -1838,17 +1848,13 @@ def _write_markdown_report(
             ))
             f.write("\n\n")
 
-        if viz_paths.get(f"performance_heatmap_{heatmap_metric}"):
-            f.write(
-                f"![Model Performance Heatmap]({os.path.basename(viz_paths[f'performance_heatmap_{heatmap_metric}'])})\n\n"
-            )
-            f.write("**Figure: Model Performance by Dataset**\n\n")
-            f.write(
-                f"This heatmap shows {heatmap_metric.upper()} scores for each model across all datasets. "
-                "Darker colors indicate stronger performance.\n\n"
-            )
-
         f.write("### Embedding Speed Comparison (Docs/sec)\n\n")
+
+        if viz_paths.get("speed_heatmap"):
+            f.write(f"![Embedding Speed Heatmap]({os.path.basename(viz_paths['speed_heatmap'])})\n\n")
+            f.write("**Figure: Embedding Throughput by Dataset**\n\n")
+            f.write("This heatmap compares embedding throughput in documents per second across datasets.\n\n")
+
         speed_rows = []
         for model_name in all_models:
             row = [model_name.split("/")[-1]]
@@ -1865,11 +1871,6 @@ def _write_markdown_report(
                 tablefmt="github"
             ))
             f.write("\n\n")
-
-        if viz_paths.get("speed_heatmap"):
-            f.write(f"![Embedding Speed Heatmap]({os.path.basename(viz_paths['speed_heatmap'])})\n\n")
-            f.write("**Figure: Embedding Throughput by Dataset**\n\n")
-            f.write("This heatmap compares embedding throughput in documents per second across datasets.\n\n")
         
         # Add visualization references
         if viz_paths.get("radar"):
