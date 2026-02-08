@@ -21,6 +21,45 @@ except ImportError:
 import subprocess
 import chromadb
 
+METRIC_LABELS = {
+    "map": "MAP",
+    "recall": "Recall",
+    "precision": "Precision",
+    "ndcg": "NDCG",
+    "mrr": "MRR",
+}
+
+
+def get_enabled_metric_names():
+    """Return enabled metric keys in evaluate_with_chromadb tuple order."""
+    enabled = []
+    if cfg.compute_map:
+        enabled.append("map")
+    if cfg.compute_recall:
+        enabled.append("recall")
+    if cfg.compute_precision:
+        enabled.append("precision")
+    if cfg.compute_ndcg:
+        enabled.append("ndcg")
+    if cfg.compute_mrr:
+        enabled.append("mrr")
+    return enabled
+
+
+def get_metric_indices():
+    """Map metric key -> tuple index in model_results entries (index 0 is model name)."""
+    return {metric: idx for idx, metric in enumerate(get_enabled_metric_names(), start=1)}
+
+
+def get_primary_metric_key():
+    """Pick primary metric for sorting/summary in priority order."""
+    metric_indices = get_metric_indices()
+    for metric in ("map", "ndcg", "mrr", "recall", "precision"):
+        if metric in metric_indices:
+            return metric
+    return None
+
+
 def save_raw_results_json(dataset_name, model_results, timing_data, corpus, queries, relevant_docs, output_path):
     """
     Save structured evaluation results for aggregate analysis.
@@ -125,22 +164,7 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
     }
     
     # Build metric index mapping based on enabled metrics
-    metric_indices = {}
-    current_idx = 1  # Start after model name (index 0)
-    if cfg.compute_map:
-        metric_indices["map"] = current_idx
-        current_idx += 1
-    if cfg.compute_recall:
-        metric_indices["recall"] = current_idx
-        current_idx += 1
-    if cfg.compute_precision:
-        metric_indices["precision"] = current_idx
-        current_idx += 1
-    if cfg.compute_ndcg:
-        metric_indices["ndcg"] = current_idx
-        current_idx += 1
-    if cfg.compute_mrr:
-        metric_indices["mrr"] = current_idx
+    metric_indices = get_metric_indices()
 
     # Process model results
     for result in model_results:
@@ -208,45 +232,16 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     report_file = os.path.join(output_dir, f"{dataset_name}_benchmark_report_{timestamp}.md")
     
     # Sort models by primary metric for easier comparison (if any results exist)
-    if model_results:
-        # Build dynamic metric indices based on enabled metrics
-        metric_indices = {}
-        current_idx = 1  # Start after model name (index 0)
-        
-        if cfg.compute_map:
-            metric_indices['map'] = current_idx
-            current_idx += 1
-        if cfg.compute_recall:
-            metric_indices['recall'] = current_idx
-            current_idx += 1
-        if cfg.compute_precision:
-            metric_indices['precision'] = current_idx
-            current_idx += 1
-        if cfg.compute_ndcg:
-            metric_indices['ndcg'] = current_idx
-            current_idx += 1
-        if cfg.compute_mrr:
-            metric_indices['mrr'] = current_idx
-        
-        # Determine sort index based on primary metric priority
-        # Default priority: MAP -> NDCG -> MRR -> Recall -> Precision
-        if cfg.compute_map:
-            sort_idx = metric_indices['map']
-        elif cfg.compute_ndcg:
-            sort_idx = metric_indices['ndcg']
-        elif cfg.compute_mrr:
-            sort_idx = metric_indices['mrr']
-        elif cfg.compute_recall:
-            sort_idx = metric_indices['recall']
-        else:
-            sort_idx = metric_indices.get('precision', 1)  # Fallback to first available
-        
+    metric_indices = get_metric_indices()
+    primary_metric = get_primary_metric_key()
+    if model_results and primary_metric:
+        sort_idx = metric_indices[primary_metric]
         sorted_results = sorted(model_results, key=lambda x: x[sort_idx], reverse=True)
     else:
         sorted_results = model_results
     
-    # ——— Fallback timing for evaluation‐only runs ———
-    # if user only did --evaluate, timing_results is [] ⇒ inject hard‐coded values
+    # Fallback timing for evaluation-only runs
+    # If user only did --evaluate, timing_results is [], so timing is omitted.
     if timing_results is not None and not timing_results:
         print("[Warning] No timing data available for report generation")
         print("   To include timing analysis, run: python simple_rag_benchmark_pipeline.py --initialize")
@@ -313,16 +308,9 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write(f"**Best performing model:** `{best_model[0]}`\n")
             
             # Use dynamic indexing based on enabled metrics
-            if cfg.compute_map:
-                f.write(f"* MAP@{cfg.k}: **{best_model[metric_indices['map']]:.4f}**\n")
-            if cfg.compute_recall:
-                f.write(f"* Recall@{cfg.k}: **{best_model[metric_indices['recall']]:.4f}**\n")
-            if cfg.compute_precision:
-                f.write(f"* Precision@{cfg.k}: **{best_model[metric_indices['precision']]:.4f}**\n")
-            if cfg.compute_ndcg:
-                f.write(f"* NDCG@{cfg.k}: **{best_model[metric_indices['ndcg']]:.4f}**\n")
-            if cfg.compute_mrr:
-                f.write(f"* MRR@{cfg.k}: **{best_model[metric_indices['mrr']]:.4f}**\n")
+            for metric_name in get_enabled_metric_names():
+                metric_label = METRIC_LABELS[metric_name]
+                f.write(f"* {metric_label}@{cfg.k}: **{best_model[metric_indices[metric_name]]:.4f}**\n")
             f.write("\n")
         else:
             f.write("**No model results available for comparison.**\n\n")
@@ -576,18 +564,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         for result in sorted_results:
             short_name = result[0].split('/')[-1]  # Use short name for better table formatting
             row = [short_name]  # Model name
-            # Use fixed indices to avoid misalignment
-            # Tuple: (Model, MAP, Recall, Precision, NDCG, MRR)
-            if cfg.compute_map:
-                row.append(f"{result[1]:.4f}")
-            if cfg.compute_recall:
-                row.append(f"{result[2]:.4f}")
-            if cfg.compute_precision:
-                row.append(f"{result[3]:.4f}")
-            if cfg.compute_ndcg:
-                row.append(f"{result[4]:.4f}")
-            if cfg.compute_mrr:
-                row.append(f"{result[5]:.4f}")
+            for metric_name in get_enabled_metric_names():
+                row.append(f"{result[metric_indices[metric_name]]:.4f}")
             
             table_data.append(row)
         
@@ -623,27 +601,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             primary_metric_value_best = None
             primary_metric_value_worst = None
             
-            metric_idx = 1
-            if cfg.compute_map:
-                primary_metric_name = f"MAP@{cfg.k}"
-                primary_metric_value_best = best_model[metric_idx]
-                primary_metric_value_worst = worst_model[metric_idx]
-            elif cfg.compute_recall:
-                primary_metric_name = f"Recall@{cfg.k}"
-                primary_metric_value_best = best_model[metric_idx]
-                primary_metric_value_worst = worst_model[metric_idx]
-            elif cfg.compute_precision:
-                primary_metric_name = f"Precision@{cfg.k}"
-                primary_metric_value_best = best_model[metric_idx]
-                primary_metric_value_worst = worst_model[metric_idx]
-            elif cfg.compute_ndcg:
-                primary_metric_name = f"NDCG@{cfg.k}"
-                primary_metric_value_best = best_model[metric_idx]
-                primary_metric_value_worst = worst_model[metric_idx]
-            elif cfg.compute_mrr:
-                primary_metric_name = f"MRR@{cfg.k}"
-                primary_metric_value_best = best_model[metric_idx]
-                primary_metric_value_worst = worst_model[metric_idx]
+            if primary_metric:
+                primary_metric_name = f"{METRIC_LABELS[primary_metric]}@{cfg.k}"
+                primary_metric_idx = metric_indices[primary_metric]
+                primary_metric_value_best = best_model[primary_metric_idx]
+                primary_metric_value_worst = worst_model[primary_metric_idx]
             
             if primary_metric_name and primary_metric_value_best is not None:
                 f.write(f"The evaluation reveals significant performance variations across embedding models. ")
@@ -652,13 +614,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 f.write(f"**{((primary_metric_value_best - primary_metric_value_worst) / primary_metric_value_worst * 100):.1f}% improvement**.\n\n")
             
             # Correlation analysis between metrics - only if both MAP and Recall are enabled
-            if cfg.compute_map and cfg.compute_recall and len(sorted_results) > 0 and len(sorted_results[0]) > 2:
-                # Find the correct indices for MAP and Recall
-                map_index = 1  # MAP is always first if enabled
-                recall_index = map_index + 1 if cfg.compute_map else 1
-                
-                # Make sure all results have the required indices
-                if all(len(result) > recall_index for result in sorted_results):
+            if "map" in metric_indices and "recall" in metric_indices and len(sorted_results) > 0:
+                map_index = metric_indices["map"]
+                recall_index = metric_indices["recall"]
+                if all(len(result) > max(map_index, recall_index) for result in sorted_results):
                     map_scores = [r[map_index] for r in sorted_results]
                     recall_scores = [r[recall_index] for r in sorted_results]
                     correlation = np.corrcoef(map_scores, recall_scores)[0, 1]
@@ -772,23 +731,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             f.write("- Consider practical importance alongside statistical significance\n\n")
             
             # Create significance tables for each metric - using dynamic indices
-            idx_map = {}
-            metric_index = 1
-            if cfg.compute_map:
-                idx_map["MAP"] = metric_index
-                metric_index += 1
-            if cfg.compute_recall:
-                idx_map["Recall"] = metric_index
-                metric_index += 1
-            if cfg.compute_precision:
-                idx_map["Precision"] = metric_index
-                metric_index += 1
-            if cfg.compute_ndcg:
-                idx_map["NDCG"] = metric_index
-                metric_index += 1
-            if cfg.compute_mrr:
-                idx_map["MRR"] = metric_index
-                metric_index += 1
+            idx_map = {METRIC_LABELS[k]: v for k, v in metric_indices.items()}
             
             # Get model names for significance table
             model_names = [result[0].split('/')[-1] for result in sorted_results]
@@ -948,25 +891,13 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             
             if len(sorted_results) > 1:
                 second_best = sorted_results[1]
-                # Use dynamic metric detection instead of hardcoded MAP
+                # Use dynamic metric detection based on enabled metric order
                 primary_metric_name = None
                 primary_diff = None
                 
-                metric_idx = 1
-                if cfg.compute_map:
-                    primary_metric_name = f"MAP@{cfg.k}"
-                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
-                elif cfg.compute_recall:
-                    primary_metric_name = f"Recall@{cfg.k}"
-                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
-                elif cfg.compute_precision:
-                    primary_metric_name = f"Precision@{cfg.k}"
-                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
-                elif cfg.compute_ndcg:
-                    primary_metric_name = f"NDCG@{cfg.k}"
-                    primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
-                elif cfg.compute_mrr:
-                    primary_metric_name = f"MRR@{cfg.k}"
+                if primary_metric:
+                    metric_idx = metric_indices[primary_metric]
+                    primary_metric_name = f"{METRIC_LABELS[primary_metric]}@{cfg.k}"
                     primary_diff = sorted_results[0][metric_idx] - second_best[metric_idx]
                 
                 if primary_metric_name and primary_diff is not None:
@@ -1000,21 +931,9 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             primary_metric_name = None
             primary_score = None
             
-            metric_idx = 1
-            if cfg.compute_map:
-                primary_metric_name = f"MAP@{cfg.k}"
-                primary_score = sorted_results[0][metric_idx]
-            elif cfg.compute_recall:
-                primary_metric_name = f"Recall@{cfg.k}"
-                primary_score = sorted_results[0][metric_idx]
-            elif cfg.compute_precision:
-                primary_metric_name = f"Precision@{cfg.k}"
-                primary_score = sorted_results[0][metric_idx]
-            elif cfg.compute_ndcg:
-                primary_metric_name = f"NDCG@{cfg.k}"
-                primary_score = sorted_results[0][metric_idx]
-            elif cfg.compute_mrr:
-                primary_metric_name = f"MRR@{cfg.k}"
+            if primary_metric:
+                metric_idx = metric_indices[primary_metric]
+                primary_metric_name = f"{METRIC_LABELS[primary_metric]}@{cfg.k}"
                 primary_score = sorted_results[0][metric_idx]
             
             if primary_metric_name and primary_score is not None:
@@ -1024,8 +943,9 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 f.write(f"The results demonstrate that **{best_model_name}** provides optimal retrieval performance ")
                 f.write(f"for the evaluated document collection. ")
             
-            if len(sorted_results) > 1 and len(sorted_results[0]) > 1:
-                performance_gap = sorted_results[0][1] - sorted_results[-1][1]
+            if len(sorted_results) > 1 and primary_metric:
+                metric_idx = metric_indices[primary_metric]
+                performance_gap = sorted_results[0][metric_idx] - sorted_results[-1][metric_idx]
                 if performance_gap > 0.1:
                     f.write("The substantial performance variations across models underscore the importance of ")
                     f.write("systematic evaluation in embedding model selection for production RAG systems.")
@@ -1073,20 +993,11 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
     # Prepare data - Dynamic metric extraction based on config
     model_names = [result[0].split('/')[-1] for result in model_results]  # Use shorter names
     
-    # Build metrics dictionary using fixed indices from evaluate_with_chromadb
-    # Tuple structure: (model_name, map, recall, precision, ndcg, mrr)
+    # Build metrics dictionary using dynamic enabled-metric indices
     metrics = {}
-    
-    if cfg.compute_map:
-        metrics["MAP"] = [result[1] for result in model_results]
-    if cfg.compute_recall:
-        metrics["Recall"] = [result[2] for result in model_results]
-    if cfg.compute_precision:
-        metrics["Precision"] = [result[3] for result in model_results]
-    if cfg.compute_ndcg:
-        metrics["NDCG"] = [result[4] for result in model_results]
-    if cfg.compute_mrr:
-        metrics["MRR"] = [result[5] for result in model_results]
+    metric_indices = get_metric_indices()
+    for metric_name in get_enabled_metric_names():
+        metrics[METRIC_LABELS[metric_name]] = [result[metric_indices[metric_name]] for result in model_results]
     
     # 1. Bar chart comparing all metrics across models
     plt.figure(figsize=(12, 8))
@@ -1107,8 +1018,11 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
     plt.xlabel('Models', fontsize=12)
     plt.ylabel('Score', fontsize=12)
     plt.title(f'Comparison of Embedding Models at k={cfg.k}', fontsize=14, weight='bold')
-    plt.xticks(x + width*2, model_names, rotation=45, ha='right')
-    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    metric_count = max(len(metrics), 1)
+    center_offset = width * (metric_count - 1) / 2
+    plt.xticks(x + center_offset, model_names, rotation=45, ha='right')
+    if metrics:
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     plt.ylim(0, 1)
     plt.tight_layout()
     
@@ -1430,26 +1344,20 @@ def print_results_summary(model_results, queries=None, corpus=None, relevant_doc
     """Print benchmark results summary table and optionally save raw results JSON."""
     from tabulate import tabulate
 
+    metric_indices = get_metric_indices()
+    enabled_metrics = get_enabled_metric_names()
+
     # Build headers dynamically
     headers = ["Model"]
-    if cfg.compute_map:       headers.append(f"MAP@{cfg.k}")
-    if cfg.compute_recall:    headers.append(f"Recall@{cfg.k}")
-    if cfg.compute_precision: headers.append(f"Prec@{cfg.k}")
-    if cfg.compute_ndcg:      headers.append(f"NDCG@{cfg.k}")
-    if cfg.compute_mrr:       headers.append(f"MRR@{cfg.k}")
+    for metric_name in enabled_metrics:
+        short_label = "Prec" if metric_name == "precision" else METRIC_LABELS[metric_name]
+        headers.append(f"{short_label}@{cfg.k}")
 
-    # Build table rows - filter columns based on config flags to match headers
+    # Build table rows using dynamic metric indices
     table_data = []
-    for model_name, *metrics in model_results:
-        # metrics tuple is: (map, recall, precision, ndcg, mrr)
-        # We need to select only enabled metrics
-        row_values = []
-        if cfg.compute_map:       row_values.append(metrics[0])
-        if cfg.compute_recall:    row_values.append(metrics[1])
-        if cfg.compute_precision: row_values.append(metrics[2])
-        if cfg.compute_ndcg:      row_values.append(metrics[3])
-        if cfg.compute_mrr:       row_values.append(metrics[4])
-
+    for result in model_results:
+        model_name = result[0]
+        row_values = [result[metric_indices[m]] for m in enabled_metrics]
         short_name = model_name.split("/")[-1]
         row = [short_name] + [f"{m:.4f}" for m in row_values]
         table_data.append(row)
@@ -1458,20 +1366,14 @@ def print_results_summary(model_results, queries=None, corpus=None, relevant_doc
     print("\nBenchmark Results Summary\n")
     print(tabulate(table_data, headers=headers, tablefmt="github"))
 
-    # Summary statistics - use fixed metric indices
+    # Summary statistics
     print("\nSummary Statistics\n")
-    
-    # Model results indices: 0=Name, 1=MAP, 2=Recall, 3=Precision, 4=NDCG, 5=MRR
-    if cfg.compute_map:
-        scores = [result[1] for result in model_results]
-        print(f"• MAP@{cfg.k}: Best={max(scores):.4f}, "
-              f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
-    if cfg.compute_recall:
-        scores = [result[2] for result in model_results]
-        print(f"• Recall@{cfg.k}: Best={max(scores):.4f}, "
+    for metric_name in enabled_metrics:
+        scores = [result[metric_indices[metric_name]] for result in model_results]
+        print(f"- {METRIC_LABELS[metric_name]}@{cfg.k}: Best={max(scores):.4f}, "
               f"Worst={min(scores):.4f}, Avg={np.mean(scores):.4f}")
     print()
-    
+
     # Save raw results JSON for aggregate analysis
     if save_raw_results and output_dir:
         import datetime
@@ -1492,7 +1394,6 @@ def print_results_summary(model_results, queries=None, corpus=None, relevant_doc
             relevant_docs=relevant_docs or {},
             output_path=raw_results_path
         )
-
 
 def print_report_info(report_files):
     """Print information about generated report files."""

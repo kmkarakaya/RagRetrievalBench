@@ -9,6 +9,49 @@ import time
 
 import config as cfg
 
+METRIC_LABELS = {
+    "map": "MAP",
+    "recall": "Recall",
+    "precision": "Precision",
+    "ndcg": "NDCG",
+    "mrr": "MRR",
+}
+METRIC_SCORE_KEYS = {
+    "map": "map@k",
+    "recall": "recall@k",
+    "precision": "precision@k",
+    "ndcg": "ndcg@k",
+    "mrr": "mrr@k",
+}
+
+
+def get_enabled_metrics():
+    """Return enabled metric keys in stable tuple order."""
+    enabled = []
+    if cfg.compute_map:
+        enabled.append("map")
+    if cfg.compute_recall:
+        enabled.append("recall")
+    if cfg.compute_precision:
+        enabled.append("precision")
+    if cfg.compute_ndcg:
+        enabled.append("ndcg")
+    if cfg.compute_mrr:
+        enabled.append("mrr")
+    return enabled
+
+
+def get_metric_score(scores, metric_name, k):
+    """Safely extract one metric score from evaluator output."""
+    score_key = METRIC_SCORE_KEYS[metric_name]
+    if score_key not in scores:
+        print(f"[Warning] Missing '{score_key}' in evaluator output. Using 0.0 for {metric_name}@{k}.")
+        return 0.0
+    if k not in scores[score_key]:
+        print(f"[Warning] Missing k={k} in '{score_key}'. Using 0.0 for {metric_name}@{k}.")
+        return 0.0
+    return scores[score_key][k]
+
 
 def get_chromadb_client():
     """Get a persistent ChromaDB client that saves data to disk"""
@@ -187,59 +230,18 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
     
     # Extract metrics based on config settings
     k = cfg.k
-    metrics = {}
-    
-    if cfg.compute_map:
-        metrics["map"] = scores["map@k"][k]
-    else:
-        metrics["map"] = 0.0
-        
-    if cfg.compute_recall:
-        metrics["recall"] = scores["recall@k"][k]
-    else:
-        metrics["recall"] = 0.0
-        
-    if cfg.compute_precision:
-        metrics["precision"] = scores["precision@k"][k]
-    else:
-        metrics["precision"] = 0.0
-        
-    if cfg.compute_ndcg:
-        metrics["ndcg"] = scores["ndcg@k"][k]
-    else:
-        metrics["ndcg"] = 0.0
-        
-    if cfg.compute_mrr:
-        metrics["mrr"] = scores["mrr@k"][k]
-    else:
-        metrics["mrr"] = 0.0
+    enabled_metrics = get_enabled_metrics()
+    metrics = {
+        metric_name: get_metric_score(scores, metric_name, k)
+        for metric_name in enabled_metrics
+    }
     
     # Print metrics
     print(f"\nMetrics for {model_name} using ChromaDB rankings:")
-    if cfg.compute_map:
-        print(f"MAP@{k}: {metrics['map']:.4f}")
-    if cfg.compute_recall:
-        print(f"Recall@{k}: {metrics['recall']:.4f}")
-    if cfg.compute_precision:
-        print(f"Precision@{k}: {metrics['precision']:.4f}")
-    if cfg.compute_ndcg:
-        print(f"NDCG@{k}: {metrics['ndcg']:.4f}")
-    if cfg.compute_mrr:
-        print(f"MRR@{k}: {metrics['mrr']:.4f}")
+    for metric_name in enabled_metrics:
+        print(f"{METRIC_LABELS[metric_name]}@{k}: {metrics[metric_name]:.4f}")
     
     # Build return tuple with only enabled metrics
-    result_metrics = []
-    if cfg.compute_map:
-        result_metrics.append(metrics["map"])
-    if cfg.compute_recall:
-        result_metrics.append(metrics["recall"])
-    if cfg.compute_precision:
-        result_metrics.append(metrics["precision"])
-    if cfg.compute_ndcg:
-        result_metrics.append(metrics["ndcg"])
-    if cfg.compute_mrr:
-        result_metrics.append(metrics["mrr"])
-    
-    return tuple(result_metrics)
+    return tuple(metrics[metric_name] for metric_name in enabled_metrics)
 
 
