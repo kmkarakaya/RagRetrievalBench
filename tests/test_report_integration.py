@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test report_utils.py functionality, focusing on the metric indexing fixes and integration testing
 """
 import pytest
@@ -29,13 +29,25 @@ except ImportError as e:
     print(f"Warning: Could not import report_utils functions: {e}")
 
 
+@pytest.fixture(autouse=True)
+def mock_chromadb_client_for_reports():
+    """Avoid real ChromaDB calls in report tests."""
+    with patch('utils.report_utils.chromadb.PersistentClient') as mock_client_cls:
+        mock_collection = MagicMock()
+        mock_collection.count.return_value = 1
+        mock_client = MagicMock()
+        mock_client.get_collection.return_value = mock_collection
+        mock_client_cls.return_value = mock_client
+        yield
+
+
 class TestReportUtilsIntegration:
     """Test report_utils.py integration with proper metric indexing"""
     
     def setup_method(self):
         """Setup test data and config"""
         self.original_config = {}
-        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'k']:
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate', 'k']:
             if hasattr(cfg, attr):
                 self.original_config[attr] = getattr(cfg, attr)
         
@@ -45,6 +57,7 @@ class TestReportUtilsIntegration:
         cfg.compute_precision = True
         cfg.compute_ndcg = True
         cfg.compute_mrr = True
+        cfg.compute_hit_rate = False
         cfg.k = 10
         
         self.temp_dir = tempfile.mkdtemp()
@@ -76,7 +89,9 @@ class TestReportUtilsIntegration:
                 "embedding_time": 2.5,
                 "docs_processed": 100,
                 "docs_per_second": 40.0,
-                "avg_time_per_doc": 0.025
+                "avg_time_per_doc": 0.025,
+                "avg_query_latency_ms": 12.4,
+                "queries_timed": 20
             }),
         ]
     
@@ -109,7 +124,7 @@ class TestReportUtilsIntegration:
         
         # Check that report file was created
         assert result is not None
-        report_files = [f for f in os.listdir(self.temp_dir) if f.startswith("benchmark_report_") and f.endswith(".md")]
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
         assert len(report_files) >= 1
         
         # Read and verify report content contains correct metric values
@@ -134,12 +149,12 @@ class TestReportUtilsIntegration:
         cfg.compute_precision = False
         cfg.compute_ndcg = True
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
-        # Corresponding model results (model_name, MAP, Recall, Precision, NDCG, MRR)
-        # Note: System always returns full tuple regardless of which metrics are enabled
+        # Corresponding model results (model_name, MAP, NDCG)
         partial_results = [
-            ("model1", 0.8, 0.0, 0.0, 0.85, 0.0),  # MAP and NDCG enabled, others 0.0
-            ("model2", 0.7, 0.0, 0.0, 0.75, 0.0),
+            ("model1", 0.8, 0.85),
+            ("model2", 0.7, 0.75),
         ]
         
         mock_viz.return_value = {"perf_chart": "chart1.png"}
@@ -153,7 +168,7 @@ class TestReportUtilsIntegration:
         )
         
         assert result is not None
-        report_files = [f for f in os.listdir(self.temp_dir) if f.startswith("benchmark_report_") and f.endswith(".md")]
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
         assert len(report_files) >= 1
         
         # Verify content has correct metrics and values
@@ -176,14 +191,15 @@ class TestReportUtilsIntegration:
         # Enable only recall
         cfg.compute_map = False
         cfg.compute_recall = True
+        cfg.compute_hit_rate = False
         cfg.compute_precision = False
         cfg.compute_ndcg = False
         cfg.compute_mrr = False
         
-        # Model results with full tuple (only recall enabled, others 0.0)
+        # Model results with recall as the only enabled metric
         recall_only_results = [
-            ("model1", 0.0, 0.9, 0.0, 0.0, 0.0),  # Only recall value at index 2
-            ("model2", 0.0, 0.8, 0.0, 0.0, 0.0),
+            ("model1", 0.9),
+            ("model2", 0.8),
         ]
         
         mock_viz.return_value = {}
@@ -197,7 +213,7 @@ class TestReportUtilsIntegration:
         )
         
         assert result is not None
-        report_files = [f for f in os.listdir(self.temp_dir) if f.startswith("benchmark_report_") and f.endswith(".md")]
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
         assert len(report_files) >= 1
         
         with open(os.path.join(self.temp_dir, report_files[0]), 'r', encoding='utf-8') as f:
@@ -268,7 +284,7 @@ class TestMetricIndexingInReportContext:
     
     def setup_method(self):
         self.original_config = {}
-        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr']:
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate']:
             if hasattr(cfg, attr):
                 self.original_config[attr] = getattr(cfg, attr)
     
@@ -317,6 +333,7 @@ class TestMetricIndexingInReportContext:
             (['map', 'recall', 'precision'], {'map': 1, 'recall': 2, 'precision': 3}),
             (['map', 'precision', 'mrr'], {'map': 1, 'precision': 2, 'mrr': 3}),
             (['map', 'recall', 'precision', 'ndcg', 'mrr'], {'map': 1, 'recall': 2, 'precision': 3, 'ndcg': 4, 'mrr': 5}),
+            (['map', 'hit_rate'], {'map': 1, 'hit_rate': 2}),
         ]
         
         for enabled_metrics, expected_indices in scenarios:
@@ -326,6 +343,7 @@ class TestMetricIndexingInReportContext:
             cfg.compute_precision = 'precision' in enabled_metrics
             cfg.compute_ndcg = 'ndcg' in enabled_metrics
             cfg.compute_mrr = 'mrr' in enabled_metrics
+            cfg.compute_hit_rate = 'hit_rate' in enabled_metrics
             
             # Build indices (same logic as report_utils.py)
             metric_indices = {}
@@ -345,6 +363,9 @@ class TestMetricIndexingInReportContext:
                 current_idx += 1
             if cfg.compute_mrr:
                 metric_indices['mrr'] = current_idx
+                current_idx += 1
+            if cfg.compute_hit_rate:
+                metric_indices['hit_rate'] = current_idx
             
             # Verify indices match expected
             assert metric_indices == expected_indices, f"Failed for scenario {enabled_metrics}"
@@ -356,7 +377,7 @@ class TestEdgeCasesAndErrorHandling:
     def setup_method(self):
         self.temp_dir = tempfile.mkdtemp()
         self.original_config = {}
-        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr']:
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate']:
             if hasattr(cfg, attr):
                 self.original_config[attr] = getattr(cfg, attr)
     
@@ -372,6 +393,7 @@ class TestEdgeCasesAndErrorHandling:
         """Test with only one model result"""
         cfg.compute_map = True
         cfg.compute_recall = True
+        cfg.compute_hit_rate = False
         
         mock_viz.return_value = {}
         
@@ -390,6 +412,7 @@ class TestEdgeCasesAndErrorHandling:
     def test_empty_timing_results_list(self, mock_viz):
         """Test with empty timing results list (not None)"""
         cfg.compute_map = True
+        cfg.compute_hit_rate = False
         
         mock_viz.return_value = {}
         
@@ -408,3 +431,5 @@ class TestEdgeCasesAndErrorHandling:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+

@@ -27,6 +27,25 @@ METRIC_LABELS = {
     "precision": "Precision",
     "ndcg": "NDCG",
     "mrr": "MRR",
+    "hit_rate": "Success/Hit Rate",
+}
+
+METRIC_HEADERS = {
+    "map": "MAP",
+    "recall": "Recall",
+    "precision": "Precision",
+    "ndcg": "NDCG",
+    "mrr": "MRR",
+    "hit_rate": "Success",
+}
+
+METRIC_DOCS = {
+    "map": ("Mean Average Precision at rank k", "Ranking quality"),
+    "recall": ("Proportion of relevant docs in top k", "Coverage"),
+    "precision": ("Proportion of relevant docs among retrieved", "Accuracy"),
+    "ndcg": ("Normalized Discounted Cumulative Gain", "Ranking with position bias"),
+    "mrr": ("Mean Reciprocal Rank", "First relevant position"),
+    "hit_rate": ("Fraction of queries with at least one relevant doc in top k", "Query-level success"),
 }
 
 
@@ -43,6 +62,8 @@ def get_enabled_metric_names():
         enabled.append("ndcg")
     if cfg.compute_mrr:
         enabled.append("mrr")
+    if getattr(cfg, "compute_hit_rate", False):
+        enabled.append("hit_rate")
     return enabled
 
 
@@ -54,7 +75,7 @@ def get_metric_indices():
 def get_primary_metric_key():
     """Pick primary metric for sorting/summary in priority order."""
     metric_indices = get_metric_indices()
-    for metric in ("map", "ndcg", "mrr", "recall", "precision"):
+    for metric in ("map", "ndcg", "mrr", "recall", "precision", "hit_rate"):
         if metric in metric_indices:
             return metric
     return None
@@ -118,7 +139,8 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
                 "compute_recall": cfg.compute_recall,
                 "compute_precision": cfg.compute_precision,
                 "compute_ndcg": cfg.compute_ndcg,
-                "compute_mrr": cfg.compute_mrr
+                "compute_mrr": cfg.compute_mrr,
+                "compute_hit_rate": getattr(cfg, "compute_hit_rate", False)
             }
         },
         "models": {},
@@ -169,17 +191,10 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
     # Process model results
     for result in model_results:
         model_name = result[0]
-        metrics = {}
-        if cfg.compute_map:
-            metrics["map"] = float(result[metric_indices["map"]])
-        if cfg.compute_recall:
-            metrics["recall"] = float(result[metric_indices["recall"]])
-        if cfg.compute_precision:
-            metrics["precision"] = float(result[metric_indices["precision"]])
-        if cfg.compute_ndcg:
-            metrics["ndcg"] = float(result[metric_indices["ndcg"]])
-        if cfg.compute_mrr:
-            metrics["mrr"] = float(result[metric_indices["mrr"]])
+        metrics = {
+            metric_name: float(result[metric_indices[metric_name]])
+            for metric_name in get_enabled_metric_names()
+        }
         
         # Get timing data if available
         timing = {}
@@ -489,34 +504,40 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         f.write("### Evaluation Metrics\n\n")
         metrics_desc = []
-        if cfg.compute_map:
-            metrics_desc.append(["MAP@k", "Mean Average Precision at rank k", "Ranking quality"])
-        if cfg.compute_recall:
-            metrics_desc.append(["Recall@k", "Proportion of relevant docs in top k", "Coverage"])
-        if cfg.compute_precision:
-            metrics_desc.append(["Precision@k", "Proportion of relevant docs among retrieved", "Accuracy"])
-        if cfg.compute_ndcg:
-            metrics_desc.append(["NDCG@k", "Normalized Discounted Cumulative Gain", "Ranking with position bias"])
-        if cfg.compute_mrr:
-            metrics_desc.append(["MRR@k", "Mean Reciprocal Rank", "First relevant position"])
+        for metric_name in get_enabled_metric_names():
+            metric_header = METRIC_HEADERS[metric_name]
+            desc, measures = METRIC_DOCS[metric_name]
+            metrics_desc.append([f"{metric_header}@k", desc, measures])
         
         f.write(tabulate(metrics_desc, headers=["Metric", "Description", "Measures"], tablefmt="pipe"))
         f.write("\n\n")
         
         f.write("**Table: Evaluation Metrics Overview**\n\n")
         f.write("**Metric Details:**\n")
-        f.write("- **MAP@k**: Mean Average Precision - balances precision and recall across ranks\n")
-        f.write("- **Recall@k**: Coverage - fraction of relevant docs retrieved in top k\n")
-        f.write("- **Precision@k**: Accuracy - fraction of retrieved docs that are relevant\n")
-        f.write("- **NDCG@k**: Position-aware ranking quality with logarithmic discounting\n")
-        f.write("- **MRR@k**: First relevant position - emphasizes finding relevant docs early\n\n")
+        metric_details = {
+            "map": "Mean Average Precision - balances precision and recall across ranks",
+            "recall": "Coverage - fraction of relevant docs retrieved in top k",
+            "precision": "Accuracy - fraction of retrieved docs that are relevant",
+            "ndcg": "Position-aware ranking quality with logarithmic discounting",
+            "mrr": "First relevant position - emphasizes finding relevant docs early",
+            "hit_rate": "Success@k / Hit Rate@k - fraction of queries with at least one relevant hit in top k",
+        }
+        for metric_name in get_enabled_metric_names():
+            f.write(f"- **{METRIC_HEADERS[metric_name]}@k**: {metric_details[metric_name]}\n")
+        f.write("\n")
         
         f.write("**When to use each metric:**\n")
-        f.write("- **MAP**: Overall ranking quality for information retrieval\n")
-        f.write("- **Recall**: Ensuring comprehensive coverage of relevant content\n")
-        f.write("- **Precision**: Minimizing irrelevant results in recommendations\n")
-        f.write("- **NDCG**: Search engine ranking with position bias\n")
-        f.write("- **MRR**: Question-answering where first relevant result matters\n\n")
+        metric_use_cases = {
+            "map": "Overall ranking quality for information retrieval",
+            "recall": "Ensuring comprehensive coverage of relevant content",
+            "precision": "Minimizing irrelevant results in recommendations",
+            "ndcg": "Search engine ranking with position bias",
+            "mrr": "Question-answering where first relevant result matters",
+            "hit_rate": "Measuring query-level success rate when at least one relevant hit is enough",
+        }
+        for metric_name in get_enabled_metric_names():
+            f.write(f"- **{METRIC_HEADERS[metric_name]}**: {metric_use_cases[metric_name]}\n")
+        f.write("\n")
         
         # Representative Query Examples
         f.write("### Representative Query Examples\n\n")
@@ -548,16 +569,8 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Prepare headers based on which metrics are computed
         headers = ["Model"]
-        if cfg.compute_map:
-            headers.append(f"MAP@{cfg.k}")
-        if cfg.compute_recall:
-            headers.append(f"Recall@{cfg.k}")
-        if cfg.compute_precision:
-            headers.append(f"Precision@{cfg.k}")
-        if cfg.compute_ndcg:
-            headers.append(f"NDCG@{cfg.k}")
-        if cfg.compute_mrr:
-            headers.append(f"MRR@{cfg.k}")
+        for metric_name in get_enabled_metric_names():
+            headers.append(f"{METRIC_HEADERS[metric_name]}@{cfg.k}")
         
         # Prepare table data
         table_data = []
@@ -576,19 +589,31 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         f.write("**Table: Model Performance Results Explanation**\n\n")
         f.write("**Column Explanations:**\n")
         f.write(f"- **Model**: Embedding model name (shortened for readability)\n")
-        f.write(f"- **MAP@{cfg.k}**: Mean Average Precision at rank {cfg.k}\n")
-        f.write(f"- **Recall@{cfg.k}**: Fraction of relevant documents retrieved in top {cfg.k}\n")
-        f.write(f"- **Precision@{cfg.k}**: Fraction of retrieved documents that are relevant\n")
-        f.write(f"- **NDCG@{cfg.k}**: Normalized Discounted Cumulative Gain at rank {cfg.k}\n")
-        f.write(f"- **MRR@{cfg.k}**: Mean Reciprocal Rank at rank {cfg.k}\n\n")
+        column_explanations = {
+            "map": f"Mean Average Precision at rank {cfg.k}",
+            "recall": f"Fraction of relevant documents retrieved in top {cfg.k}",
+            "precision": "Fraction of retrieved documents that are relevant",
+            "ndcg": f"Normalized Discounted Cumulative Gain at rank {cfg.k}",
+            "mrr": f"Mean Reciprocal Rank at rank {cfg.k}",
+            "hit_rate": f"Success@{cfg.k} / Hit Rate@{cfg.k}: fraction of queries with >=1 relevant retrieved",
+        }
+        for metric_name in get_enabled_metric_names():
+            f.write(f"- **{METRIC_HEADERS[metric_name]}@{cfg.k}**: {column_explanations[metric_name]}\n")
+        f.write("\n")
         
         f.write("**How to interpret the results:**\n")
         f.write("- **Higher scores** = better retrieval performance\n")
-        f.write("- **MAP** balances ranking quality and coverage\n")
-        f.write("- **Recall** shows how comprehensive the retrieval is\n")
-        f.write("- **Precision** shows how accurate the retrieval is\n")
-        f.write("- **NDCG** rewards relevant documents appearing early\n")
-        f.write("- **MRR** emphasizes finding the first relevant result\n\n")
+        interpret_bullets = {
+            "map": "MAP balances ranking quality and coverage",
+            "recall": "Recall shows how comprehensive the retrieval is",
+            "precision": "Precision shows how accurate the retrieval is",
+            "ndcg": "NDCG rewards relevant documents appearing early",
+            "mrr": "MRR emphasizes finding the first relevant result",
+            "hit_rate": "Success/Hit Rate captures whether queries get at least one relevant hit",
+        }
+        for metric_name in get_enabled_metric_names():
+            f.write(f"- **{METRIC_HEADERS[metric_name]}**: {interpret_bullets[metric_name]}\n")
+        f.write("\n")
         
         # Performance analysis
         f.write("### Performance Analysis\n\n")
@@ -678,8 +703,9 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             
             for metric_name, file_path in viz_files.items():
                 if metric_name not in ['overview', 'corpus_stats']:
-                    f.write(f"##### {metric_name.upper()}@{cfg.k} Performance\n\n")
-                    f.write(f"![{metric_name.capitalize()} Comparison]({os.path.basename(file_path)})\n\n")
+                    metric_label = METRIC_LABELS.get(metric_name, metric_name)
+                    f.write(f"##### {metric_label}@{cfg.k} Performance\n\n")
+                    f.write(f"![{metric_label} Comparison]({os.path.basename(file_path)})\n\n")
                     
                     # Add metric-specific explanations
                     if metric_name.lower() == 'map':
@@ -711,6 +737,12 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                         f.write("appears in the ranked results. Emphasizes finding relevant information quickly.\n\n")
                         f.write("**Interpretation**: Higher values indicate faster discovery of relevant content. ")
                         f.write("Critical for question-answering and single-answer scenarios.\n\n")
+                    
+                    elif metric_name.lower() == 'hit_rate':
+                        f.write("**Success@k / Hit Rate@k**: Measures the fraction of queries where at least one ")
+                        f.write("relevant document appears in top-k results.\n\n")
+                        f.write("**Interpretation**: Higher values indicate more queries are successfully served. ")
+                        f.write("Useful when any relevant hit is sufficient for a good user experience.\n\n")
         
         # Statistical significance analysis
         if len(model_results) >= 2:
@@ -756,87 +788,149 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 f.write("\n\n*Note: Values marked with * indicate potentially significant differences (>0.05).*\n\n")
         # Add timing analysis section if timing data is provided
         if timing_results:
-            f.write("## Embedding Performance Metrics\n\n")
+            f.write("## Compute And Retrieval Performance Metrics\n\n")
             f.write("This section analyzes the computational efficiency of different embedding models ")
-            f.write("during the corpus initialization phase. Understanding embedding speed is crucial ")
+            f.write("during corpus initialization and retrieval. Understanding speed and latency is crucial ")
             f.write("for production deployment decisions.\n\n")
             
-            f.write("**Why embedding speed matters:**\n")
+            f.write("**Why timing metrics matter:**\n")
             f.write("- **Initial setup time**: How long to embed your entire corpus\n")
             f.write("- **Update frequency**: How often you can refresh embeddings\n")
+            f.write("- **Query responsiveness**: How fast retrieval returns results at runtime\n")
             f.write("- **Scalability**: Performance with larger document collections\n")
             f.write("- **Cost**: Computational resources required for deployment\n\n")
             
             # Create timing table
-            timing_headers = ["Model", "Embedding Time (s)", "Docs/Second", "Avg Time/Doc (ms)"]
-            timing_rows = []
+            timing_headers = [
+                "Model",
+                "Embedding Time (s)",
+                "Docs/Second",
+                "Avg Time/Doc (ms)",
+                "Avg Query Latency (ms/query)",
+                "Queries Timed",
+            ]
+            timing_records = []
             
             for model_name, timing_data in timing_results:
                 try:
                     # Validate timing_data structure
                     if not isinstance(timing_data, dict):
                         continue  # Skip invalid data
-                        
-                    # Check for required fields and valid non-None values
-                    required_fields = ['embedding_time', 'docs_per_second', 'avg_time_per_doc']
-                    if not all(field in timing_data and timing_data[field] is not None for field in required_fields):
-                        continue  # Skip incomplete or placeholder data
-                    
-                    timing_rows.append([
-                        model_name,
-                        f"{timing_data['embedding_time']:.2f}",
-                        f"{timing_data['docs_per_second']:.2f}",
-                        f"{timing_data['avg_time_per_doc']*1000:.2f}"
-                    ])
+
+                    embedding_time = timing_data.get("embedding_time")
+                    docs_per_second = timing_data.get("docs_per_second")
+                    avg_time_per_doc = timing_data.get("avg_time_per_doc")
+                    avg_query_latency_ms = timing_data.get("avg_query_latency_ms")
+                    queries_timed = timing_data.get("queries_timed")
+
+                    has_embedding_data = all(
+                        isinstance(value, (int, float))
+                        for value in (embedding_time, docs_per_second, avg_time_per_doc)
+                    )
+                    has_latency_data = isinstance(avg_query_latency_ms, (int, float)) and isinstance(queries_timed, int)
+
+                    # Keep row if we have either embedding timing or retrieval latency
+                    if not (has_embedding_data or has_latency_data):
+                        continue
+
+                    timing_records.append({
+                        "model": model_name,
+                        "embedding_time": embedding_time if has_embedding_data else None,
+                        "docs_per_second": docs_per_second if has_embedding_data else None,
+                        "avg_time_per_doc_ms": (avg_time_per_doc * 1000.0) if has_embedding_data else None,
+                        "avg_query_latency_ms": avg_query_latency_ms if has_latency_data else None,
+                        "queries_timed": queries_timed if has_latency_data else None,
+                    })
                 except (TypeError, KeyError, ValueError) as e:
                     print(f"Warning: Invalid timing data for {model_name}: {e}")
                     continue
+
+            # Sort by retrieval latency (lower is better), then by docs/sec (higher is better)
+            timing_records.sort(
+                key=lambda rec: (
+                    rec["avg_query_latency_ms"] if isinstance(rec["avg_query_latency_ms"], (int, float)) else float("inf"),
+                    -(rec["docs_per_second"] if isinstance(rec["docs_per_second"], (int, float)) else 0.0),
+                )
+            )
+
+            timing_rows = []
+            for rec in timing_records:
+                timing_rows.append([
+                    rec["model"],
+                    f"{rec['embedding_time']:.2f}" if isinstance(rec["embedding_time"], (int, float)) else "N/A",
+                    f"{rec['docs_per_second']:.2f}" if isinstance(rec["docs_per_second"], (int, float)) else "N/A",
+                    f"{rec['avg_time_per_doc_ms']:.2f}" if isinstance(rec["avg_time_per_doc_ms"], (int, float)) else "N/A",
+                    f"{rec['avg_query_latency_ms']:.2f}" if isinstance(rec["avg_query_latency_ms"], (int, float)) else "N/A",
+                    f"{rec['queries_timed']}" if isinstance(rec["queries_timed"], int) else "N/A",
+                ])
             
-            # Sort by docs per second (fastest first)
-            timing_rows.sort(key=lambda x: float(x[2]), reverse=True)
-            
-            f.write("#### Embedding Speed Comparison\n\n")
+            f.write("#### Embedding Speed And Query Latency Comparison\n\n")
             f.write(tabulate(timing_rows, headers=timing_headers, tablefmt="pipe"))
             f.write("\n\n")
             
-            f.write("**Table: Embedding Performance Metrics**\n\n")
+            f.write("**Table: Compute And Retrieval Performance Metrics**\n\n")
             f.write("**Column Explanations:**\n")
             f.write("- **Model**: Embedding model name\n")
             f.write("- **Embedding Time (s)**: Total time to embed all document chunks\n")
             f.write("- **Docs/Second**: Processing throughput (higher = faster)\n")
-            f.write("- **Avg Time/Doc (ms)**: Average time per document chunk\n\n")
+            f.write("- **Avg Time/Doc (ms)**: Average time per document chunk\n")
+            f.write("- **Avg Query Latency (ms/query)**: Average DB retrieval time per query (lower = faster)\n")
+            f.write("- **Queries Timed**: Number of queries included in retrieval latency measurement\n\n")
             
             f.write("**How to interpret:**\n")
             f.write("- **Higher Docs/Second** = more efficient processing\n")
-            f.write("- **Lower Avg Time/Doc** = faster individual document handling\n")
+            f.write("- **Lower Avg Time/Doc** = faster embedding of individual chunks\n")
+            f.write("- **Lower Avg Query Latency** = faster retrieval responsiveness at runtime\n")
             f.write("- **Trade-offs**: Speed often correlates with model size/complexity\n")
             f.write("- **Production considerations**: Balance speed with retrieval quality\n\n")
             
-            # Find fastest and slowest models
-            if timing_rows:  # Only proceed if there are valid timing rows
-                fastest_model = timing_rows[0]
-                slowest_model = timing_rows[-1]
-                
+            # Find fastest/slowest models for embedding throughput and retrieval latency
+            if timing_records:  # Only proceed if there are valid timing rows
                 f.write("#### Performance Insights\n\n")
-                f.write(f"- **Fastest embedding model**: `{fastest_model[0]}` at {fastest_model[2]} docs/second\n")
-                f.write(f"- **Slowest embedding model**: `{slowest_model[0]}` at {slowest_model[2]} docs/second\n")
-                
-                # Calculate speedup
-                if float(slowest_model[2]) > 0:
-                    speedup = float(fastest_model[2]) / float(slowest_model[2])
-                    f.write(f"- **Performance ratio**: {speedup:.2f}x speed difference between fastest and slowest\n")
+
+                embedding_records = [rec for rec in timing_records if isinstance(rec["docs_per_second"], (int, float))]
+                if embedding_records:
+                    fastest_embed = max(embedding_records, key=lambda rec: rec["docs_per_second"])
+                    slowest_embed = min(embedding_records, key=lambda rec: rec["docs_per_second"])
+                    f.write(
+                        f"- **Fastest embedding model**: `{fastest_embed['model']}` "
+                        f"at {fastest_embed['docs_per_second']:.2f} docs/second\n"
+                    )
+                    f.write(
+                        f"- **Slowest embedding model**: `{slowest_embed['model']}` "
+                        f"at {slowest_embed['docs_per_second']:.2f} docs/second\n"
+                    )
+                    if slowest_embed["docs_per_second"] > 0:
+                        speedup = fastest_embed["docs_per_second"] / slowest_embed["docs_per_second"]
+                        f.write(f"- **Embedding performance ratio**: {speedup:.2f}x (fastest vs slowest)\n")
+
+                latency_records = [rec for rec in timing_records if isinstance(rec["avg_query_latency_ms"], (int, float))]
+                if latency_records:
+                    lowest_latency = min(latency_records, key=lambda rec: rec["avg_query_latency_ms"])
+                    highest_latency = max(latency_records, key=lambda rec: rec["avg_query_latency_ms"])
+                    f.write(
+                        f"- **Lowest retrieval latency**: `{lowest_latency['model']}` "
+                        f"at {lowest_latency['avg_query_latency_ms']:.2f} ms/query\n"
+                    )
+                    f.write(
+                        f"- **Highest retrieval latency**: `{highest_latency['model']}` "
+                        f"at {highest_latency['avg_query_latency_ms']:.2f} ms/query\n"
+                    )
+                    if lowest_latency["avg_query_latency_ms"] > 0:
+                        latency_ratio = highest_latency["avg_query_latency_ms"] / lowest_latency["avg_query_latency_ms"]
+                        f.write(f"- **Retrieval latency spread**: {latency_ratio:.2f}x (highest vs lowest)\n")
             else:
                 f.write("#### Performance Insights\n\n")
                 f.write("- **No valid timing data available for analysis**\n")
             
             # Add timing visualization reference (with caption)
-            timing_viz_file = f"timing_comparison_{timestamp}.png"
+            timing_viz_file = f"{dataset_name}_timing_comparison_{timestamp}.png"
             
             # Generate timing visualization if timing data exists
             try:
                 generate_timing_visualization(timing_results, output_dir, timestamp, dataset_name)
-                f.write(f"![Figure: Embedding Speed Comparison]({timing_viz_file})\n\n")
-                f.write("*Figure: Computational efficiency comparison showing embedding speed and processing time per document.*\n\n")
+                f.write(f"![Figure: Compute and Retrieval Timing Comparison]({timing_viz_file})\n\n")
+                f.write("*Figure: Embedding speed and query retrieval latency comparison across models.*\n\n")
             except Exception as e:
                 f.write(f"*Timing visualization could not be generated: {e}*\n\n")
  
@@ -997,7 +1091,10 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
     metrics = {}
     metric_indices = get_metric_indices()
     for metric_name in get_enabled_metric_names():
-        metrics[METRIC_LABELS[metric_name]] = [result[metric_indices[metric_name]] for result in model_results]
+        metrics[metric_name] = {
+            "label": METRIC_LABELS[metric_name],
+            "values": [result[metric_indices[metric_name]] for result in model_results],
+        }
     
     # 1. Bar chart comparing all metrics across models
     plt.figure(figsize=(12, 8))
@@ -1010,8 +1107,10 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
     # Create colormap without seaborn
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     
-    for i, (metric_name, metric_values) in enumerate(metrics.items()):
-        plt.bar(x + offset, metric_values, width, label=f"{metric_name}@{cfg.k}", 
+    for i, (metric_key, metric_info) in enumerate(metrics.items()):
+        metric_label = metric_info["label"]
+        metric_values = metric_info["values"]
+        plt.bar(x + offset, metric_values, width, label=f"{metric_label}@{cfg.k}", 
                 color=colors[i % len(colors)])
         offset += width
     
@@ -1034,7 +1133,9 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
     
     # 2. Individual metric charts if there are multiple models
     if len(model_results) > 1:
-        for j, (metric_name, metric_values) in enumerate(metrics.items()):
+        for j, (metric_key, metric_info) in enumerate(metrics.items()):
+            metric_label = metric_info["label"]
+            metric_values = metric_info["values"]
             plt.figure(figsize=(10, 6))
             # Use consistent blue color for all individual metric charts
             color = '#1f77b4'  # Blue color
@@ -1054,16 +1155,16 @@ def generate_visualizations(model_results, output_dir, timestamp, dataset_name="
                         ha='center', va='bottom', rotation=0)
             
             plt.xlabel('Models', fontsize=12)
-            plt.ylabel(f'{metric_name} Score', fontsize=12)
-            plt.title(f'{metric_name}@{cfg.k} Comparison', fontsize=14, weight='bold')
+            plt.ylabel(f'{metric_label} Score', fontsize=12)
+            plt.title(f'{metric_label}@{cfg.k} Comparison', fontsize=14, weight='bold')
             plt.xticks(rotation=45, ha='right')
             plt.ylim(0, max(metric_values) * 1.15)  # Add 15% headroom for labels
             plt.tight_layout()
             
             # Save figure
-            viz_file = os.path.join(output_dir, f"{dataset_name}_{metric_name.lower()}_comparison_{timestamp}.png")
+            viz_file = os.path.join(output_dir, f"{dataset_name}_{metric_key}_comparison_{timestamp}.png")
             plt.savefig(viz_file, dpi=300, bbox_inches='tight')
-            viz_files[metric_name.lower()] = viz_file
+            viz_files[metric_key] = viz_file
             plt.close()
     
     return viz_files
@@ -1075,52 +1176,59 @@ def generate_timing_visualization(timing_results, output_dir, timestamp, dataset
         return {}
     
     try:
-        # Extract timing data - Filter first to ensure alignment
-        models = []
-        docs_per_second = []
-        embedding_times = []
-        avg_time_per_doc = []
-        
+        records = []
         for model_name, timing_data in timing_results:
-            if timing_data.get('embedding_time') is not None:
-                short_name = model_name.split('/')[-1]
-                models.append(short_name)
-                embedding_times.append(timing_data['embedding_time'])
-                docs_per_second.append(timing_data['docs_per_second'])
-                avg_time_per_doc.append(timing_data['avg_time_per_doc'] * 1000)  # Convert to ms
-        
-        if not docs_per_second:  # No valid timing data after filtering
+            if not isinstance(timing_data, dict):
+                continue
+            short_name = model_name.split('/')[-1]
+            avg_time_per_doc = timing_data.get('avg_time_per_doc')
+            records.append({
+                "model": short_name,
+                "docs_per_second": timing_data.get('docs_per_second'),
+                "avg_time_per_doc_ms": (avg_time_per_doc * 1000.0) if isinstance(avg_time_per_doc, (int, float)) else None,
+                "avg_query_latency_ms": timing_data.get('avg_query_latency_ms'),
+            })
+
+        throughput_records = [r for r in records if isinstance(r["docs_per_second"], (int, float))]
+        per_doc_records = [r for r in records if isinstance(r["avg_time_per_doc_ms"], (int, float))]
+        latency_records = [r for r in records if isinstance(r["avg_query_latency_ms"], (int, float))]
+
+        panels = []
+        if throughput_records:
+            panels.append(("Embedding Throughput", "Documents per Second", throughput_records, "docs_per_second", "skyblue", "{:.1f}"))
+        if per_doc_records:
+            panels.append(("Embedding Time per Document", "Average Time per Document (ms)", per_doc_records, "avg_time_per_doc_ms", "lightcoral", "{:.1f} ms"))
+        if latency_records:
+            panels.append(("Query Retrieval Latency", "Average Query Latency (ms/query)", latency_records, "avg_query_latency_ms", "mediumseagreen", "{:.2f} ms"))
+
+        if not panels:
             return {}
-        
-        # Create dual-axis plot
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-        
-        # Chart 1: Documents per second (throughput)
-        bars1 = ax1.bar(models, docs_per_second, color='skyblue', alpha=0.8)
-        ax1.set_xlabel('Models', fontsize=12)
-        ax1.set_ylabel('Documents per Second', fontsize=12)
-        ax1.set_title('Embedding Throughput Performance', fontsize=14, weight='bold')
-        ax1.tick_params(axis='x', rotation=45)
-        
-        # Add value labels on bars
-        for bar in bars1:
-            height = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.05,
-                    f'{height:.1f}', ha='center', va='bottom')
-        
-        # Chart 2: Average time per document
-        bars2 = ax2.bar(models, avg_time_per_doc, color='lightcoral', alpha=0.8)
-        ax2.set_xlabel('Models', fontsize=12)
-        ax2.set_ylabel('Average Time per Document (ms)', fontsize=12)
-        ax2.set_title('Processing Time per Document', fontsize=14, weight='bold')
-        ax2.tick_params(axis='x', rotation=45)
-        
-        # Add value labels on bars
-        for bar in bars2:
-            height = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                    f'{height:.1f}ms', ha='center', va='bottom')
-        
+
+        fig, axes = plt.subplots(1, len(panels), figsize=(7 * len(panels), 6))
+        if len(panels) == 1:
+            axes = [axes]
+
+        for ax, (title, ylabel, panel_records, value_key, color, label_fmt) in zip(axes, panels):
+            panel_models = [rec["model"] for rec in panel_records]
+            panel_values = [rec[value_key] for rec in panel_records]
+
+            bars = ax.bar(panel_models, panel_values, color=color, alpha=0.8)
+            ax.set_xlabel('Models', fontsize=12)
+            ax.set_ylabel(ylabel, fontsize=12)
+            ax.set_title(title, fontsize=14, weight='bold')
+            ax.tick_params(axis='x', rotation=45)
+
+            max_val = max(panel_values) if panel_values else 0
+            offset = max_val * 0.02 if max_val > 0 else 0.02
+            for bar, value in zip(bars, panel_values):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    value + offset,
+                    label_fmt.format(value),
+                    ha='center',
+                    va='bottom'
+                )
+
         plt.tight_layout()
         
         # Save figure
@@ -1350,7 +1458,12 @@ def print_results_summary(model_results, queries=None, corpus=None, relevant_doc
     # Build headers dynamically
     headers = ["Model"]
     for metric_name in enabled_metrics:
-        short_label = "Prec" if metric_name == "precision" else METRIC_LABELS[metric_name]
+        if metric_name == "precision":
+            short_label = "Prec"
+        elif metric_name == "hit_rate":
+            short_label = "Success"
+        else:
+            short_label = METRIC_LABELS[metric_name]
         headers.append(f"{short_label}@{cfg.k}")
 
     # Build table rows using dynamic metric indices

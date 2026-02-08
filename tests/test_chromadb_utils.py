@@ -105,14 +105,16 @@ def test_evaluate_with_chromadb():
         "recall@k": {10: 0.75},
         "precision@k": {10: 0.80},
         "ndcg@k": {10: 0.82},
-        "mrr@k": {10: 0.78}
+        "mrr@k": {10: 0.78},
+        "accuracy@k": {10: 0.90}
     }
     mock_evaluator.compute_metrics.return_value = mock_scores
     mock_evaluator.queries_ids = list(queries.keys())
     
     with patch('utils.chromadb_utils.get_chromadb_client', return_value=mock_client), \
          patch('utils.chromadb_utils.cfg') as mock_cfg, \
-         patch('sentence_transformers.evaluation.InformationRetrievalEvaluator', return_value=mock_evaluator):
+         patch('sentence_transformers.evaluation.InformationRetrievalEvaluator', return_value=mock_evaluator), \
+         patch('utils.chromadb_utils.time.perf_counter', side_effect=[0.0, 0.01, 0.02, 0.05]):
         
         # Configure mock settings
         mock_cfg.k = 10
@@ -121,12 +123,14 @@ def test_evaluate_with_chromadb():
         mock_cfg.compute_precision = True
         mock_cfg.compute_ndcg = True
         mock_cfg.compute_mrr = True
+        mock_cfg.compute_hit_rate = True
         mock_cfg.show_progress_bar = False
         
         # Call the function
-        map_score, recall, precision, ndcg, mrr = evaluate_with_chromadb(
+        metrics, retrieval_timing = evaluate_with_chromadb(
             queries, corpus, relevant_docs, "test-model", "test-collection"
         )
+        map_score, recall, precision, ndcg, mrr, hit_rate = metrics
         
         # Verify results
         assert map_score == 0.85
@@ -134,6 +138,12 @@ def test_evaluate_with_chromadb():
         assert precision == 0.80
         assert ndcg == 0.82
         assert mrr == 0.78
+        assert hit_rate == 0.90
+
+        assert retrieval_timing["queries_timed"] == 2
+        assert retrieval_timing["total_query_retrieval_time_s"] == pytest.approx(0.04)
+        assert retrieval_timing["avg_query_latency_s"] == pytest.approx(0.02)
+        assert retrieval_timing["avg_query_latency_ms"] == pytest.approx(20.0)
         
         # Verify ChromaDB interactions
         mock_client.get_collection.assert_called_once_with("test-collection")
@@ -161,3 +171,52 @@ def test_initialize_collection_existing():
         
         # Should not create a new collection
         mock_client.create_collection.assert_not_called()
+
+
+def test_evaluate_with_chromadb_hit_rate_only_and_missing_accuracy():
+    """Hit-rate metric should default to 0.0 when accuracy@k is missing."""
+    queries = {"q1": "test query"}
+    corpus = {"doc1": "document one"}
+    relevant_docs = {"q1": ["doc1"]}
+
+    mock_results = {
+        'ids': [['doc1']],
+        'distances': [[0.1]]
+    }
+
+    mock_collection = MagicMock()
+    mock_collection.query.return_value = mock_results
+    mock_client = MagicMock()
+    mock_client.get_collection.return_value = mock_collection
+
+    mock_evaluator = MagicMock()
+    mock_evaluator.compute_metrics.return_value = {
+        # intentionally missing accuracy@k
+        "map@k": {10: 0.5}
+    }
+    mock_evaluator.queries_ids = list(queries.keys())
+
+    with patch('utils.chromadb_utils.get_chromadb_client', return_value=mock_client), \
+         patch('utils.chromadb_utils.cfg') as mock_cfg, \
+         patch('sentence_transformers.evaluation.InformationRetrievalEvaluator', return_value=mock_evaluator), \
+         patch('utils.chromadb_utils.time.perf_counter', side_effect=[0.0, 0.01]):
+
+        mock_cfg.k = 10
+        mock_cfg.compute_map = False
+        mock_cfg.compute_recall = False
+        mock_cfg.compute_precision = False
+        mock_cfg.compute_ndcg = False
+        mock_cfg.compute_mrr = False
+        mock_cfg.compute_hit_rate = True
+        mock_cfg.show_progress_bar = False
+        mock_cfg.mrr_at_k = [10]
+        mock_cfg.ndcg_at_k = [10]
+        mock_cfg.precision_recall_at_k = [10]
+        mock_cfg.map_at_k = [10]
+        mock_cfg.document_batch_size = 8
+
+        metrics, _ = evaluate_with_chromadb(
+            queries, corpus, relevant_docs, "test-model", "test-collection"
+        )
+
+        assert metrics == (0.0,)

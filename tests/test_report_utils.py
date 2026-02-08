@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 import os
 import tempfile
 import shutil
@@ -34,13 +34,25 @@ except ImportError as e:
         print("Mocked print_report_info")
 
 
+@pytest.fixture(autouse=True)
+def mock_chromadb_client_for_reports():
+    """Avoid real ChromaDB calls in report tests."""
+    with patch('utils.report_utils.chromadb.PersistentClient') as mock_client_cls:
+        mock_collection = MagicMock()
+        mock_collection.count.return_value = 1
+        mock_client = MagicMock()
+        mock_client.get_collection.return_value = mock_collection
+        mock_client_cls.return_value = mock_client
+        yield
+
+
 class TestMetricIndexing:
     """Test metric indexing fixes"""
     
     def setup_method(self):
         """Store original config values before each test"""
         self.original_config = {}
-        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr']:
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate']:
             if hasattr(cfg, attr):
                 self.original_config[attr] = getattr(cfg, attr)
     
@@ -57,6 +69,7 @@ class TestMetricIndexing:
         cfg.compute_precision = True
         cfg.compute_ndcg = True
         cfg.compute_mrr = True
+        cfg.compute_hit_rate = False
         
         # Build metric indices (same logic as in report_utils.py)
         metric_indices = {}
@@ -76,6 +89,9 @@ class TestMetricIndexing:
             current_idx += 1
         if cfg.compute_mrr:
             metric_indices['mrr'] = current_idx
+            current_idx += 1
+        if getattr(cfg, 'compute_hit_rate', False):
+            metric_indices['hit_rate'] = current_idx
         
         # Verify indices
         assert metric_indices['map'] == 1
@@ -104,6 +120,7 @@ class TestMetricIndexing:
         cfg.compute_precision = False
         cfg.compute_ndcg = True
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         # Build metric indices
         metric_indices = {}
@@ -123,6 +140,9 @@ class TestMetricIndexing:
             current_idx += 1
         if cfg.compute_mrr:
             metric_indices['mrr'] = current_idx
+            current_idx += 1
+        if getattr(cfg, 'compute_hit_rate', False):
+            metric_indices['hit_rate'] = current_idx
         
         # Verify correct indexing for partial metrics
         assert metric_indices['map'] == 1
@@ -147,6 +167,7 @@ class TestMetricIndexing:
         cfg.compute_precision = False
         cfg.compute_ndcg = False
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         # Build metric indices
         metric_indices = {}
@@ -166,6 +187,9 @@ class TestMetricIndexing:
             current_idx += 1
         if cfg.compute_mrr:
             metric_indices['mrr'] = current_idx
+            current_idx += 1
+        if getattr(cfg, 'compute_hit_rate', False):
+            metric_indices['hit_rate'] = current_idx
         
         assert metric_indices['recall'] == 1  # Should be first index
         assert len(metric_indices) == 1
@@ -185,7 +209,7 @@ class TestReportGeneration:
     def setup_method(self):
         """Setup test data and config"""
         self.original_config = {}
-        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'k']:
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate', 'k']:
             if hasattr(cfg, attr):
                 self.original_config[attr] = getattr(cfg, attr)
         
@@ -195,6 +219,7 @@ class TestReportGeneration:
         cfg.compute_precision = True
         cfg.compute_ndcg = True
         cfg.compute_mrr = True
+        cfg.compute_hit_rate = False
         cfg.k = 10
         
         self.temp_dir = tempfile.mkdtemp()
@@ -226,13 +251,17 @@ class TestReportGeneration:
                 "embedding_time": 2.5,
                 "docs_processed": 100,
                 "docs_per_second": 40.0,
-                "avg_time_per_doc": 0.025
+                "avg_time_per_doc": 0.025,
+                "avg_query_latency_ms": 12.4,
+                "queries_timed": 20
             }),
             ("sentence-transformers/all-mpnet-base-v2", {
                 "embedding_time": 3.8,
                 "docs_processed": 100,
                 "docs_per_second": 26.3,
-                "avg_time_per_doc": 0.038
+                "avg_time_per_doc": 0.038,
+                "avg_query_latency_ms": 18.1,
+                "queries_timed": 20
             }),
         ]
     
@@ -264,7 +293,7 @@ class TestReportGeneration:
         
         # Check that report file was created
         assert result is not None
-        report_files = [f for f in os.listdir(self.temp_dir) if f.startswith("benchmark_report_") and f.endswith(".md")]
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
         assert len(report_files) == 1
         
         # Read and verify report content
@@ -278,6 +307,7 @@ class TestReportGeneration:
         assert "sentence-transformers/all-MiniLM-L6-v2" in content  # Best model
         assert "MAP@10: **0.8234**" in content
         assert "Recall@10: **0.9123**" in content
+        assert "Avg Query Latency (ms/query)" in content
     
     @patch('utils.report_utils.generate_visualizations')
     def test_report_without_timing_data(self, mock_viz):
@@ -294,7 +324,7 @@ class TestReportGeneration:
         )
         
         assert result is not None
-        report_files = [f for f in os.listdir(self.temp_dir) if f.startswith("benchmark_report_") and f.endswith(".md")]
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
         assert len(report_files) == 1
     
     def test_report_generation_empty_model_results(self):
@@ -335,7 +365,7 @@ class TestReportGeneration:
         )
         
         assert result is not None
-        report_files = [f for f in os.listdir(self.temp_dir) if f.startswith("benchmark_report_") and f.endswith(".md")]
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
         assert len(report_files) == 1
         
         # Verify content has correct metrics
@@ -347,11 +377,51 @@ class TestReportGeneration:
         assert "Recall@10" not in content  # Should not be present
         assert "Precision@10" not in content  # Should not be present
 
+    @patch('utils.report_utils.generate_visualizations')
+    def test_report_with_hit_rate_metric(self, mock_viz):
+        """Test report renders Success@k / Hit Rate@k when enabled."""
+        cfg.compute_map = False
+        cfg.compute_recall = False
+        cfg.compute_precision = False
+        cfg.compute_ndcg = False
+        cfg.compute_mrr = False
+        cfg.compute_hit_rate = True
+
+        hit_rate_results = [
+            ("model1", 0.90),
+            ("model2", 0.70),
+        ]
+
+        mock_viz.return_value = {}
+
+        result = generate_benchmark_report(
+            model_results=hit_rate_results,
+            queries=self.queries,
+            corpus=self.corpus,
+            relevant_docs=self.relevant_docs,
+            output_dir=self.temp_dir
+        )
+
+        assert result is not None
+
 
 class TestTimingValidation:
     """Test timing data validation"""
     
     def setup_method(self):
+        self.original_config = {}
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate', 'k']:
+            if hasattr(cfg, attr):
+                self.original_config[attr] = getattr(cfg, attr)
+
+        cfg.compute_map = True
+        cfg.compute_recall = True
+        cfg.compute_precision = False
+        cfg.compute_ndcg = False
+        cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
+        cfg.k = 10
+
         self.temp_dir = tempfile.mkdtemp()
         
         self.model_results = [
@@ -363,6 +433,8 @@ class TestTimingValidation:
         self.relevant_docs = {"q1": ["doc1"]}
     
     def teardown_method(self):
+        for attr, value in self.original_config.items():
+            setattr(cfg, attr, value)
         shutil.rmtree(self.temp_dir)
     
     @patch('utils.report_utils.generate_visualizations')
@@ -373,7 +445,9 @@ class TestTimingValidation:
                 "embedding_time": 2.5,
                 "docs_processed": 100,
                 "docs_per_second": 40.0,
-                "avg_time_per_doc": 0.025
+                "avg_time_per_doc": 0.025,
+                "avg_query_latency_ms": 14.0,
+                "queries_timed": 8
             })
         ]
         
@@ -389,6 +463,42 @@ class TestTimingValidation:
         )
         
         assert result is not None
+
+    @patch('utils.report_utils.generate_visualizations')
+    def test_latency_only_timing_data(self, mock_viz):
+        """Latency-only timing rows should still render in report."""
+        cfg.compute_map = True
+        cfg.compute_recall = True
+        cfg.compute_precision = False
+        cfg.compute_ndcg = False
+        cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
+
+        timing_results = [
+            ("model1", {
+                "avg_query_latency_ms": 9.5,
+                "queries_timed": 12
+            })
+        ]
+
+        mock_viz.return_value = {}
+
+        result = generate_benchmark_report(
+            model_results=self.model_results,
+            queries=self.queries,
+            corpus=self.corpus,
+            relevant_docs=self.relevant_docs,
+            timing_results=timing_results,
+            output_dir=self.temp_dir
+        )
+        assert result is not None
+
+        report_files = [f for f in os.listdir(self.temp_dir) if "benchmark_report_" in f and f.endswith(".md")]
+        assert len(report_files) == 1
+        with open(os.path.join(self.temp_dir, report_files[0]), 'r', encoding='utf-8') as f:
+            content = f.read()
+        assert "Avg Query Latency (ms/query)" in content
+        assert "9.50" in content
     
     @patch('utils.report_utils.generate_visualizations')
     def test_invalid_timing_data_structure(self, mock_viz):
@@ -439,10 +549,13 @@ class TestVisualizationFunctions:
     """Test visualization generation functions"""
     
     def setup_method(self):
+        self.original_hit_rate = getattr(cfg, "compute_hit_rate", False)
+        cfg.compute_hit_rate = False
         self.temp_dir = tempfile.mkdtemp()
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
     def teardown_method(self):
+        cfg.compute_hit_rate = self.original_hit_rate
         shutil.rmtree(self.temp_dir)
     
     @patch('matplotlib.pyplot.savefig')
@@ -476,13 +589,17 @@ class TestVisualizationFunctions:
                 "embedding_time": 2.5,
                 "docs_processed": 100,
                 "docs_per_second": 40.0,
-                "avg_time_per_doc": 0.025
+                "avg_time_per_doc": 0.025,
+                "avg_query_latency_ms": 11.2,
+                "queries_timed": 10
             }),
             ("model2", {
                 "embedding_time": 3.8,
                 "docs_processed": 100,
                 "docs_per_second": 26.3,
-                "avg_time_per_doc": 0.038
+                "avg_time_per_doc": 0.038,
+                "avg_query_latency_ms": 17.9,
+                "queries_timed": 10
             }),
         ]
         
@@ -529,15 +646,20 @@ class TestUtilityFunctions:
     
     def test_print_results_summary(self, capsys):
         """Test results summary printing"""
-        model_results = [
-            ("model1", 0.8, 0.9, 0.7, 0.85, 0.6),
-            ("model2", 0.7, 0.8, 0.6, 0.75, 0.5),
-        ]
-        
-        print_results_summary(model_results)
-        captured = capsys.readouterr()
-        assert "model1" in captured.out
-        assert "model2" in captured.out
+        original_hit_rate = getattr(cfg, "compute_hit_rate", False)
+        try:
+            cfg.compute_hit_rate = False
+            model_results = [
+                ("model1", 0.8, 0.9, 0.7, 0.85, 0.6),
+                ("model2", 0.7, 0.8, 0.6, 0.75, 0.5),
+            ]
+            
+            print_results_summary(model_results)
+            captured = capsys.readouterr()
+            assert "model1" in captured.out
+            assert "model2" in captured.out
+        finally:
+            cfg.compute_hit_rate = original_hit_rate
     
     def test_print_report_info(self, capsys):
         """Test report info printing"""
@@ -555,9 +677,21 @@ class TestEdgeCases:
     """Test edge cases and error conditions"""
     
     def setup_method(self):
+        self.original_config = {}
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate']:
+            if hasattr(cfg, attr):
+                self.original_config[attr] = getattr(cfg, attr)
+        cfg.compute_map = True
+        cfg.compute_recall = True
+        cfg.compute_precision = False
+        cfg.compute_ndcg = False
+        cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         self.temp_dir = tempfile.mkdtemp()
     
     def teardown_method(self):
+        for attr, value in self.original_config.items():
+            setattr(cfg, attr, value)
         shutil.rmtree(self.temp_dir)
     
     @patch('utils.report_utils.generate_visualizations')
@@ -605,3 +739,5 @@ class TestEdgeCases:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+

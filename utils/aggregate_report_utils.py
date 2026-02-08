@@ -38,6 +38,34 @@ HEATMAP_TITLE_SIZE = 16
 HEATMAP_TICK_SIZE = 10
 HEATMAP_ANNOT_SIZE = 10
 
+METRIC_DISPLAY_NAMES = {
+    "map": "MAP",
+    "recall": "Recall",
+    "precision": "Precision",
+    "ndcg": "NDCG",
+    "mrr": "MRR",
+    "hit_rate": "Success/Hit Rate",
+}
+
+METRIC_HEADER_NAMES = {
+    "map": "MAP",
+    "recall": "Recall",
+    "precision": "Precision",
+    "ndcg": "NDCG",
+    "mrr": "MRR",
+    "hit_rate": "Success",
+}
+
+
+def metric_display_name(metric: str) -> str:
+    """Human-readable metric name for narrative text and titles."""
+    return METRIC_DISPLAY_NAMES.get(metric, metric.upper())
+
+
+def metric_header_name(metric: str) -> str:
+    """Short metric name for table headers."""
+    return METRIC_HEADER_NAMES.get(metric, metric.upper())
+
 
 def check_aggregate_dependencies():
     """
@@ -170,7 +198,7 @@ def validate_metric_compatibility(datasets: Dict[str, Dict]) -> Dict[str, Any]:
         dataset_metrics[ds_name] = metric_flags
     
     # Find common metrics (intersection)
-    all_metrics = ["compute_map", "compute_recall", "compute_precision", "compute_ndcg", "compute_mrr"]
+    all_metrics = ["compute_map", "compute_recall", "compute_precision", "compute_ndcg", "compute_mrr", "compute_hit_rate"]
     common_metrics = set(all_metrics)
     
     for ds_name, flags in dataset_metrics.items():
@@ -206,7 +234,7 @@ def validate_metric_compatibility(datasets: Dict[str, Dict]) -> Dict[str, Any]:
     
     excluded = all_enabled - common_metrics
     if excluded:
-        metric_names = [m.replace("compute_", "").upper() for m in excluded]
+        metric_names = [metric_display_name(m.replace("compute_", "")) for m in excluded]
         report["warnings"].append(
             f"Metrics {', '.join(metric_names)} excluded (not enabled in all datasets)"
         )
@@ -254,9 +282,10 @@ def get_common_metrics(datasets: Dict[str, Dict]) -> List[str]:
     if validation["status"] == "error":
         return []
     
-    # Convert compute_* to metric names
-    common = validation["common_metrics"]
-    return [m.replace("compute_", "") for m in common]
+    # Convert compute_* to metric names using stable preferred order.
+    ordered_flags = ["compute_map", "compute_recall", "compute_precision", "compute_ndcg", "compute_mrr", "compute_hit_rate"]
+    common_set = set(validation["common_metrics"])
+    return [m.replace("compute_", "") for m in ordered_flags if m in common_set]
 
 
 def normalize_model_names(datasets: Dict[str, Dict]) -> Dict[str, str]:
@@ -742,6 +771,68 @@ def get_all_models(datasets: Dict[str, Dict]) -> List[str]:
     return sorted(list(all_models))
 
 
+def extract_query_latency_matrix(datasets: Dict[str, Dict]) -> Dict[str, Dict[str, Optional[float]]]:
+    """
+    Extract avg query latency (ms/query) per model per dataset from raw results timing.
+
+    Returns:
+    {
+        "model_a": {"dataset_1": 12.3, "dataset_2": None, ...},
+        ...
+    }
+    """
+    matrix: Dict[str, Dict[str, Optional[float]]] = {}
+    dataset_names = sorted(datasets.keys())
+
+    for model_name in get_all_models(datasets):
+        matrix[model_name] = {}
+        for ds_name in dataset_names:
+            timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
+            latency_ms = timing.get("avg_query_latency_ms")
+            matrix[model_name][ds_name] = float(latency_ms) if isinstance(latency_ms, (int, float)) else None
+
+    return matrix
+
+
+def compute_weighted_query_latency_summary(datasets: Dict[str, Dict]) -> Dict[str, Dict[str, Optional[float]]]:
+    """
+    Compute weighted mean query latency across datasets for each model.
+    Weight = queries_timed from each dataset's raw results timing.
+    """
+    summary: Dict[str, Dict[str, Optional[float]]] = {}
+
+    for model_name in get_all_models(datasets):
+        weighted_sum = 0.0
+        total_weight = 0
+        latency_values: List[float] = []
+
+        for ds_name in sorted(datasets.keys()):
+            timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
+            latency_ms = timing.get("avg_query_latency_ms")
+            queries_timed = timing.get("queries_timed")
+
+            if (
+                isinstance(latency_ms, (int, float))
+                and isinstance(queries_timed, (int, float))
+                and queries_timed > 0
+            ):
+                latency = float(latency_ms)
+                weight = int(queries_timed)
+                weighted_sum += latency * weight
+                total_weight += weight
+                latency_values.append(latency)
+
+        summary[model_name] = {
+            "weighted_mean_latency_ms": (weighted_sum / total_weight) if total_weight > 0 else None,
+            "best_latency_ms": min(latency_values) if latency_values else None,
+            "worst_latency_ms": max(latency_values) if latency_values else None,
+            "datasets_with_latency_data": len(latency_values),
+            "total_queries_timed": total_weight,
+        }
+
+    return summary
+
+
 # ============================================================================
 # Visualization Generation Functions
 # ============================================================================
@@ -800,7 +891,7 @@ def generate_cross_dataset_radar_chart(
     
     # Set labels
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels([m.upper() for m in metrics], fontsize=12)
+    ax.set_xticklabels([metric_header_name(m) for m in metrics], fontsize=12)
     ax.set_ylim(0, 1)
     ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
     ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"])
@@ -935,12 +1026,12 @@ def generate_performance_distribution_plots(
         
         short_name = model_name.split("/")[-1]
         ax.set_title(short_name, fontsize=12)
-        ax.set_ylabel(metric.upper() + " Score" if idx == 0 else "")
+        ax.set_ylabel(metric_display_name(metric) + " Score" if idx == 0 else "")
         ax.set_xticks([])
         ax.set_ylim(0, 1)
         ax.grid(axis='y', alpha=0.3)
     
-    fig.suptitle(f"{metric.upper()} Distribution Across Datasets", fontsize=16)
+    fig.suptitle(f"{metric_display_name(metric)} Distribution Across Datasets", fontsize=16)
     
     output_path = os.path.join(output_dir, f"performance_distribution_{metric}_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -1000,9 +1091,9 @@ def generate_dataset_difficulty_chart(
     
     bars = ax.barh(names, means, xerr=stds, capsize=5, color=colors, alpha=0.7)
     
-    ax.set_xlabel(f"Mean {metric.upper()} Score Across Models", fontsize=12)
+    ax.set_xlabel(f"Mean {metric_display_name(metric)} Score Across Models", fontsize=12)
     ax.set_ylabel("Dataset", fontsize=12)
-    ax.set_title(f"Dataset Difficulty Ranking (by {metric.upper()})", fontsize=14)
+    ax.set_title(f"Dataset Difficulty Ranking (by {metric_display_name(metric)})", fontsize=14)
     ax.set_xlim(0, 1)
     ax.grid(axis='x', alpha=0.3)
     
@@ -1132,11 +1223,11 @@ def generate_model_performance_heatmap(
                 )
 
     ax.set_title(
-        f"Model Performance Heatmap ({metric.upper()})",
+        f"Model Performance Heatmap ({metric_display_name(metric)})",
         fontsize=HEATMAP_TITLE_SIZE,
         pad=16
     )
-    fig.colorbar(im, ax=ax, label=f"{metric.upper()} Score")
+    fig.colorbar(im, ax=ax, label=f"{metric_display_name(metric)} Score")
 
     output_path = os.path.join(output_dir, f"model_performance_heatmap_{metric}_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -1200,6 +1291,68 @@ def generate_embedding_speed_heatmap(
     fig.colorbar(im, ax=ax, label="Docs per Second")
 
     output_path = os.path.join(output_dir, f"embedding_speed_heatmap_{timestamp}.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    return output_path
+
+
+def generate_query_latency_heatmap(
+    datasets: Dict[str, Dict],
+    output_dir: str,
+    timestamp: str
+) -> str:
+    """
+    Heatmap of query retrieval latency (ms/query) by model and dataset.
+    Lower values are better.
+
+    Returns: Path to saved PNG file.
+    """
+    if not MATPLOTLIB_AVAILABLE or not PANDAS_AVAILABLE:
+        print("Warning: matplotlib/pandas not available, skipping latency heatmap")
+        return ""
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    all_models = get_all_models(datasets)
+    dataset_names = sorted(datasets.keys())
+
+    matrix = []
+    for model_name in all_models:
+        row = []
+        for ds_name in dataset_names:
+            timing = datasets.get(ds_name, {}).get("models", {}).get(model_name, {}).get("timing", {})
+            avg_query_latency_ms = timing.get("avg_query_latency_ms")
+            row.append(avg_query_latency_ms if isinstance(avg_query_latency_ms, (int, float)) else np.nan)
+        matrix.append(row)
+
+    df = pd.DataFrame(matrix, index=[m.split("/")[-1] for m in all_models], columns=dataset_names)
+
+    if df.isna().all().all():
+        return ""
+
+    fig, ax = plt.subplots(figsize=(max(10, len(dataset_names) * 1.2), max(6, len(all_models) * 0.4)))
+    im = ax.imshow(df.values, cmap=AGG_HEATMAP_CMAP, aspect='auto')
+
+    ax.set_xticks(np.arange(len(dataset_names)))
+    ax.set_yticks(np.arange(len(all_models)))
+    ax.set_xticklabels(dataset_names)
+    ax.set_yticklabels(df.index)
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    for i in range(len(all_models)):
+        for j in range(len(dataset_names)):
+            if not np.isnan(df.values[i, j]):
+                ax.text(
+                    j, i, f"{df.values[i, j]:.2f}",
+                    ha="center", va="center", color="black", fontsize=HEATMAP_ANNOT_SIZE
+                )
+
+    ax.set_title("Query Retrieval Latency (ms/query, lower is better)", fontsize=HEATMAP_TITLE_SIZE, pad=16)
+    fig.colorbar(im, ax=ax, label="Avg Query Latency (ms/query)")
+
+    output_path = os.path.join(output_dir, f"query_latency_heatmap_{timestamp}.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -1391,7 +1544,7 @@ def generate_aggregate_report(
     if not metrics:
         raise ValueError("No common metrics found across datasets")
     
-    print(f"✓ Analyzing metrics: {', '.join([m.upper() for m in metrics])}")
+    print(f"✓ Analyzing metrics: {', '.join([metric_display_name(m) for m in metrics])}")
     
     # Aggregate model performance
     print("\n📊 Aggregating model performance...")
@@ -1417,7 +1570,7 @@ def generate_aggregate_report(
     significance_matrix = None
     if cfg.aggregate_statistical_tests and len(datasets) >= 2:
         significance_matrix = perform_pairwise_significance_tests(datasets, primary_metric)
-        print(f"✓ Computed pairwise significance tests for {primary_metric.upper()}")
+        print(f"✓ Computed pairwise significance tests for {metric_display_name(primary_metric)}")
     
     friedman_stat, friedman_p = perform_friedman_test(datasets, primary_metric)
     
@@ -1451,9 +1604,9 @@ def generate_aggregate_report(
             viz_paths[f"performance_heatmap_{heatmap_metric}"] = generate_model_performance_heatmap(
                 datasets, heatmap_metric, output_dir, timestamp
             )
-            print(f"  ✓ Performance heatmap ({heatmap_metric.upper()})")
+            print(f"  ✓ Performance heatmap ({metric_display_name(heatmap_metric)})")
         except Exception as e:
-            print(f"  ⚠️  Performance heatmap ({heatmap_metric.upper()}) failed: {e}")
+            print(f"  ⚠️  Performance heatmap ({metric_display_name(heatmap_metric)}) failed: {e}")
 
         try:
             viz_paths["speed_heatmap"] = generate_embedding_speed_heatmap(datasets, output_dir, timestamp)
@@ -1461,19 +1614,26 @@ def generate_aggregate_report(
                 print("  ✓ Embedding speed heatmap")
         except Exception as e:
             print(f"  ⚠️  Embedding speed heatmap failed: {e}")
+
+        try:
+            viz_paths["latency_heatmap"] = generate_query_latency_heatmap(datasets, output_dir, timestamp)
+            if viz_paths["latency_heatmap"]:
+                print("  ✓ Query latency heatmap")
+        except Exception as e:
+            print(f"  ⚠️  Query latency heatmap failed: {e}")
         
         for metric in metrics:
             try:
                 viz_paths[f"dist_{metric}"] = generate_performance_distribution_plots(model_results, metric, output_dir, timestamp)
-                print(f"  ✓ Distribution plot ({metric.upper()})")
+                print(f"  ✓ Distribution plot ({metric_display_name(metric)})")
             except Exception as e:
-                print(f"  ⚠️  Distribution plot ({metric.upper()}) failed: {e}")
+                print(f"  ⚠️  Distribution plot ({metric_display_name(metric)}) failed: {e}")
             
             try:
                 viz_paths[f"difficulty_{metric}"] = generate_dataset_difficulty_chart(datasets, metric, output_dir, timestamp)
-                print(f"  ✓ Difficulty chart ({metric.upper()})")
+                print(f"  ✓ Difficulty chart ({metric_display_name(metric)})")
             except Exception as e:
-                print(f"  ⚠️  Difficulty chart ({metric.upper()}) failed: {e}")
+                print(f"  ⚠️  Difficulty chart ({metric_display_name(metric)}) failed: {e}")
         
         if significance_matrix is not None:
             try:
@@ -1582,7 +1742,7 @@ def _write_markdown_report(
             if primary_metric in model_results.get(model_name, {}):
                 scores = model_results[model_name][primary_metric]["scores_by_dataset"]
                 for ds_name, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)[:2]:
-                    best_datasets.append(f"{ds_name} ({primary_metric.upper()}={score:.2f})")
+                    best_datasets.append(f"{ds_name} ({metric_display_name(primary_metric)}={score:.2f})")
             
             if best_datasets:
                 f.write(f"   - Best on: {', '.join(best_datasets)}\n")
@@ -1610,11 +1770,11 @@ def _write_markdown_report(
                     f.write(f"- **Statistical Significance**: {best_model.split('/')[-1]} ")
                     if p_val < 0.05:
                         f.write(f"significantly outperforms {second_model.split('/')[-1]} ")
-                        f.write(f"on {metrics[0].upper()} across datasets ")
+                        f.write(f"on {metric_display_name(metrics[0])} across datasets ")
                         f.write(f"(p={p_val:.3f}, Cohen's d={effect['cohens_d']:.2f})\n")
                     else:
                         f.write(f"does not significantly differ from {second_model.split('/')[-1]} ")
-                        f.write(f"on {metrics[0].upper()} (p={p_val:.3f})\n")
+                        f.write(f"on {metric_display_name(metrics[0])} (p={p_val:.3f})\n")
             except Exception as e:
                 pass
         
@@ -1632,7 +1792,7 @@ def _write_markdown_report(
             easiest = max(dataset_means, key=dataset_means.get)
             hardest = min(dataset_means, key=dataset_means.get)
             f.write(f"- **Dataset Difficulty**: {hardest} dataset is harder ")
-            f.write(f"(mean {primary_metric.upper()}={dataset_means[hardest]:.2f} vs ")
+            f.write(f"(mean {metric_display_name(primary_metric)}={dataset_means[hardest]:.2f} vs ")
             f.write(f"{easiest}={dataset_means[easiest]:.2f})\n")
         
         # Performance variability
@@ -1657,7 +1817,7 @@ def _write_markdown_report(
         chunk_size = first_ds.get("config", {}).get("chunk_size", "N/A")
         chunk_overlap = first_ds.get("config", {}).get("chunk_overlap", "N/A")
         f.write(f"- **Chunking**: {chunk_size} tokens with {chunk_overlap}-token overlap\n")
-        f.write(f"- **Metrics Computed**: {', '.join([m.upper() for m in metrics])}\n\n")
+        f.write(f"- **Metrics Computed**: {', '.join([metric_display_name(m) for m in metrics])}\n\n")
         
         f.write("### Statistical Analysis Methods\n\n")
         f.write(f"- **Paired t-tests**: Comparing models across datasets (alpha={cfg.aggregate_significance_level})\n")
@@ -1773,7 +1933,7 @@ def _write_markdown_report(
         
         # Cross-Dataset Model Comparison
         f.write("## Cross-Dataset Model Comparison\n\n")
-        f.write(f"### Overall Performance Rankings (by {metrics[0].upper()})\n\n")
+        f.write(f"### Overall Performance Rankings (by {metric_display_name(metrics[0])})\n\n")
         
         # Create ranking table
         
@@ -1800,14 +1960,14 @@ def _write_markdown_report(
             ])
         
         f.write(tabulate(table_data, 
-                        headers=["Model", "Avg Rank", f"Mean {metrics[0].upper()}", "Std", "CV", "Datasets Won"],
+                        headers=["Model", "Avg Rank", f"Mean {metric_display_name(metrics[0])}", "Std", "CV", "Datasets Won"],
                         tablefmt="github"))
         f.write("\n\n")
         
         f.write("**Table: Cross-Dataset Model Performance Summary**\n\n")
         f.write("**Column Explanations:**\n")
         f.write("- **Avg Rank**: Average ranking position across datasets (1.0 = best overall)\n")
-        f.write(f"- **Mean {metrics[0].upper()}**: Average {metrics[0].upper()} score across all datasets\n")
+        f.write(f"- **Mean {metric_display_name(metrics[0])}**: Average {metric_display_name(metrics[0])} score across all datasets\n")
         f.write("- **Std**: Standard deviation of performance across datasets\n")
         f.write("- **CV**: Coefficient of variation (Std/Mean) - measures relative consistency\n")
         f.write("- **Datasets Won**: Number of datasets where this model ranked #1\n\n")
@@ -1818,7 +1978,7 @@ def _write_markdown_report(
         f.write("- **Compare Mean vs Std**: High mean with low std = reliable excellence\n")
         f.write("- **Datasets Won**: Shows how often a model is the best choice\n\n")
 
-        f.write(f"### Model Performance by Dataset ({heatmap_metric.upper()})\n\n")
+        f.write(f"### Model Performance by Dataset ({metric_display_name(heatmap_metric)})\n\n")
 
         if viz_paths.get(f"performance_heatmap_{heatmap_metric}"):
             f.write(
@@ -1826,7 +1986,7 @@ def _write_markdown_report(
             )
             f.write("**Figure: Model Performance by Dataset**\n\n")
             f.write(
-                f"This heatmap shows {heatmap_metric.upper()} scores for each model across all datasets. "
+                f"This heatmap shows {metric_display_name(heatmap_metric)} scores for each model across all datasets. "
                 "Darker colors indicate lower scores (weaker performance).\n\n"
             )
 
@@ -1868,6 +2028,65 @@ def _write_markdown_report(
             f.write(tabulate(
                 speed_rows,
                 headers=["Model"] + dataset_names,
+                tablefmt="github"
+            ))
+            f.write("\n\n")
+
+        f.write("### Query Retrieval Latency Comparison (ms/query)\n\n")
+        f.write("Lower values are better. Latency is measured during `collection.query(...)` only.\n\n")
+
+        if viz_paths.get("latency_heatmap"):
+            f.write(f"![Query Latency Heatmap]({os.path.basename(viz_paths['latency_heatmap'])})\n\n")
+            f.write("**Figure: Query Retrieval Latency by Dataset**\n\n")
+            f.write("This heatmap compares average retrieval latency in ms/query across datasets (lower is better).\n\n")
+
+        latency_matrix = extract_query_latency_matrix(datasets)
+        latency_rows = []
+        for model_name in all_models:
+            row = [model_name.split("/")[-1]]
+            model_latency = latency_matrix.get(model_name, {})
+            for ds_name in dataset_names:
+                latency = model_latency.get(ds_name)
+                row.append(_fmt(latency, 2) if isinstance(latency, (int, float)) else "N/A")
+            latency_rows.append(row)
+
+        if dataset_names and latency_rows:
+            f.write(tabulate(
+                latency_rows,
+                headers=["Model"] + dataset_names,
+                tablefmt="github"
+            ))
+            f.write("\n\n")
+
+        latency_summary = compute_weighted_query_latency_summary(datasets)
+        summary_rows = []
+        for model_name in all_models:
+            stats = latency_summary.get(model_name, {})
+            weighted = stats.get("weighted_mean_latency_ms")
+            summary_rows.append([
+                model_name.split("/")[-1],
+                _fmt(weighted, 2) if isinstance(weighted, (int, float)) else "N/A",
+                _fmt(stats.get("best_latency_ms"), 2) if isinstance(stats.get("best_latency_ms"), (int, float)) else "N/A",
+                _fmt(stats.get("worst_latency_ms"), 2) if isinstance(stats.get("worst_latency_ms"), (int, float)) else "N/A",
+                f"{int(stats.get('datasets_with_latency_data', 0))}",
+                f"{int(stats.get('total_queries_timed', 0))}",
+            ])
+
+        summary_rows.sort(
+            key=lambda row: float(row[1]) if row[1] != "N/A" else float("inf")
+        )
+
+        if summary_rows:
+            f.write(tabulate(
+                summary_rows,
+                headers=[
+                    "Model",
+                    "Weighted Mean Latency (ms/query)",
+                    "Best (Min)",
+                    "Worst (Max)",
+                    "Datasets with Latency Data",
+                    "Total Queries Timed",
+                ],
                 tablefmt="github"
             ))
             f.write("\n\n")
@@ -1966,7 +2185,7 @@ def _write_markdown_report(
                     f.write("Medium ")
                 else:
                     f.write("Hard ")
-                f.write(f"(mean {metrics[0].upper()}={mean_perf:.2f} across models)\n")
+                f.write(f"(mean {metric_display_name(metrics[0])}={mean_perf:.2f} across models)\n")
             
             # Best model for this dataset
             if ds_name in rankings and rankings[ds_name]:
@@ -1975,7 +2194,7 @@ def _write_markdown_report(
                 best_model_name = best_model.split('/')[-1]
                 best_score_value = best_score
                 f.write(f"- **Best Model**: {best_model.split('/')[-1]} ")
-                f.write(f"({metrics[0].upper()}={best_score:.4f})\n")
+                f.write(f"({metric_display_name(metrics[0])}={best_score:.4f})\n")
             
             f.write("\n")
 
@@ -2035,7 +2254,7 @@ def _write_markdown_report(
             # Model performance metrics
             f.write("#### Embedding Performance Metrics\n\n")
             models_data = ds_data.get("models", {})
-            metric_headers = ["Model"] + [f"{m.upper()}@{k_val}" for m in metrics]
+            metric_headers = ["Model"] + [f"{metric_header_name(m)}@{k_val}" for m in metrics]
             metric_rows = []
             for model_name, model_data in sorted(models_data.items()):
                 short_name = model_name.split("/")[-1]
@@ -2047,23 +2266,51 @@ def _write_markdown_report(
             f.write(tabulate(metric_rows, headers=metric_headers, tablefmt="pipe"))
             f.write("\n\n")
 
-            # Embedding speed comparison
-            f.write("#### Embedding Speed Comparison\n\n")
+            # Compute and retrieval timing
+            f.write("#### Compute and Retrieval Timing\n\n")
             timing_rows = []
             for model_name, model_data in sorted(models_data.items()):
                 timing = model_data.get("timing", {})
-                if timing:
-                    timing_rows.append([
-                        model_name.split("/")[-1],
-                        _fmt(timing.get("embedding_time"), 2),
-                        f"{timing.get('docs_processed', 'N/A')}",
-                        _fmt(timing.get("docs_per_second"), 2),
-                        _fmt((timing.get("avg_time_per_doc") or 0) * 1000, 2)
-                    ])
+                if not isinstance(timing, dict):
+                    continue
+
+                embedding_time = timing.get("embedding_time")
+                docs_processed = timing.get("docs_processed")
+                docs_per_second = timing.get("docs_per_second")
+                avg_time_per_doc = timing.get("avg_time_per_doc")
+                avg_query_latency_ms = timing.get("avg_query_latency_ms")
+                queries_timed = timing.get("queries_timed")
+
+                has_embedding_data = all(
+                    isinstance(value, (int, float))
+                    for value in (embedding_time, docs_per_second, avg_time_per_doc)
+                )
+                has_latency_data = isinstance(avg_query_latency_ms, (int, float)) and isinstance(queries_timed, (int, float))
+
+                if not (has_embedding_data or has_latency_data):
+                    continue
+
+                timing_rows.append([
+                    model_name.split("/")[-1],
+                    _fmt(embedding_time, 2) if has_embedding_data else "N/A",
+                    f"{int(docs_processed)}" if isinstance(docs_processed, (int, float)) else "N/A",
+                    _fmt(docs_per_second, 2) if has_embedding_data else "N/A",
+                    _fmt((avg_time_per_doc or 0) * 1000, 2) if has_embedding_data else "N/A",
+                    _fmt(avg_query_latency_ms, 2) if has_latency_data else "N/A",
+                    f"{int(queries_timed)}" if has_latency_data else "N/A",
+                ])
             if timing_rows:
                 f.write(tabulate(
                     timing_rows,
-                    headers=["Model", "Embedding Time (s)", "Docs Processed", "Docs/sec", "Avg Time per Doc (ms)"],
+                    headers=[
+                        "Model",
+                        "Embedding Time (s)",
+                        "Docs Processed",
+                        "Docs/sec",
+                        "Avg Time per Doc (ms)",
+                        "Avg Query Latency (ms/query)",
+                        "Queries Timed",
+                    ],
                     tablefmt="pipe"
                 ))
                 f.write("\n\n")
@@ -2074,11 +2321,11 @@ def _write_markdown_report(
             summary_items = []
             if best_model_name:
                 summary_items.append(
-                    f"Best model: {best_model_name} ({metrics[0].upper()}={_fmt(best_score_value, 4)})"
+                    f"Best model: {best_model_name} ({metric_display_name(metrics[0])}={_fmt(best_score_value, 4)})"
                 )
             if mean_metric is not None:
                 summary_items.append(
-                    f"Mean {metrics[0].upper()} across models: {_fmt(mean_metric, 4)}"
+                    f"Mean {metric_display_name(metrics[0])} across models: {_fmt(mean_metric, 4)}"
                 )
             if timing_rows:
                 summary_items.append(f"Timing data available for {len(timing_rows)} model(s)")
@@ -2094,7 +2341,7 @@ def _write_markdown_report(
         if viz_paths.get(f"difficulty_{metrics[0]}"):
             f.write(f"![Dataset Difficulty Analysis]({os.path.basename(viz_paths[f'difficulty_{metrics[0]}'])})\n\n")
             f.write("**Figure: Dataset Difficulty Assessment**\n\n")
-            f.write(f"This chart shows the average {metrics[0].upper()} performance across all models for each dataset. ")
+            f.write(f"This chart shows the average {metric_display_name(metrics[0])} performance across all models for each dataset. ")
             f.write("Higher bars indicate easier datasets (better overall performance), lower bars indicate harder datasets.\n\n")
             f.write("**How to interpret:**\n")
             f.write("- **Tall bars**: Datasets where models perform well overall (easier retrieval tasks)\n")
@@ -2136,7 +2383,7 @@ def _write_markdown_report(
             ])
         
         f.write(tabulate(dataset_summary, 
-                        headers=["Dataset", "Best Model", f"Top {metrics[0].upper()}", "Models Tested", "Difficulty"],
+                        headers=["Dataset", "Best Model", f"Top {metric_display_name(metrics[0])}", "Models Tested", "Difficulty"],
                         tablefmt="github"))
         f.write("\n\n")
         
@@ -2144,7 +2391,7 @@ def _write_markdown_report(
         f.write("**Column Explanations:**\n")
         f.write("- **Dataset**: Name of the dataset evaluated\n")
         f.write("- **Best Model**: The embedding model that achieved the highest score\n")
-        f.write(f"- **Top {metrics[0].upper()}**: The highest {metrics[0].upper()} score achieved on this dataset\n")
+        f.write(f"- **Top {metric_display_name(metrics[0])}**: The highest {metric_display_name(metrics[0])} score achieved on this dataset\n")
         f.write("- **Models Tested**: Number of embedding models evaluated\n")
         f.write("- **Difficulty**: Relative difficulty score (higher = more challenging)\n\n")
         
@@ -2220,7 +2467,7 @@ def _write_markdown_report(
             
             if best_model[0] in model_results and metrics[0] in model_results[best_model[0]]:
                 mean_score = model_results[best_model[0]][metrics[0]]["mean"]
-                f.write(f"   - Strong performance (mean {metrics[0].upper()}={mean_score:.4f})\n")
+                f.write(f"   - Strong performance (mean {metric_display_name(metrics[0])}={mean_score:.4f})\n")
         
         f.write("\n### Limitations\n\n")
         f.write(f"- Evaluation limited to {len(datasets)} datasets\n")

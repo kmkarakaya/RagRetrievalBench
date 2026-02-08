@@ -15,6 +15,7 @@ METRIC_LABELS = {
     "precision": "Precision",
     "ndcg": "NDCG",
     "mrr": "MRR",
+    "hit_rate": "Success/Hit Rate",
 }
 METRIC_SCORE_KEYS = {
     "map": "map@k",
@@ -22,6 +23,7 @@ METRIC_SCORE_KEYS = {
     "precision": "precision@k",
     "ndcg": "ndcg@k",
     "mrr": "mrr@k",
+    "hit_rate": "accuracy@k",
 }
 
 
@@ -38,6 +40,8 @@ def get_enabled_metrics():
         enabled.append("ndcg")
     if cfg.compute_mrr:
         enabled.append("mrr")
+    if getattr(cfg, "compute_hit_rate", False):
+        enabled.append("hit_rate")
     return enabled
 
 
@@ -181,6 +185,10 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
     
     # Initialize results list for evaluator
     queries_result_list = [[] for _ in range(len(evaluator.queries_ids))]
+
+    # Query latency tracking (DB retrieval only: collection.query call)
+    queries_timed = 0
+    total_query_retrieval_time_s = 0.0
     
     # Process each query
     query_iterator = tqdm(queries.items()) if cfg.show_progress_bar else queries.items()
@@ -192,10 +200,13 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
         query_idx = query_id_to_idx[qid]
         
         # Query ChromaDB directly with text - the embedding function will handle conversion
+        query_start = time.perf_counter()
         results = collection.query(
             query_texts=[query_text],
             n_results=100  # Get more results than needed to ensure we have enough
         )
+        total_query_retrieval_time_s += (time.perf_counter() - query_start)
+        queries_timed += 1
         
         # Store rankings for debugging
         model_rankings[qid] = results['ids'][0]
@@ -240,8 +251,24 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
     print(f"\nMetrics for {model_name} using ChromaDB rankings:")
     for metric_name in enabled_metrics:
         print(f"{METRIC_LABELS[metric_name]}@{k}: {metrics[metric_name]:.4f}")
-    
-    # Build return tuple with only enabled metrics
-    return tuple(metrics[metric_name] for metric_name in enabled_metrics)
+
+    avg_query_latency_s = (
+        total_query_retrieval_time_s / queries_timed if queries_timed > 0 else 0.0
+    )
+    retrieval_timing = {
+        "queries_timed": int(queries_timed),
+        "total_query_retrieval_time_s": float(total_query_retrieval_time_s),
+        "avg_query_latency_s": float(avg_query_latency_s),
+        "avg_query_latency_ms": float(avg_query_latency_s * 1000.0),
+    }
+
+    print(
+        f"Avg Retrieval Latency@query (DB only): "
+        f"{retrieval_timing['avg_query_latency_ms']:.2f} ms/query "
+        f"over {retrieval_timing['queries_timed']} queries"
+    )
+
+    # Build return tuple with only enabled metrics, plus retrieval timing payload
+    return tuple(metrics[metric_name] for metric_name in enabled_metrics), retrieval_timing
 
 

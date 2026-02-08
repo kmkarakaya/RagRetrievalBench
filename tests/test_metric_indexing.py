@@ -18,7 +18,7 @@ class TestMetricIndexingLogic:
     def setup_method(self):
         """Store original config values before each test"""
         self.original_config = {}
-        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr']:
+        for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate']:
             if hasattr(cfg, attr):
                 self.original_config[attr] = getattr(cfg, attr)
     
@@ -46,6 +46,9 @@ class TestMetricIndexingLogic:
             current_idx += 1
         if cfg.compute_mrr:
             metric_indices['mrr'] = current_idx
+            current_idx += 1
+        if getattr(cfg, 'compute_hit_rate', False):
+            metric_indices['hit_rate'] = current_idx
         
         return metric_indices
     
@@ -57,6 +60,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = True
         cfg.compute_ndcg = True
         cfg.compute_mrr = True
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -90,6 +94,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = False
         cfg.compute_ndcg = True
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -119,6 +124,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = False
         cfg.compute_ndcg = False
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -146,6 +152,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = True
         cfg.compute_ndcg = False
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -174,6 +181,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = False
         cfg.compute_ndcg = False
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -194,6 +202,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = True
         cfg.compute_ndcg = False
         cfg.compute_mrr = True
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -225,6 +234,7 @@ class TestMetricIndexingLogic:
         cfg.compute_precision = False
         cfg.compute_ndcg = False
         cfg.compute_mrr = True
+        cfg.compute_hit_rate = False
         
         metric_indices = self.build_metric_indices()
         
@@ -244,6 +254,20 @@ class TestMetricIndexingLogic:
         print("✓ Middle metrics disabled test passed")
 
 
+    def test_hit_rate_enabled_index(self):
+        """Test hit_rate index placement when enabled."""
+        cfg.compute_map = True
+        cfg.compute_recall = False
+        cfg.compute_precision = False
+        cfg.compute_ndcg = False
+        cfg.compute_mrr = False
+        cfg.compute_hit_rate = True
+
+        metric_indices = self.build_metric_indices()
+        assert metric_indices["map"] == 1
+        assert metric_indices["hit_rate"] == 2
+
+
 def test_config_loading():
     """Test that benchmark config loads correctly"""
     assert hasattr(cfg, 'compute_map')
@@ -251,6 +275,7 @@ def test_config_loading():
     assert hasattr(cfg, 'compute_precision')
     assert hasattr(cfg, 'compute_ndcg')
     assert hasattr(cfg, 'compute_mrr')
+    assert hasattr(cfg, 'compute_hit_rate')
     assert hasattr(cfg, 'k')
     print("✓ Config loading test passed")
 
@@ -259,7 +284,7 @@ def test_demo_scenario():
     """Test a realistic scenario with multiple models"""
     # Save original config
     original_config = {}
-    for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr']:
+    for attr in ['compute_map', 'compute_recall', 'compute_precision', 'compute_ndcg', 'compute_mrr', 'compute_hit_rate']:
         if hasattr(cfg, attr):
             original_config[attr] = getattr(cfg, attr)
     
@@ -270,6 +295,7 @@ def test_demo_scenario():
         cfg.compute_precision = False
         cfg.compute_ndcg = True
         cfg.compute_mrr = False
+        cfg.compute_hit_rate = False
         
         # Build indices
         metric_indices = {}
@@ -289,6 +315,9 @@ def test_demo_scenario():
             current_idx += 1
         if cfg.compute_mrr:
             metric_indices['mrr'] = current_idx
+            current_idx += 1
+        if getattr(cfg, 'compute_hit_rate', False):
+            metric_indices['hit_rate'] = current_idx
         
         # Simulate model results for this configuration
         model_results = [

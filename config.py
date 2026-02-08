@@ -11,6 +11,8 @@ queries_file = "queries.jsonl"
 qrels_file = "qrels.tsv"
 reports_dir = "reports"
 chroma_db_path = os.path.join("utils", "chromadb_collections")
+# Snapshot of original embedding model definitions (initialized on first configure_for_dataset call)
+_base_embedding_models = None
 
 def configure_for_dataset(dataset_name):
     """
@@ -18,7 +20,7 @@ def configure_for_dataset(dataset_name):
     Args:
         dataset_name (str): Name of the dataset (folder name under datasets/).
     """
-    global corpus_file, queries_file, qrels_file, pdf_dir, reports_dir, chroma_db_path, embedding_models, current_dataset
+    global corpus_file, queries_file, qrels_file, pdf_dir, reports_dir, chroma_db_path, embedding_models, current_dataset, _base_embedding_models
     
     # Store current dataset name
     current_dataset = dataset_name
@@ -51,17 +53,18 @@ def configure_for_dataset(dataset_name):
     if not os.path.exists(chroma_db_path):
         os.makedirs(chroma_db_path, exist_ok=True)
         
-    # Update collection names in embedding_models to avoid collisions if using shared resources
-    # (Though with separate chroma_db_path, this is less critical, but strict separation is good)
-    # We create a new list to avoid mutating the original one multiple times if called repeatedly (though unlikely)
+    # Initialize immutable base model list once so repeated configure calls do not stack dataset prefixes.
+    if _base_embedding_models is None:
+        _base_embedding_models = [model.copy() for model in embedding_models]
+
+    # Update collection names in embedding_models to avoid collisions if using shared resources.
+    # Always derive from base model names to keep prefixing idempotent across repeated calls.
     new_embedding_models = []
-    for model in embedding_models:
+    # Sanitize dataset name for collection name (alphanumeric, underscores, hyphens)
+    clean_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in dataset_name)
+    for model in _base_embedding_models:
         new_model = model.copy()
-        # Prefix collection name with dataset name
-        # sanitize dataset name for collection name (alphanumeric, underscores, hyphens)
-        clean_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in dataset_name)
-        if not new_model["collection_name"].startswith(f"{clean_name}_"):
-             new_model["collection_name"] = f"{clean_name}_{new_model['collection_name']}"
+        new_model["collection_name"] = f"{clean_name}_{new_model['collection_name']}"
         new_embedding_models.append(new_model)
     embedding_models = new_embedding_models
     
@@ -74,15 +77,6 @@ def configure_for_dataset(dataset_name):
 
 # ChromaDB collection/model pairs to benchmark
 # for more info, visit https://www.sbert.net/docs/sentence_transformer/pretrained_models.html
-# Multilingual Models -  Semantic Similarity Models 
-# embedding_models = [ 
-#     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v1", "collection_name": "coll_v1"},
-#     {"model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2", "collection_name": "coll_v2"},
-#     {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
-#     {"model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2", "collection_name": "coll_v4"},
-    
-# ]
-
 # Most downloaded models from https://huggingface.co/sentence-transformers
 embedding_models = [
     {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v1"},
@@ -101,6 +95,7 @@ compute_recall = True      # Recall@K
 compute_precision = True   # Precision@K
 compute_mrr = True         # Mean Reciprocal Rank (MRR)
 compute_ndcg = True        # Normalized Discounted Cumulative Gain (NDCG@K)
+compute_hit_rate = True    # Success@K / Hit Rate@K
 
 # Single cutoff value for all metrics
 k = 10  # Use the same k for all metrics

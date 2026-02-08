@@ -620,6 +620,7 @@ def main():
         
         # Load existing timing data if available
         timing_results = []
+        timing_by_model = {}
         # Find the most recent timing data file
         import glob
         timing_files = glob.glob(os.path.join(cfg.reports_dir, "timing_data_*.json"))
@@ -630,6 +631,10 @@ def main():
                 with open(latest_timing_file, 'r', encoding='utf-8') as f:
                     timing_dict = json.load(f)
                     timing_results = [(model_name, timing_data) for model_name, timing_data in timing_dict.items()]
+                    timing_by_model = {
+                        model_name: timing_data if isinstance(timing_data, dict) else {}
+                        for model_name, timing_data in timing_dict.items()
+                    }
                 print(f"Loaded timing data from {latest_timing_file}")
             except Exception as e:
                 print(f"Warning: Could not load timing data from {latest_timing_file}: {e}")
@@ -649,26 +654,23 @@ def main():
             if args.initialize or args.all:
                 timing_data = initialize_collection(corpus, model_name, collection_name)
                 if timing_data and isinstance(timing_data, dict):
-                    timing_results.append((model_name, timing_data))
+                    merged_timing = timing_by_model.get(model_name, {})
+                    merged_timing.update(timing_data)
+                    timing_by_model[model_name] = merged_timing
             
             # Evaluate if requested
             if args.evaluate or args.all:
-                # If no timing data exists, we need to initialize first or skip timing in report
-                if not any(t[0] == model_name for t in timing_results):
-                    print(f"[Warning] No timing data available for {model_name}")
-                    print(f"   Run with --initialize first to get accurate timing metrics")
-                    # Add empty timing data to indicate missing measurements
-                    timing_results.append((model_name, {
-                        "embedding_time": None, 
-                        "docs_processed": len(corpus),
-                        "docs_per_second": None, 
-                        "avg_time_per_doc": None,
-                        "note": "Timing data unavailable - run --initialize first"
-                    }))
-                
                 # Evaluate model
-                metrics = evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collection_name)
+                metrics, retrieval_timing = evaluate_with_chromadb(
+                    queries, corpus, relevant_docs, model_name, collection_name
+                )
                 model_results.append((model_name, *metrics))
+                merged_timing = timing_by_model.get(model_name, {})
+                merged_timing.update(retrieval_timing)
+                merged_timing.setdefault("docs_processed", len(corpus))
+                timing_by_model[model_name] = merged_timing
+
+        timing_results = [(model_name, timing_data) for model_name, timing_data in timing_by_model.items()]
         
         # Save updated timing data to file (including any empty entries added during evaluation)
         if timing_results:
@@ -677,9 +679,7 @@ def main():
             timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
             
             with open(timing_file, 'w', encoding='utf-8') as f:
-                # Convert to dict format for JSON
-                timing_dict = {model_name: timing_data for model_name, timing_data in timing_results}
-                json.dump(timing_dict, f, indent=2)
+                json.dump(timing_by_model, f, indent=2)
             print(f"Updated timing data saved to {timing_file}")
         
         # Display and generate report ONLY ONCE
