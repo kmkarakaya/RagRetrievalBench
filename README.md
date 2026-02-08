@@ -18,7 +18,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 - **Intelligent Relevance Assessment**: Automated qrels generation with LLM evaluation
 - **Multi-Model Comparison**: Benchmark multiple SentenceTransformers embedding models simultaneously
 - **Cross-Dataset Analysis**: Compare embedding model performance across multiple datasets with statistical significance testing
-- **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, and MRR evaluation
+- **Comprehensive Metrics**: MAP, Recall, Precision, NDCG, MRR, and Success/Hit Rate evaluation
 - **Statistical Analysis**: Paired t-tests, Cohen's d effect sizes, Friedman test, and consistency metrics
 - **Batch Processing Support**: Cost-effective asynchronous processing for large datasets
 - **Persistent Timing Data**: Timing metrics saved between pipeline runs for accurate performance tracking
@@ -247,6 +247,7 @@ compute_recall = True    # Recall@K
 compute_precision = True # Precision@K
 compute_mrr = True       # Mean Reciprocal Rank
 compute_ndcg = True      # Normalized Discounted Cumulative Gain
+compute_hit_rate = True  # Success@K / Hit Rate@K
 
 # Evaluation settings
 k = 10
@@ -268,7 +269,7 @@ candidate_pool_size = 10
 # LLM settings
 llm_model = "models/gemini-2.5-flash-lite"
 temperature = 0.1
-llm_timeout = (60/10) + 1  # Rate limiting for API calls
+llm_timeout = 0.01  # Adjust to avoid rate limits for your API tier
 
 # ChromaDB settings
 show_progress_bar = True
@@ -391,7 +392,8 @@ The framework computes standard information retrieval metrics:
 - **Precision@k**: Accuracy of top-k retrieved documents
 - **NDCG@k**: Position-aware ranking quality with discounting
 - **MRR@k**: Mean reciprocal rank of first relevant document
-- **Timing Metrics**: Embedding speed, throughput, processing time
+- **Success@k**: Fraction of queries with at least one relevant hit
+- **Timing Metrics**: Embedding speed, throughput, processing time, and query latency
 
 ### Statistical Analysis Methods (Aggregate Reporting)
 
@@ -401,7 +403,6 @@ For cross-dataset comparison and statistical significance testing:
 - **Cohen's d**: Measure effect sizes for practical significance
 - **Friedman Test**: Non-parametric test for multiple model comparison
 - **Consistency Metrics**: Coefficient of variation, worst-case performance drop
-- **Win-Tie-Loss Analysis**: Pairwise model comparison across datasets
 - **Dataset Difficulty Scoring**: Relative hardness assessment across datasets
 
 ## 📁 Output Files
@@ -415,12 +416,12 @@ RagRetrievalBench/
 ├── qrels.tsv                       # Relevance judgments (default)
 ├── aggregated_reports/             # Cross-dataset comparison reports
 │   └── <timestamp>/                # Timestamped subdirectory for each run
-│       ├── aggregate_report_*.md   # Comprehensive cross-dataset analysis
-│       ├── aggregate_report_*.pdf  # PDF version (if Pandoc installed)
-│       ├── cross_dataset_radar_chart.png
-│       ├── model_ranking_heatmap.png
-│       ├── pairwise_significance_heatmap.png
-│       ├── consistency_comparison.png
+│       ├── aggregate_report.md     # Comprehensive cross-dataset analysis
+│       ├── aggregate_report.pdf    # PDF version (if Pandoc installed)
+│       ├── cross_dataset_radar_chart_*.png
+│       ├── model_ranking_heatmap_*.png
+│       ├── pairwise_significance_heatmap_*.png
+│       ├── consistency_comparison_*.png
 │       └── [additional statistical visualizations]
 ├── datasets/                       # Multi-dataset support
 │   └── <dataset_name>/             # Per-dataset isolated storage
@@ -599,15 +600,12 @@ RagRetrievalBench/
 │   ├── __init__.py              # Test package initialization
 │   ├── conftest.py              # Shared test configuration
 │   └── test_*.py               # Individual test modules
-├── reports/                       # Generated evaluation reports
-│   └── aggregate/                     # Cross-dataset aggregate reports
-│       ├── aggregate_report_*.md      # Statistical comparison reports
-│       ├── aggregate_report_*.pdf     # PDF version (if Pandoc installed)
-│       ├── statistical_tests_*.png    # Statistical significance plots
-│       ├── effect_size_*.png          # Effect size visualizations
-│       ├── win_tie_loss_*.png         # Model ranking visualizations
-│       ├── consistency_*.png          # Performance consistency charts
-│       └── friedman_test_*.png       # Non-parametric test results
+├── reports/                       # Generated evaluation reports (default dataset)
+├── aggregated_reports/            # Cross-dataset aggregate reports
+│   └── <timestamp>/               # Timestamped report run
+│       ├── aggregate_report.md    # Statistical comparison report
+│       ├── aggregate_report.pdf   # PDF version (if Pandoc installed)
+│       └── *.png                  # Aggregate visualizations
 ```
 
 ## 🚀 API Rate Limits & Best Practices

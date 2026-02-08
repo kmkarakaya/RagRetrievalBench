@@ -89,11 +89,10 @@ desktop.ini
 # Project Specific
 utils/chromadb_collections/*
 !utils/chromadb_collections/.gitkeep
-reports/*
-!reports/.gitkeep
+aggregated_reports/
 
 # Data files (if not needed in repo)
-data/
+datasets/
 *.csv
 *.jsonl
 *.tsv
