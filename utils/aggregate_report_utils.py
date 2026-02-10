@@ -1714,6 +1714,11 @@ def _write_markdown_report(
         
         # Executive Summary
         f.write("## Executive Summary\n\n")
+        f.write("This report summarizes cross-dataset embedding model performance for Retrieval Augmented Generation (RAG) systems. ")
+        f.write("It aggregates per-dataset benchmark results produced by the pipeline (PDF ingestion → chunking → query generation → ")
+        f.write("qrels creation → embedding evaluation) to identify robust models across domains, not just within a single dataset. ")
+        f.write("Results emphasize both retrieval quality metrics (e.g., MAP, NDCG, MRR) and operational considerations such as ")
+        f.write("embedding throughput and query latency when available.\n\n")
         
         # Dataset statistics
         f.write("### Datasets Analyzed\n\n")
@@ -2007,6 +2012,7 @@ def _write_markdown_report(
                 tablefmt="github"
             ))
             f.write("\n\n")
+            f.write(f"**Table: Model Performance by Dataset ({metric_display_name(heatmap_metric)}@{k_val})**\n\n")
 
         f.write("### Embedding Speed Comparison (Chunks/sec)\n\n")
 
@@ -2031,6 +2037,7 @@ def _write_markdown_report(
                 tablefmt="github"
             ))
             f.write("\n\n")
+            f.write("**Table: Embedding Throughput by Dataset (Chunks/sec)**\n\n")
 
         f.write("### Query Retrieval Latency Comparison (ms/query)\n\n")
         f.write("Lower values are better. Latency is measured during `collection.query(...)` only.\n\n")
@@ -2057,6 +2064,7 @@ def _write_markdown_report(
                 tablefmt="github"
             ))
             f.write("\n\n")
+            f.write("**Table: Query Retrieval Latency by Dataset (ms/query)**\n\n")
 
         latency_summary = compute_weighted_query_latency_summary(datasets)
         summary_rows = []
@@ -2090,6 +2098,7 @@ def _write_markdown_report(
                 tablefmt="github"
             ))
             f.write("\n\n")
+            f.write("**Table: Weighted Query Latency Summary**\n\n")
         
         # Add visualization references
         if viz_paths.get("radar"):
@@ -2211,6 +2220,7 @@ def _write_markdown_report(
             ]
             f.write(tabulate(corpus_table, headers=["Metric", "Value"], tablefmt="pipe"))
             f.write("\n\n")
+            f.write(f"**Table: Corpus Characteristics ({ds_name.capitalize()} Dataset)**\n\n")
 
             # Query characteristics
             f.write("#### Query Characteristics\n\n")
@@ -2224,6 +2234,7 @@ def _write_markdown_report(
             ]
             f.write(tabulate(query_table, headers=["Metric", "Value"], tablefmt="pipe"))
             f.write("\n\n")
+            f.write(f"**Table: Query Characteristics ({ds_name.capitalize()} Dataset)**\n\n")
 
             # Relevance distribution
             f.write("#### Relevance Distribution\n\n")
@@ -2237,6 +2248,7 @@ def _write_markdown_report(
             ]
             f.write(tabulate(relevance_table, headers=["Metric", "Value"], tablefmt="pipe"))
             f.write("\n\n")
+            f.write(f"**Table: Relevance Distribution ({ds_name.capitalize()} Dataset)**\n\n")
 
             # Representative queries
             if representative_queries:
@@ -2250,6 +2262,7 @@ def _write_markdown_report(
                     ])
                 f.write(tabulate(query_rows, headers=["Query ID", "Query Text", "# Relevant Documents"], tablefmt="pipe"))
                 f.write("\n\n")
+                f.write(f"**Table: Representative Queries ({ds_name.capitalize()} Dataset)**\n\n")
 
             # Model performance metrics
             f.write("#### Embedding Performance Metrics\n\n")
@@ -2265,6 +2278,7 @@ def _write_markdown_report(
                 metric_rows.append(row)
             f.write(tabulate(metric_rows, headers=metric_headers, tablefmt="pipe"))
             f.write("\n\n")
+            f.write(f"**Table: Embedding Performance Metrics ({ds_name.capitalize()} Dataset)**\n\n")
 
             # Compute and retrieval timing
             f.write("#### Compute and Retrieval Timing\n\n")
@@ -2314,6 +2328,7 @@ def _write_markdown_report(
                     tablefmt="pipe"
                 ))
                 f.write("\n\n")
+                f.write(f"**Table: Compute and Retrieval Timing ({ds_name.capitalize()} Dataset)**\n\n")
             else:
                 f.write("No timing data available for this dataset.\n\n")
 

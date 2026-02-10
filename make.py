@@ -55,7 +55,7 @@ def clean():
                     print(f"Removing directory: {path}")
                     shutil.rmtree(path)
     
-    # Clean reports folder contents
+    # Clean reports folder contents (default dataset)
     reports_dir = Path('reports')
     if reports_dir.exists() and reports_dir.is_dir():
         print(f"\nCleaning reports directory: {reports_dir}")
@@ -71,6 +71,22 @@ def clean():
     else:
         print("No reports directory found to clean")
     
+    # Clean aggregated reports
+    aggregated_dir = Path('aggregated_reports')
+    if aggregated_dir.exists() and aggregated_dir.is_dir():
+        print(f"\nCleaning aggregated reports directory: {aggregated_dir}")
+        for item in aggregated_dir.iterdir():
+            if item.name != '.gitkeep':
+                if item.is_file():
+                    print(f"Removing aggregate report file: {item}")
+                    item.unlink()
+                elif item.is_dir():
+                    print(f"Removing aggregate report directory: {item}")
+                    shutil.rmtree(item)
+        print("Aggregated reports directory cleaned (kept the directory and .gitkeep)")
+    else:
+        print("No aggregated_reports directory found to clean")
+
     # Clean ChromaDB collections folder contents
     chromadb_dir = Path('utils/chromadb_collections')
     if chromadb_dir.exists() and chromadb_dir.is_dir():
@@ -133,19 +149,29 @@ def evaluate(dataset="education"):
     """Run evaluation on a specific dataset"""
     run_command(f"python rag_benchmark.py --evaluate --dataset {dataset}", f"Evaluating models on {dataset} dataset")
 
-def aggregate_report():
-    """Generate aggregate report across all datasets"""
-    run_command("python rag_benchmark.py --generate-aggregate-report", "Generating aggregate report")
+def aggregate_report(args=""):
+    """Generate aggregate report across datasets (pass-through args supported)"""
+    extra = f" {args}" if args else ""
+    run_command(f"python rag_benchmark.py --generate-aggregate-report{extra}", "Generating aggregate report")
 
 def prepare_data(dataset="education"):
     """Prepare data for a specific dataset (corpus, queries, qrels)"""
-    run_command(f"python rag_benchmark.py --prepare-corpus --generate-queries --generate-qrels --dataset {dataset}", 
-                f"Preparing data for {dataset} dataset")
+    run_command(f"python rag_benchmark.py --prepare-corpus --dataset {dataset}",
+                f"Preparing corpus for {dataset} dataset")
+    run_command(f"python rag_benchmark.py --generate-queries --dataset {dataset}",
+                f"Generating queries for {dataset} dataset")
+    run_command(f"python rag_benchmark.py --generate-qrels --dataset {dataset}",
+                f"Generating qrels for {dataset} dataset")
 
 def init_collections(dataset="education"):
     """Initialize collections for a specific dataset"""
-    run_command(f"python rag_benchmark.py --initialize --dataset {dataset}", 
+    run_command(f"python rag_benchmark.py --initialize --dataset {dataset}",
                 f"Initializing collections for {dataset} dataset")
+
+def all_steps(dataset="education"):
+    """Run full pipeline (prepare, queries, qrels, initialize, evaluate)"""
+    run_command(f"python rag_benchmark.py --all --dataset {dataset}",
+                f"Running full pipeline for {dataset} dataset")
 
 def benchmark():
     """Run the benchmark pipeline"""
@@ -164,11 +190,14 @@ def help():
     print("  python make.py aggregate    Generate aggregate report across datasets")
     print("  python make.py prepare      Prepare data for education dataset")
     print("  python make.py init         Initialize collections for education dataset")
+    print("  python make.py all          Run full pipeline on education dataset")
     print("  python make.py help         Show this help message")
     print("\nCommand options:")
     print("  python make.py evaluate finance    Evaluate finance dataset")
     print("  python make.py prepare finance     Prepare data for finance dataset")
     print("  python make.py init finance        Initialize collections for finance dataset")
+    print("  python make.py all finance         Run full pipeline for finance dataset")
+    print("  python make.py aggregate --aggregate-datasets education,finance")
     print("\nTest options:")
     print("  python make.py test -v                     Verbose output")
     print("  python make.py test -m integration         Run integration tests only")
@@ -189,6 +218,7 @@ commands = {
     "aggregate": aggregate_report,
     "prepare": prepare_data,
     "init": init_collections,
+    "all": all_steps,
     "help": help
 }
 

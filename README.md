@@ -265,6 +265,7 @@ chunk_overlap = 200
 n_queries = 5
 chunks_per_query = 1
 candidate_pool_size = 10
+qrels_embedding_model_index = 4  # Which embedding model to use for qrels candidate retrieval
 
 # LLM settings
 llm_model = "models/gemini-2.5-flash-lite"
@@ -278,6 +279,28 @@ reinitialize_collections = True
 ```
 
 **Note**: Currently, only SentenceTransformers models are supported. Ensure model names follow the format 'sentence-transformers/model-name'.
+
+### Aggregate Reporting Settings
+
+These settings control cross-dataset reporting (see `config.py` for full list):
+
+```python
+aggregate_results_dir = "aggregated_reports"
+aggregate_statistical_tests = True
+aggregate_generate_visualizations = True
+aggregate_significance_level = 0.05
+aggregate_min_datasets = 2
+aggregate_require_identical_metrics = False
+```
+
+### Dataset-Specific Paths
+
+When running with `--dataset <name>`, `configure_for_dataset()` updates:
+
+- `pdf_dir` → `datasets/<name>/pdfs/`
+- `reports_dir` → `datasets/<name>/reports/`
+- `chroma_db_path` → `datasets/<name>/chromadb_collections/`
+- Collection names are prefixed with the dataset name to avoid collisions
 
 ### Multi-Dataset Support
 
@@ -479,6 +502,13 @@ python make.py format
 python make.py test
 python make.py test-cov  # With coverage
 
+# Run pipeline helpers
+python make.py prepare <dataset>   # Prepare corpus, queries, qrels
+python make.py init <dataset>      # Initialize ChromaDB collections
+python make.py evaluate <dataset>  # Evaluate models
+python make.py all <dataset>       # Full pipeline (prepare + init + evaluate)
+python make.py aggregate [args]    # Aggregate report (pass-through args supported)
+
 # Clean generated files
 python make.py clean
 
@@ -496,7 +526,9 @@ The `make.py clean` command removes:
 - Python cache files (`__pycache__/`, `*.pyc`)
 - Test artifacts (`.pytest_cache`, coverage reports)
 - Generated reports (`reports/` contents)
+- Aggregate reports (`aggregated_reports/` contents)
 - ChromaDB collections (`utils/chromadb_collections/` contents)
+- Dataset-specific reports and collections under `datasets/<name>/`
 
 ## 🧪 Testing
 
