@@ -3,6 +3,8 @@ import json
 import os
 import time
 import re
+import sys
+import unicodedata
 import numpy as np
 import argparse
 
@@ -15,6 +17,23 @@ from utils.document_loader import prepare_corpus_from_pdfs
 from utils.document_loader import load_corpus as load_corpus_from_file
 from utils.document_loader import load_queries as load_queries_from_file  
 from utils.document_loader import load_ground_truth
+
+def configure_utf8_stdio() -> None:
+    """
+    Force UTF-8 console output when possible.
+    Prevents garbled Turkish text in Windows terminals with legacy code pages.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+def normalize_unicode_text(text: str) -> str:
+    if not isinstance(text, str):
+        return text
+    return unicodedata.normalize("NFC", text)
 
 def prepare_corpus_from_pdfs_wrapper():
     """
@@ -47,6 +66,103 @@ def extract_response_text(batch_result):
         pass
     return ""
 
+def parse_source_chunk_id(query_id: str) -> str | None:
+    """Extract source chunk id from query ids like q12_for_DocName_chunk7."""
+    if not query_id or "_for_" not in query_id:
+        return None
+
+    _, source_part = query_id.split("_for_", 1)
+    if not source_part:
+        return None
+
+    # Use last _chunkN suffix so doc names containing "_chunk" remain parseable.
+    match = re.match(r"^(.+)_chunk(\d+)$", source_part)
+    if not match:
+        return None
+
+    doc_name, chunk_num = match.groups()
+    if not doc_name:
+        return None
+    return f"{doc_name}_chunk{chunk_num}"
+
+def add_forced_source_qrel(query_id: str, qrel_map: dict[str, set[str]]) -> bool:
+    """Force-add source chunk as relevant for a query. Returns False if query_id is unparseable."""
+    source_chunk_id = parse_source_chunk_id(query_id)
+    if source_chunk_id is None:
+        print(f"WARNING: Could not parse source chunk from query_id: {query_id}")
+        return False
+
+    qrel_map.setdefault(query_id, set()).add(source_chunk_id)
+    return True
+
+def parse_relevance_score(text: str) -> int:
+    """Parse LLM relevance response; return positive integer or 0."""
+    if not text:
+        return 0
+
+    try:
+        json_pattern = r'({[\s\S]*?})'
+        match = re.search(json_pattern, text)
+        if match:
+            relevance_json = json.loads(match.group(1))
+        else:
+            relevance_json = json.loads(text)
+
+        score = int(relevance_json.get("relevance", 0))
+        return score if score > 0 else 0
+    except Exception:
+        return 0
+
+def apply_source_chunk_coverage(query_ids: list[str], qrel_map: dict[str, set[str]]) -> dict:
+    """Apply forced source qrels for all queries and return coverage stats."""
+    forced_count = 0
+    unparseable_query_ids = []
+
+    for query_id in query_ids:
+        if add_forced_source_qrel(query_id, qrel_map):
+            forced_count += 1
+        else:
+            unparseable_query_ids.append(query_id)
+
+    queries_without_any_positive_after_merge = [
+        query_id for query_id in query_ids
+        if len(qrel_map.get(query_id, set())) == 0
+    ]
+
+    coverage = {
+        "forced_count": forced_count,
+        "unparseable_count": len(unparseable_query_ids),
+        "queries_without_any_positive_after_merge": queries_without_any_positive_after_merge,
+    }
+
+    print("Qrels coverage summary:")
+    print(f"  forced_count: {coverage['forced_count']}")
+    print(f"  unparseable_count: {coverage['unparseable_count']}")
+    print(
+        "  queries_without_any_positive_after_merge: "
+        f"{len(coverage['queries_without_any_positive_after_merge'])}"
+    )
+
+    if unparseable_query_ids:
+        print("  unparseable_query_ids: " + ", ".join(sorted(unparseable_query_ids)))
+    if queries_without_any_positive_after_merge:
+        print(
+            "  queries_without_any_positive_after_merge_ids: "
+            + ", ".join(sorted(queries_without_any_positive_after_merge))
+        )
+
+    return coverage
+
+def write_qrels_tsv(qrel_map: dict[str, set[str]], qrels_file: str) -> int:
+    """Write deterministic, deduplicated qrels.tsv from in-memory qrel map."""
+    total_rows = 0
+    with open(qrels_file, 'w', encoding='utf-8') as f:
+        for query_id in sorted(qrel_map.keys()):
+            for doc_id in sorted(qrel_map[query_id]):
+                f.write(f"{query_id}\t{doc_id}\t1\n")
+                total_rows += 1
+    return total_rows
+
 
 
 def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> bool:
@@ -66,7 +182,9 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> boo
                 text = extract_response_text(res)
                 
                 if key and text:
-                    f.write(json.dumps({"query_id": key, "text": text}, ensure_ascii=False) + "\n")
+                    normalized_key = normalize_unicode_text(key)
+                    normalized_text = normalize_unicode_text(text)
+                    f.write(json.dumps({"query_id": normalized_key, "text": normalized_text}, ensure_ascii=False) + "\n")
         
         # Update batch history to indicate successful fetch
         bm.update_batch_status(batch_fetch_id, "FETCHED_SUCCESSFULLY")
@@ -120,8 +238,9 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> boo
             print(f"Generated query: {generated_query}")
             
             # Save query immediately
-            query_id = f"q{i+1}_for_{seed_id}"
-            f.write(json.dumps({"query_id": query_id, "text": generated_query}, ensure_ascii=False) + "\n")
+            query_id = normalize_unicode_text(f"q{i+1}_for_{seed_id}")
+            normalized_query = normalize_unicode_text(generated_query)
+            f.write(json.dumps({"query_id": query_id, "text": normalized_query}, ensure_ascii=False) + "\n")
             
     print("Query generation and saving complete. Queries saved to", cfg.queries_file)
     return True
@@ -133,39 +252,35 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
         bm = BatchManager()
         results = bm.download_results(batch_fetch_id)
         if not results:
-            return
+            return False
 
-        print(f"Writing qrels to {cfg.qrels_file}...")
-        with open(cfg.qrels_file, 'w', encoding='utf-8') as f:
-            for res in results:
-                key = res.get("custom_id") or res.get("key")
-                text = extract_response_text(res)
-                if not key or not text:
-                    continue
+        try:
+            queries = load_queries_from_file(cfg.queries_file)
+        except Exception as e:
+            print(f"ERROR: Could not load queries file for qrels merge: {e}")
+            return False
 
-                # Parse Key (format: query_id|||doc_id)
-                try:
-                    query_id, doc_id = key.split("|||")
-                except ValueError:
-                    print(f"Skipping invalid key format: {key}")
-                    continue
+        qrel_map: dict[str, set[str]] = {}
+        for res in results:
+            key = res.get("custom_id") or res.get("key")
+            text = extract_response_text(res)
+            if not key or not text:
+                continue
 
-                # Parse Score
-                rel_score = 0
-                try:
-                    json_pattern = r'({[\s\S]*?})'
-                    match = re.search(json_pattern, text)
-                    if match:
-                        relevance_json = json.loads(match.group(1))
-                        rel_score = relevance_json.get("relevance", 0)
-                    else:
-                        relevance_json = json.loads(text)
-                        rel_score = relevance_json.get("relevance", 0)
-                except Exception:
-                    pass # Default to 0
+            # Parse key format: query_id|||doc_id
+            try:
+                query_id, doc_id = key.split("|||", 1)
+            except ValueError:
+                print(f"Skipping invalid key format: {key}")
+                continue
 
-                if rel_score > 0:
-                     f.write(f"{query_id}\t{doc_id}\t{rel_score}\n")
+            rel_score = parse_relevance_score(text)
+            if rel_score > 0:
+                qrel_map.setdefault(query_id, set()).add(doc_id)
+
+        apply_source_chunk_coverage(sorted(queries.keys()), qrel_map)
+        rows_written = write_qrels_tsv(qrel_map, cfg.qrels_file)
+        print(f"Wrote qrels to {cfg.qrels_file} ({rows_written} rows).")
 
         # Update batch history to indicate successful fetch
         bm.update_batch_status(batch_fetch_id, "FETCHED_SUCCESSFULLY")
@@ -224,22 +339,10 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
         return True
 
     print("Generating qrels file...")
-    qrels = []
+    qrel_map: dict[str, set[str]] = {}
     for query_id, query_text in queries.items():
         print(f"Query ID: {query_id}, Query Text: {query_text}")
-        source_chunk_id = None
-        
-        # Parse the source chunk ID from query_id
-        parts = query_id.split('_chunk')
-        if len(parts) == 2:
-            pdf_part = parts[0].split('_for_')
-            if len(pdf_part) == 2:
-                pdf_name = pdf_part[1]
-                chunk_num = parts[1]
-                source_chunk_id = f"{pdf_name}_chunk{chunk_num}"
-                # Force-add the source chunk as relevant
-                qrels.append(f"{query_id}\t{source_chunk_id}\t1")
-                print(f"Forced relevant: {query_id}, {source_chunk_id}, 1")
+        source_chunk_id = parse_source_chunk_id(query_id)
         
         # Retrieve candidates for labeling related to a query from chromadb
         results = collection.query(
@@ -257,35 +360,18 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
             # Send prompt to LLM to get relevance judgments
             relevance = generate_content(cfg.generate_qrels_system_instruction, prompt)
             print(f"Relevance judgment for {doc_id}: {relevance}")
-            try:
-                # Look for JSON pattern in the response
-                json_pattern = r'({[\s\S]*?})'
-                match = re.search(json_pattern, relevance)
-                if match:
-                    json_str = match.group(1)
-                    relevance_json = json.loads(json_str)
-                    rel_score = relevance_json.get("relevance", 0)
-                    print(f"Relevance score extracted: {rel_score}")
-                else:
-                    relevance_json = json.loads(relevance)
-                    rel_score = relevance_json.get("relevance", 0)
-                    print(f"Relevance score extracted: {rel_score}")
-            except json.JSONDecodeError:
-                print(f"*** Error parsing relevance JSON for {doc_id}, using default score of 0 ****")
-                rel_score = 0
+            rel_score = parse_relevance_score(relevance)
+            print(f"Relevance score extracted: {rel_score}")
 
             if rel_score > 0:
                 print(f"Writing to qrels: {query_id}, {doc_id}, {rel_score}")
-                qrels.append(f"{query_id}\t{doc_id}\t{rel_score}")
+                qrel_map.setdefault(query_id, set()).add(doc_id)
             # wait for a short time to avoid hitting API limits
             time.sleep(cfg.llm_timeout)
 
-    # Write all qrels to file
-    with open(cfg.qrels_file, 'w', encoding='utf-8') as f:
-        for line in qrels:
-            f.write(line + '\n')
-
-    print(f"Generated qrels file at {cfg.qrels_file} with {len(queries)} queries.")
+    apply_source_chunk_coverage(sorted(queries.keys()), qrel_map)
+    rows_written = write_qrels_tsv(qrel_map, cfg.qrels_file)
+    print(f"Generated qrels file at {cfg.qrels_file} with {len(queries)} queries and {rows_written} rows.")
     # Ensure the qrels file is created
     if not os.path.exists(cfg.qrels_file):
         print(f"Error: Qrels file {cfg.qrels_file} was not created.")
@@ -312,6 +398,7 @@ def load_corpus() -> dict[str,str]:
     from utils.document_loader import load_corpus as new_load_corpus
     return new_load_corpus(cfg.corpus_file)
 def main():
+    configure_utf8_stdio()
     parser = argparse.ArgumentParser(description="RAG Benchmark Pipeline")
     parser.add_argument("--prepare-corpus", action="store_true", help="Prepare corpus.jsonl from PDFs")
     parser.add_argument("--generate-queries", action="store_true", help="Generate queries from corpus")

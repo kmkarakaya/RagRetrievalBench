@@ -9,6 +9,7 @@ from tabulate import tabulate
 import os
 import textwrap
 import json
+import unicodedata
 
 # Import SentenceTransformer for model information
 try:
@@ -38,6 +39,12 @@ METRIC_HEADERS = {
     "mrr": "MRR",
     "hit_rate": "Success",
 }
+
+
+def normalize_unicode_text(text: str) -> str:
+    if not isinstance(text, str):
+        return text
+    return unicodedata.normalize("NFC", text)
 
 METRIC_DOCS = {
     "map": ("Mean Average Precision at rank k", "Ranking quality"),
@@ -177,8 +184,8 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
         },
         "representative_queries": [
             {
-                "query_id": qid,
-                "query_text": qtext,
+                "query_id": normalize_unicode_text(qid),
+                "query_text": normalize_unicode_text(qtext),
                 "relevant_docs": len(relevant_docs.get(qid, []))
             }
             for qid, qtext in list(queries.items())[:5]
@@ -259,7 +266,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     # If user only did --evaluate, timing_results is [], so timing is omitted.
     if timing_results is not None and not timing_results:
         print("[Warning] No timing data available for report generation")
-        print("   To include timing analysis, run: python simple_rag_benchmark_pipeline.py --initialize")
+        if dataset_name not in {"default", "unknown"}:
+            print(f"   To include timing analysis, run: python rag_benchmark.py --dataset {dataset_name} --initialize")
+        else:
+            print("   To include timing analysis, run: python rag_benchmark.py --initialize")
         print("   Report will be generated without timing performance section")
         timing_results = None  # Clear it completely
     
@@ -562,8 +572,10 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         rep_rows = []
         for qid in list(queries)[:5]:
             # wrap long IDs at ~20 chars with HTML line breaks for clean table layout
-            wrapped_qid = "<br/>".join(textwrap.wrap(qid, width=20))
-            rep_rows.append([wrapped_qid, queries[qid], len(relevant_docs[qid])])
+            normalized_qid = normalize_unicode_text(qid)
+            normalized_qtext = normalize_unicode_text(queries[qid])
+            wrapped_qid = "<br/>".join(textwrap.wrap(normalized_qid, width=20))
+            rep_rows.append([wrapped_qid, normalized_qtext, len(relevant_docs.get(qid, []))])
         f.write(tabulate(rep_rows, headers=headers, tablefmt="pipe"))
         f.write("\n\n")
         
@@ -650,10 +662,14 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 primary_metric_value_worst = worst_model[primary_metric_idx]
             
             if primary_metric_name and primary_metric_value_best is not None:
-                f.write(f"The evaluation reveals significant performance variations across embedding models. ")
+                f.write("The evaluation reveals observable performance differences across embedding models. ")
                 f.write(f"**{best_model[0]}** achieved the highest {primary_metric_name} score of {primary_metric_value_best:.4f}, ")
-                f.write(f"while **{worst_model[0]}** scored {primary_metric_value_worst:.4f}, representing a ")
-                f.write(f"**{((primary_metric_value_best - primary_metric_value_worst) / primary_metric_value_worst * 100):.1f}% improvement**.\n\n")
+                f.write(f"while **{worst_model[0]}** scored {primary_metric_value_worst:.4f}")
+                if primary_metric_value_worst > 0:
+                    improvement = ((primary_metric_value_best - primary_metric_value_worst) / primary_metric_value_worst) * 100
+                    f.write(f", representing a **{improvement:.1f}% relative improvement**.\n\n")
+                else:
+                    f.write(".\n\n")
             
             # Correlation analysis between metrics - only if both MAP and Recall are enabled
             if "map" in metric_indices and "recall" in metric_indices and len(sorted_results) > 0:
@@ -763,20 +779,20 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         # Statistical significance analysis
         if len(model_results) >= 2:
-            f.write("### Statistical Significance Analysis\n\n")
+            f.write("### Pairwise Difference Analysis (Descriptive)\n\n")
             f.write("This section helps determine whether observed performance differences between models ")
-            f.write("are meaningful or could occur by random chance. While formal statistical tests ")
-            f.write("require larger sample sizes, these tables show practical significance thresholds.\n\n")
+            f.write("are meaningful in practice. These tables are descriptive and use simple thresholds; ")
+            f.write("they are not formal hypothesis tests.\n\n")
             
             f.write("**Understanding the Results:**\n")
             f.write("- **Difference > 0.05**: Potentially meaningful improvement for real applications\n")
-            f.write("- **Difference > 0.10**: Clearly significant performance gap\n")
+            f.write("- **Difference > 0.10**: Large practical performance gap\n")
             f.write("- **Difference < 0.02**: Likely negligible for most use cases\n")
-            f.write("- **Values marked with *** indicate differences above the 0.05 threshold\n\n")
+            f.write("- **Values marked with *** indicate differences above the 0.05 heuristic threshold\n\n")
             
             f.write("**Important Caveats:**\n")
-            f.write("- These are absolute differences, not statistical significance tests\n")
-            f.write("- True significance requires larger datasets and proper statistical methods\n")
+            f.write("- These are absolute differences, not p-values\n")
+            f.write("- Statistical significance requires query-level paired testing (e.g., bootstrap/permutation)\n")
             f.write("- Consider practical importance alongside statistical significance\n\n")
             
             # Create significance tables for each metric - using dynamic indices
@@ -794,7 +810,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                     row = [model_names[i]]
                     for j, model2 in enumerate(sorted_results):
                         if i == j:
-                            row.append("—")
+                            row.append("-")
                         else:
                             diff = abs(model1[metric_idx] - model2[metric_idx])
                             is_significant = diff > 0.05
@@ -802,7 +818,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                     diff_matrix.append(row)
                 
                 f.write(tabulate(diff_matrix, headers=["Model"] + model_names, tablefmt="pipe"))
-                f.write("\n\n*Note: Values marked with * indicate potentially significant differences (>0.05).*\n\n")
+                f.write("\n\n*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*\n\n")
         # Add timing analysis section if timing data is provided
         if timing_results:
             f.write("## Compute And Retrieval Performance Metrics\n\n")
@@ -963,13 +979,16 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         f.write("### Reproducibility\n\n")
         f.write("All experiments can be reproduced using the following commands:\n\n")
+        dataset_arg = f" --dataset {dataset_name}" if dataset_name not in {"default", "unknown"} else ""
         f.write("```bash\n")
         f.write("# 1. Process PDFs into chunks\n")
-        f.write("python simple_rag_benchmark_pipeline.py --prepare-corpus\n\n")
-        f.write("# 2. Generate queries and relevance judgments\n")
-        f.write("python simple_rag_benchmark_pipeline.py --generate-qrels\n\n")
-        f.write("# 3. Run complete benchmark\n")
-        f.write("python simple_rag_benchmark_pipeline.py --all\n")
+        f.write(f"python rag_benchmark.py{dataset_arg} --prepare-corpus\n\n")
+        f.write("# 2. Generate queries\n")
+        f.write(f"python rag_benchmark.py{dataset_arg} --generate-queries\n\n")
+        f.write("# 3. Generate relevance judgments\n")
+        f.write(f"python rag_benchmark.py{dataset_arg} --generate-qrels\n\n")
+        f.write("# 4. Run complete benchmark\n")
+        f.write(f"python rag_benchmark.py{dataset_arg} --all\n")
         f.write("```\n\n")
         
         # Embedding model details
@@ -1013,8 +1032,15 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                 
                 if primary_metric_name and primary_diff is not None:
                     f.write(f"2. **Performance Gaps**: The performance difference between the best and second-best ")
-                    f.write(f"models ({primary_diff:.4f} {primary_metric_name}) suggests that model selection significantly ")
-                    f.write(f"impacts retrieval quality.\n\n")
+                    if primary_diff < 0.01:
+                        f.write(f"models ({primary_diff:.4f} {primary_metric_name}) is small, suggesting very close model performance ")
+                        f.write("on this dataset.\n\n")
+                    elif primary_diff < 0.05:
+                        f.write(f"models ({primary_diff:.4f} {primary_metric_name}) is moderate, suggesting measurable but limited ")
+                        f.write("separation between top candidates.\n\n")
+                    else:
+                        f.write(f"models ({primary_diff:.4f} {primary_metric_name}) is large, suggesting model choice can materially ")
+                        f.write("affect retrieval quality.\n\n")
             
             f.write("3. **Automated Evaluation Viability**: The LLM-assisted query and relevance generation ")
             f.write("process demonstrates the feasibility of automated benchmark creation for domain-specific ")
@@ -1033,7 +1059,7 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
         
         f.write("This study presents a comprehensive framework for evaluating embedding models in RAG systems. ")
         f.write("Our automated pipeline successfully generated meaningful evaluation datasets and provided ")
-        f.write("statistically robust comparisons of model performance. ")
+        f.write("structured comparative analysis of model performance. ")
         
         if sorted_results:
             best_model_name = sorted_results[0][0]

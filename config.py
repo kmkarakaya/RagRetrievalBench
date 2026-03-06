@@ -132,13 +132,13 @@ aggregate_require_identical_metrics = False  # If True, only aggregate datasets 
 
 #QUERY GENERATION SETTINGS
 # How many benchmark queries (seeds) to generate
-n_queries = 5
+n_queries = 50
 
 # How many chunks to sample per seed (usually 1)
 chunks_per_query = 1
 
 # How many candidates to retrieve for labeling
-candidate_pool_size = 10
+candidate_pool_size = 20
 
 # Index of the embedding model to use for qrels generation (0-based, from embedding_models list)
 qrels_embedding_model_index = 4  # Use paraphrase-multilingual-mpnet-base-v2 for better Turkish support

@@ -1,6 +1,6 @@
 # RAG Retrieval Benchmark
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -47,7 +47,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - Google AI API key (for Gemini integration)
 
 ### Setup
@@ -63,7 +63,7 @@ cd RagRetrievalBench
 
 ```bash
 # Using conda (recommended)
-conda create -n ragbenchmark python=3.8
+conda create -n ragbenchmark python=3.10
 conda activate ragbenchmark
 
 # Using venv
@@ -238,7 +238,8 @@ embedding_models = [
     {"model_name": "sentence-transformers/all-MiniLM-L6-v2", "collection_name": "coll_v1"},
     {"model_name": "sentence-transformers/all-mpnet-base-v2", "collection_name": "coll_v2"},
     {"model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", "collection_name": "coll_v3"},
-    {"model_name": "sentence-transformers/all-MiniLM-L12-v2", "collection_name": "coll_v4"}
+    {"model_name": "sentence-transformers/all-MiniLM-L12-v2", "collection_name": "coll_v4"},
+    {"model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2", "collection_name": "coll_v5"}
 ]
 
 # Metrics configuration
@@ -265,7 +266,7 @@ chunk_overlap = 200
 n_queries = 5
 chunks_per_query = 1
 candidate_pool_size = 10
-qrels_embedding_model_index = 4  # Which embedding model to use for qrels candidate retrieval
+qrels_embedding_model_index = 4  # 0-based index (5th model above)
 
 # LLM settings
 llm_model = "models/gemini-2.5-flash-lite"
@@ -572,6 +573,7 @@ pytest --cov=. --cov-report=html --cov-report=term
 tests/
 ├── __init__.py
 ├── conftest.py                    # Test configuration and fixtures
+├── test_aggregate_report_utils.py # Aggregate report tests
 ├── test_chromadb_utils.py         # ChromaDB functionality tests
 ├── test_document_loader.py        # Document processing tests
 ├── test_llm.py                   # LLM integration tests
@@ -587,7 +589,6 @@ tests/
 - **Comprehensive mocking** for external dependencies
 - **Integration tests** for complex workflows (marked `integration` in `pytest.ini`)
 - **Error handling tests** for robust code paths
-- **Test plan** in `docs/test_plan.md`
 
 ## 🎯 Project Structure
 
@@ -602,9 +603,6 @@ RagRetrievalBench/
 ├── .env.template                   # Environment variables template
 ├── .gitignore                      # Git ignore rules
 ├── current_versions.txt            # Version tracking
-├── test_plan.md                    # Placeholder (see docs/test_plan.md)
-├── test_report_issues.py           # Test issue reporting script
-├── backend/                        # Backend-related files
 ├── datasets/                       # Multi-dataset storage (created dynamically)
 │   └── <dataset_name>/             # Per-dataset isolated directories
 │       ├── corpus.jsonl            # Dataset-specific corpus
@@ -613,14 +611,10 @@ RagRetrievalBench/
 │       ├── pdfs/                   # Input PDFs for this dataset
 │       ├── reports/                # Dataset-specific reports and data
 │       └── chromadb_collections/   # Dataset-specific vector DB
-├── docs/                           # Documentation
-│   ├── benchmark_workflow.md      # Benchmark workflow documentation
-│   ├── MAP_CALCULATION_SUMMARY.md # MAP calculation summary
-│   ├── test_plan.md               # Comprehensive testing strategy (540+ lines)
-│   └── todolist.md                # Development roadmap
 ├── utils/                          # Core utilities package
 │   ├── __init__.py               # Package initialization
 │   ├── aggregate_report_utils.py # Cross-dataset statistical analysis
+│   ├── batch_manager.py         # Gemini Batch API helpers
 │   ├── chromadb_utils.py         # Vector database operations
 │   ├── document_loader.py        # PDF processing and corpus loading
 │   ├── llm.py                    # Google Gemini LLM integration
@@ -644,7 +638,7 @@ RagRetrievalBench/
 
 ### Google Gemini API Limits
 
-- **Gemini 2.5 Flash-Lite**: 15 RPM, 250,000 TPM, 1,000 RPD
+- **Limits vary by plan and model version**. Check current values in Google AI Studio for your account before large runs.
 - **Rate Limiting**: Built-in delays between API calls (configurable)
 - **Error Handling**: Graceful quota exhaustion handling with helpful messages
 

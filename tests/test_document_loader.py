@@ -3,6 +3,7 @@ from utils.document_loader import load_corpus, load_queries, load_ground_truth, 
 import os
 import json
 import tempfile
+import unicodedata
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -140,3 +141,39 @@ def test_load_ground_truth():
         assert "doc1" in relevant_docs["q1"]
         assert "doc2" in relevant_docs["q2"]
         assert len(relevant_docs["q1"]) == 1  # Only relevance > 0
+
+
+def test_load_queries_normalizes_unicode_nfc():
+    """Query ids/text should be normalized to NFC when loading."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False, encoding='utf-8') as f:
+        decomposed_query_id = "q1_for_I\u0307hale_chunk1"  # I + combining dot
+        decomposed_text = "TED U\u0308niversitesi Y\u0308onetim"  # U + combining diaeresis
+        f.write(json.dumps({"query_id": decomposed_query_id, "text": decomposed_text}, ensure_ascii=False) + "\n")
+        queries_file = f.name
+
+    try:
+        queries = load_queries(queries_file)
+        normalized_id = unicodedata.normalize("NFC", decomposed_query_id)
+        normalized_text = unicodedata.normalize("NFC", decomposed_text)
+        assert list(queries.keys()) == [normalized_id]
+        assert queries[normalized_id] == normalized_text
+    finally:
+        os.unlink(queries_file)
+
+
+def test_load_corpus_normalizes_unicode_nfc():
+    """Corpus doc ids/text should be normalized to NFC when loading."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False, encoding='utf-8') as f:
+        decomposed_doc_id = "I\u0307hale_chunk1"
+        decomposed_text = "U\u0308niversite yo\u0308netmeli\u011fi"
+        f.write(json.dumps({"doc_id": decomposed_doc_id, "text": decomposed_text}, ensure_ascii=False) + "\n")
+        corpus_file = f.name
+
+    try:
+        corpus = load_corpus(corpus_file)
+        normalized_id = unicodedata.normalize("NFC", decomposed_doc_id)
+        normalized_text = unicodedata.normalize("NFC", decomposed_text)
+        assert list(corpus.keys()) == [normalized_id]
+        assert corpus[normalized_id] == normalized_text
+    finally:
+        os.unlink(corpus_file)

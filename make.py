@@ -31,7 +31,7 @@ def test_cov(args=""):
     run_command(f"pytest --cov=utils --cov-report=html --cov-report=term {args}", "Running tests with coverage")
 
 def clean():
-    """Clean up cached files, report outputs, and ChromaDB collections"""
+    """Clean up caches and generated benchmark artifacts."""
     patterns = [
         "**/__pycache__",
         "**/*.pyc",
@@ -70,6 +70,14 @@ def clean():
         print("Reports directory cleaned (kept the directory and .gitkeep)")
     else:
         print("No reports directory found to clean")
+
+    # Clean default generated dataset artifacts at project root
+    default_generated_files = ["corpus.jsonl", "queries.jsonl", "qrels.tsv"]
+    for filename in default_generated_files:
+        file_path = Path(filename)
+        if file_path.exists() and file_path.is_file():
+            print(f"Removing generated file: {file_path}")
+            file_path.unlink()
     
     # Clean aggregated reports
     aggregated_dir = Path('aggregated_reports')
@@ -125,6 +133,13 @@ def clean():
                             elif item.is_dir():
                                 print(f"    Removing report subdirectory: {item.name}")
                                 shutil.rmtree(item)
+
+                # Clean dataset-generated data artifacts
+                for generated_name in ["corpus.jsonl", "queries.jsonl", "qrels.tsv"]:
+                    generated_file = dataset_dir / generated_name
+                    if generated_file.exists() and generated_file.is_file():
+                        print(f"    Removing generated file: {generated_name}")
+                        generated_file.unlink()
                 
                 # Clean dataset ChromaDB collections
                 ds_chromadb_dir = dataset_dir / 'chromadb_collections'
@@ -143,7 +158,7 @@ def clean():
     else:
         print("No datasets directory found to clean")
     
-    print("\n✅ Cleanup complete!")
+    print("\nCleanup complete!")
 
 def evaluate(dataset="education"):
     """Run evaluation on a specific dataset"""

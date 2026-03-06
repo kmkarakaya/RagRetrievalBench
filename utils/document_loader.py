@@ -5,6 +5,17 @@ Supports loading and processing PDF documents into corpus format.
 import json
 import os
 from typing import Dict, List, Tuple, Any
+import unicodedata
+
+
+def normalize_unicode_text(text: str) -> str:
+    """
+    Normalize text to NFC for stable storage/printing across platforms.
+    PyMuPDF and external APIs may return decomposed Unicode on some documents.
+    """
+    if not isinstance(text, str):
+        return text
+    return unicodedata.normalize("NFC", text)
 
 def prepare_corpus_from_pdfs(pdf_dir: str, chunk_size: int, chunk_overlap: int, corpus_file: str) -> Dict[str, Any]:
     """
@@ -47,9 +58,11 @@ def prepare_corpus_from_pdfs(pdf_dir: str, chunk_size: int, chunk_overlap: int, 
     
     with open(corpus_file, "w", encoding="utf-8") as f:
         for chunk in chunks:
+            normalized_doc_id = normalize_unicode_text(chunk.doc_id)
+            normalized_text = normalize_unicode_text(chunk.page_content)
             f.write(json.dumps({
-                "doc_id": chunk.doc_id, 
-                "text": chunk.page_content
+                "doc_id": normalized_doc_id,
+                "text": normalized_text
             }, ensure_ascii=False) + "\n")
     
     print("Corpus preparation complete.")
@@ -90,7 +103,9 @@ def load_corpus(corpus_file: str) -> Dict[str, str]:
                     if 'doc_id' not in data or 'text' not in data:
                         print(f"Warning: Line {line_num} missing required fields, skipping")
                         continue
-                    corpus[data['doc_id']] = data['text']
+                    doc_id = normalize_unicode_text(data['doc_id'])
+                    text = normalize_unicode_text(data['text'])
+                    corpus[doc_id] = text
                 except json.JSONDecodeError as e:
                     print(f"Warning: Invalid JSON on line {line_num}: {e}")
                     continue
@@ -135,7 +150,9 @@ def load_queries(queries_file: str) -> Dict[str, str]:
                     if 'query_id' not in data or 'text' not in data:
                         print(f"Warning: Line {line_num} missing required fields, skipping")
                         continue
-                    queries[data['query_id']] = data['text']
+                    query_id = normalize_unicode_text(data['query_id'])
+                    text = normalize_unicode_text(data['text'])
+                    queries[query_id] = text
                 except json.JSONDecodeError as e:
                     print(f"Warning: Invalid JSON on line {line_num}: {e}")
                     continue
