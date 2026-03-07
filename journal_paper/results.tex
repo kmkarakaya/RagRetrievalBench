@@ -1,0 +1,174 @@
+\section{Results}\label{results}
+
+Manuscript status: \textbf{Draft evidence complete, validation appendix pending}.
+
+Positioning note:
+
+\begin{itemize}
+\tightlist
+\item
+  Results in this section are presented as evidence that the proposed pipeline enables practical, local embedding model selection. They are not presented as universal leaderboard claims.
+\item
+  The evaluation is demonstrated with 3 datasets and 5 models in the frozen 2026-03-05 run. \citep{Aggregate_Report_2026_03_05}
+\end{itemize}
+
+\subsection{Evidence Sources (Frozen Snapshot)}\label{evidence-sources-frozen-snapshot}
+
+\begin{itemize}
+\tightlist
+\item
+  Aggregate report: \citep{Aggregate_Report_2026_03_05}
+\item
+  Raw dataset results: \citep{Raw_Education_Eng_2026_03_05}, \citep{Raw_Education_Tr_2026_03_05}, \citep{Raw_Law_Tr_2026_03_05}
+\item
+  Dataset provenance sources: \citep{TED_Regulations}, \citep{BDDK_Mevzuat}
+\end{itemize}
+
+\subsection{Pipeline Utility for Model Selection}\label{pipeline-utility-for-model-selection}
+
+The frozen outputs provide quality metrics (\texttt{MAP@10}, \texttt{Recall@10}, \texttt{Precision@10}, \texttt{NDCG@10}, \texttt{MRR@10}, \texttt{Success@10}) and runtime metrics (latency, throughput) for all 5 models on all 3 datasets. This supports cross-dataset comparison for dataset-specific model selection and enables users to choose the best suitable embedding model for user/application requirements. \citep{Aggregate_Report_2026_03_05}
+
+Dataset source provenance for this evaluation:
+
+\begin{itemize}
+\tightlist
+\item
+  Education datasets were curated from TED University regulations/guidelines source URL. \citep{TED_Regulations}
+\item
+  Law dataset was curated from BDDK regulations source URL. \citep{BDDK_Mevzuat}
+\item
+  Both sources were retrieved on \texttt{01/01/2026}. \citep{TED_Regulations, BDDK_Mevzuat}
+\end{itemize}
+
+\subsection{RQ1: Language Effect (education\_eng vs education\_tr)}\label{rq1-language-effect-education_eng-vs-education_tr}
+
+The top MAP model changes between English and Turkish education datasets: M4 is best on \texttt{education\_eng} with \texttt{MAP@10=0.6121}, while M5 is best on \texttt{education\_tr} with \texttt{MAP@10=0.5508}. \citep{Aggregate_Report_2026_03_05, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05}
+
+Model IDs used in tables:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{M1}: all-MiniLM-L6-v2
+\item
+  \texttt{M2}: all-mpnet-base-v2
+\item
+  \texttt{M3}: paraphrase-multilingual-MiniLM-L12-v2
+\item
+  \texttt{M4}: all-MiniLM-L12-v2
+\item
+  \texttt{M5}: paraphrase-multilingual-mpnet-base-v2
+\end{itemize}
+
+Selected MAP evidence by dataset:
+
+\begin{longtable}[]{@{}lrr@{}}
+\toprule\noalign{}
+Model & education\_eng MAP@10 & education\_tr MAP@10 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+M4 & 0.6121 & 0.1915 \\
+M5 & 0.5404 & 0.5508 \\
+M3 & 0.5020 & 0.4876 \\
+\end{longtable}
+
+Interpretation: ranking and score profiles are language-sensitive under otherwise fixed evaluation settings. \citep{Aggregate_Report_2026_03_05}
+
+\subsection{RQ2: Domain Effect Within Turkish (education\_tr vs law\_tr)}\label{rq2-domain-effect-within-turkish-education_tr-vs-law_tr}
+
+For MAP ordering, the top-5 rank order is stable between \texttt{education\_tr} and \texttt{law\_tr} in this frozen run, with M5 ranked first in both datasets. \citep{Aggregate_Report_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05}
+
+Domain-related differences are still visible in absolute scores and dataset-level difficulty:
+
+\begin{itemize}
+\tightlist
+\item
+  M5: \texttt{0.5508} (\texttt{education\_tr}) vs \texttt{0.3659} (\texttt{law\_tr}). \citep{Aggregate_Report_2026_03_05}
+\item
+  M3: \texttt{0.4876} vs \texttt{0.2948}. \citep{Aggregate_Report_2026_03_05}
+\item
+  Aggregate difficulty summary increases from \texttt{0.71} (\texttt{education\_tr}) to \texttt{0.79} (\texttt{law\_tr}). \citep{Aggregate_Report_2026_03_05}
+\end{itemize}
+
+Interpretation: this run supports domain impact in performance level/difficulty, while MAP rank ordering remains stable across the two Turkish datasets. \citep{Aggregate_Report_2026_03_05}
+
+\subsection{Cross-Dataset Consistency}\label{cross-dataset-consistency}
+
+From the aggregate summary, M5 has the best overall average rank (\texttt{2.00}) and the lowest reported CV (\texttt{0.357}), with two dataset wins. \citep{Aggregate_Report_2026_03_05}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\toprule\noalign{}
+Model & Avg Rank & Mean MAP & CV & Datasets Won \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+M5 & 2.00 & 0.4857 & 0.357 & 2 \\
+M4 & 2.33 & 0.3299 & 0.608 & 1 \\
+M3 & 3.00 & 0.4281 & 0.399 & 0 \\
+\end{longtable}
+
+Source table: \texttt{Cross-Dataset\ Model\ Performance\ Summary}. \citep{Aggregate_Report_2026_03_05}
+
+\subsection{Quality-Speed Tradeoff}\label{quality-speed-tradeoff}
+
+Latency and throughput evidence shows a clear operational tradeoff:
+
+\begin{itemize}
+\tightlist
+\item
+  Fastest weighted query latency: M1 at \texttt{28.54\ ms/query}. \citep{Aggregate_Report_2026_03_05}
+\item
+  Slowest weighted query latency: M2 at \texttt{69.29\ ms/query}. \citep{Aggregate_Report_2026_03_05}
+\item
+  Highest mean MAP across datasets: M5 at \texttt{0.4857}, but with higher latency (\texttt{60.55\ ms/query}) and lower throughput than MiniLM variants. \citep{Aggregate_Report_2026_03_05}
+\item
+  Embedding throughput examples (chunks/sec): M1 roughly \texttt{48-57}, M5 roughly \texttt{14-15}, M2 roughly \texttt{3.9-8.6}. \citep{Aggregate_Report_2026_03_05}
+\end{itemize}
+
+Interpretation: the best MAP model is not the fastest model; model choice depends on quality-vs-latency constraints. \citep{Aggregate_Report_2026_03_05}
+
+Practical implication:
+
+the pipeline's automatic benchmarking reports across various metrics make this tradeoff explicit for real deployment decisions. \citep{Aggregate_Report_2026_03_05}
+
+\subsection{Statistical Note}\label{statistical-note}
+
+The aggregate report states that M5 does not significantly differ from M4 on MAP (\texttt{p=0.339}). \citep{Aggregate_Report_2026_03_05}
+
+\subsection{Traceability Table}\label{traceability-table}
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Statement & Evidence Key \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+EN vs TR best-model switch & EK1 \\
+TR-domain MAP differences and difficulty shift & EK2 \\
+Consistency ranking and CV & EK3 \\
+Latency and throughput tradeoff & EK4 \\
+Pipeline utility for fit-for-purpose model choice & EK5 \\
+Dataset curation provenance and retrieval date & EK6 \\
+\end{longtable}
+
+Evidence key details:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{EK1}: Aggregate MAP table + raw JSON MAP fields \citep{Aggregate_Report_2026_03_05, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05}
+\item
+  \texttt{EK2}: Aggregate MAP and dataset summary tables \citep{Aggregate_Report_2026_03_05}
+\item
+  \texttt{EK3}: Aggregate consistency tables \citep{Aggregate_Report_2026_03_05}
+\item
+  \texttt{EK4}: Aggregate timing tables \citep{Aggregate_Report_2026_03_05}
+\item
+  \texttt{EK5}: Aggregate metrics + timing/report sections \citep{Aggregate_Report_2026_03_05}
+\item
+  \texttt{EK6}: Dataset source references \citep{TED_Regulations, BDDK_Mevzuat}
+\end{itemize}

@@ -1,0 +1,194 @@
+\section{Method}\label{method}
+
+\subsection{Pipeline}\label{pipeline}
+
+The benchmark follows the repository pipeline implemented in \texttt{rag\_benchmark.py} and is designed as tooling for developer decision support. \citep{Rag_Benchmark_Py}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Prepare corpus from dataset PDFs.
+\item
+  Generate synthetic queries from sampled chunks.
+\item
+  Generate qrels via LLM-based relevance judgments over retrieved candidates.
+\item
+  Initialize per-model vector collections.
+\item
+  Evaluate retrieval metrics and timing.
+\item
+  Generate per-dataset benchmark reports (markdown/pdf + visualizations).
+\item
+  Generate aggregate cross-dataset comparison reports.
+\end{enumerate}
+
+Datasets are isolated by \texttt{-\/-dataset} routing and \texttt{configure\_for\_dataset()} in \texttt{config.py}. \citep{Config_Py}
+
+Pipeline purpose statement:
+
+\begin{itemize}
+\tightlist
+\item
+  enable selection of the best suitable embedding model for user/application requirements using local data and operational constraints.
+\end{itemize}
+
+\subsection{Frozen Configuration Used in This Manuscript}\label{frozen-configuration-used-in-this-manuscript}
+
+The manuscript uses one fixed snapshot from 2026-03-05 and does not mix run timestamps.
+
+Primary settings:
+
+\begin{itemize}
+\tightlist
+\item
+  k = 10
+\item
+  chunk\_size = 1000
+\item
+  chunk\_overlap = 200
+\item
+  candidate\_pool\_size = 20
+\item
+  document\_batch\_size = 32
+\item
+  reinitialize\_collections = True
+\item
+  n\_queries = 50
+\item
+  qrels\_embedding\_model\_index = 4 (mapped to model ID M5 below)
+\item
+  llm\_model = models/gemini-2.5-flash-lite
+\end{itemize}
+
+Model IDs used across manuscript sections:
+
+\begin{itemize}
+\tightlist
+\item
+  M1: all-MiniLM-L6-v2
+\item
+  M2: all-mpnet-base-v2
+\item
+  M3: paraphrase-multilingual-MiniLM-L12-v2
+\item
+  M4: all-MiniLM-L12-v2
+\item
+  M5: paraphrase-multilingual-mpnet-base-v2
+\end{itemize}
+
+Evidence sources:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{config.py} \citep{Config_Py}
+\item
+  raw JSON config block for education\_eng run (2026-03-05 11:27:28) \citep{Raw_Education_Eng_2026_03_05}
+\item
+  raw JSON config block for education\_tr run (2026-03-05 11:29:07) \citep{Raw_Education_Tr_2026_03_05}
+\item
+  raw JSON config block for law\_tr run (2026-03-05 11:30:27) \citep{Raw_Law_Tr_2026_03_05}
+\end{itemize}
+
+\subsection{Evaluated Embedding Models}\label{evaluated-embedding-models}
+
+All evaluated embeddings are sentence-transformer variants and are referenced in text as M1-M5 for readability. Exact canonical strings are preserved in \texttt{config.py} and frozen raw-result artifacts. \citep{Config_Py, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05}
+
+Demonstration setup statement:
+
+\begin{itemize}
+\tightlist
+\item
+  this journal paper is demonstrated with 3 datasets and 5 models.
+\end{itemize}
+
+\subsection{Metrics and Operational Measurements}\label{metrics-and-operational-measurements}
+
+Retrieval metrics:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{MAP@10}
+\item
+  \texttt{Recall@10}
+\item
+  \texttt{Precision@10}
+\item
+  \texttt{NDCG@10}
+\item
+  \texttt{MRR@10}
+\item
+  \texttt{Success@10}
+\end{itemize}
+
+Operational measurements:
+
+\begin{itemize}
+\tightlist
+\item
+  Embedding time and throughput (\texttt{chunks/sec})
+\item
+  Average query retrieval latency (\texttt{ms/query})
+\end{itemize}
+
+These outputs are intended to support cross-dataset comparison for dataset-specific model selection.
+
+\subsection{Statistical and Aggregate Analysis}\label{statistical-and-aggregate-analysis}
+
+The aggregate report includes:
+
+\begin{itemize}
+\tightlist
+\item
+  Cross-dataset ranking by MAP
+\item
+  Coefficient of variation (CV) and stability summaries
+\item
+  Paired t-tests and effect-size reporting
+\item
+  Friedman test
+\item
+  Cross-dataset visual summaries (heatmaps, radar chart, consistency chart)
+\end{itemize}
+
+Canonical aggregate artifact:
+
+\begin{itemize}
+\tightlist
+\item
+  aggregate report for run \texttt{2026-03-05\_11-32-49} \citep{Aggregate_Report_2026_03_05}
+\end{itemize}
+
+Reporting utility statement:
+
+\begin{itemize}
+\tightlist
+\item
+  the pipeline produces automatic benchmarking reports across various metrics and well-structured dynamic report outputs (timestamped markdown/pdf + visualizations).
+\end{itemize}
+
+\subsection{Reproducibility Controls}\label{reproducibility-controls}
+
+\begin{itemize}
+\tightlist
+\item
+  Fixed frozen run IDs are documented in \texttt{journal\_paper/plan.md}.
+\item
+  Numeric values in manuscript sections must be taken from frozen aggregate/raw artifacts.
+\item
+  If new runs are introduced, snapshot IDs and all dependent numeric statements must be updated before manuscript edits continue.
+\item
+  Dataset curation provenance is fixed for this draft:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Education datasets source (retrieved 01/01/2026) \citep{TED_Regulations}
+  \item
+    Law dataset source (retrieved 01/01/2026) \citep{BDDK_Mevzuat}
+  \end{itemize}
+\item
+  The implementation is publicly available and pipeline reusable by any developer. \citep{GitHub_RagRetrievalBench}
+\end{itemize}

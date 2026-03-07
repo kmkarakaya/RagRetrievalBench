@@ -1,7 +1,6 @@
 param(
     [ValidateSet("sc", "dc")]
     [string]$Layout = "sc",
-    [string]$RunId = "2026-03-05_11-32-49",
     [switch]$CompilePdf
 )
 
@@ -15,26 +14,30 @@ function Assert-Command {
     }
 }
 
+function Invoke-CheckedExternal {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
+        [Parameter(Mandatory = $true)][string]$StepName
+    )
+    & $FilePath @ArgumentList
+    if ($LASTEXITCODE -ne 0) {
+        throw "$StepName failed with exit code $LASTEXITCODE."
+    }
+}
+
 $PaperDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Split-Path -Parent $PaperDir
-$BuildDir = Join-Path $PaperDir "build"
+$BuildRoot = Join-Path $PaperDir "build"
 $TemplateDir = Join-Path $PaperDir "template"
 $ClassName = if ($Layout -eq "dc") { "cas-dc" } else { "cas-sc" }
 $WrapperName = "manuscript_cas_$Layout.tex"
-$ResourcePath = "$PaperDir;$RepoRoot\aggregated_reports\$RunId"
-$BodyFragmentPath = Join-Path $BuildDir "body_fragment.tex"
-$AbstractFragmentPath = Join-Path $BuildDir "abstract_fragment.tex"
+$FullWrapperName = "manuscript_cas_${Layout}_full.tex"
+$MasterTexPath = Join-Path $PaperDir "manuscript.tex"
+$BibPath = Join-Path $PaperDir "refs.bib"
 
 $requiredFiles = @(
-    (Join-Path $PaperDir "main.md"),
-    (Join-Path $PaperDir "refs.md"),
-    (Join-Path $PaperDir "abstract.md"),
-    (Join-Path $PaperDir "intro.md"),
-    (Join-Path $PaperDir "related.md"),
-    (Join-Path $PaperDir "method.md"),
-    (Join-Path $PaperDir "experiments.md"),
-    (Join-Path $PaperDir "results.md"),
-    (Join-Path $PaperDir "conculusion.md"),
+    $MasterTexPath,
+    $BibPath,
     (Join-Path $TemplateDir "$ClassName.cls"),
     (Join-Path $TemplateDir "cas-common.sty"),
     (Join-Path $TemplateDir "cas-model2-names.bst")
@@ -45,239 +48,226 @@ if ($missing.Count -gt 0) {
     throw "Missing required files: $($missing -join ', ')"
 }
 
-Assert-Command -Name "pandoc"
 Assert-Command -Name "python"
 
+New-Item -ItemType Directory -Force $BuildRoot | Out-Null
+$BuildTimestampBase = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$BuildTimestamp = $BuildTimestampBase
+$BuildDir = Join-Path $BuildRoot $BuildTimestamp
+$suffix = 1
+while (Test-Path $BuildDir) {
+    $BuildTimestamp = "{0}_{1:D2}" -f $BuildTimestampBase, $suffix
+    $BuildDir = Join-Path $BuildRoot $BuildTimestamp
+    $suffix++
+}
 New-Item -ItemType Directory -Force $BuildDir | Out-Null
 
+Write-Host "Build folder (current run): $BuildDir"
+
+# Lint gates: template compliance checks before any wrapper generation.
 $env:PAPER_DIR = $PaperDir
-$env:BUILD_DIR = $BuildDir
-$env:CLASS_NAME = $ClassName
-$env:WRAPPER_NAME = $WrapperName
-
-# Step 1: Assemble manuscript from main.md manifest
 @'
 from pathlib import Path
 import os
 import re
 
 paper = Path(os.environ["PAPER_DIR"])
-build = Path(os.environ["BUILD_DIR"])
-main_text = (paper / "main.md").read_text(encoding="utf-8")
+master = paper / "manuscript.tex"
+refs = paper / "refs.bib"
+tex_files = sorted(paper.glob("*.tex"))
 
-yaml_match = re.match(r"^---\n.*?\n---\n", main_text, re.S)
-if not yaml_match:
-    raise SystemExit("main.md is missing a top YAML block")
-yaml_block = yaml_match.group(0)
+if not master.exists():
+    raise SystemExit("Lint failed: manuscript.tex not found.")
+if not refs.exists():
+    raise SystemExit("Lint failed: refs.bib not found.")
+if not tex_files:
+    raise SystemExit("Lint failed: no .tex source files found in journal_paper root.")
 
-manifest = re.findall(r"^\d+\.\s+`([^`]+\.md)`\s*$", main_text, re.M)
-if not manifest:
-    raise SystemExit("No section manifest found in main.md")
+bib_text = refs.read_text(encoding="utf-8")
+bib_keys = set(re.findall(r"@\w+\s*\{\s*([^,\s]+)\s*,", bib_text))
+if not bib_keys:
+    raise SystemExit("Lint failed: refs.bib has no BibTeX entries.")
+if len(bib_keys) != len(re.findall(r"@\w+\s*\{", bib_text)):
+    raise SystemExit("Lint failed: duplicate or malformed BibTeX keys in refs.bib.")
 
-parts = [yaml_block, "\n"]
-for section in manifest:
-    section_path = paper / section
-    if not section_path.exists():
-        raise SystemExit(f"Manifest entry missing: {section}")
-    text = section_path.read_text(encoding="utf-8").strip()
-    parts.append(f"\n<!-- BEGIN {section} -->\n\n{text}\n\n<!-- END {section} -->\n")
+issues = []
+cite_keys_used = set()
+existing_files = {p.name for p in paper.iterdir() if p.is_file()}
+allowed_image_exts = [".pdf", ".png", ".jpg", ".jpeg", ".eps"]
 
-(build / "manuscript_raw.md").write_text("".join(parts), encoding="utf-8")
-print("Wrote manuscript_raw.md")
+cite_re = re.compile(r"\\cite[a-zA-Z*]*(?:\[[^\]]*\])*\{([^}]*)\}")
+input_re = re.compile(r"\\input\{([^}]+)\}")
+include_re = re.compile(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}")
+env_re = re.compile(r"\\begin\{(table\*?|longtable|figure\*?)\}(.*?)\\end\{\1\}", re.S)
+
+def has_caption(block: str) -> bool:
+    return bool(re.search(r"\\caption(?:\[[^\]]*\])?\{", block))
+
+def has_label(block: str) -> bool:
+    return bool(re.search(r"\\label\{", block))
+
+for tex_path in tex_files:
+    text = tex_path.read_text(encoding="utf-8")
+
+    for m in cite_re.finditer(text):
+        keys = [k.strip() for k in m.group(1).split(",") if k.strip()]
+        for key in keys:
+            cite_keys_used.add(key)
+
+    for m in input_re.finditer(text):
+        target = m.group(1).strip()
+        if "/" in target or "\\" in target:
+            issues.append(f"{tex_path.name}: nested input path is not allowed: {target}")
+            continue
+        if not target.lower().endswith(".tex"):
+            target += ".tex"
+        if target not in existing_files:
+            issues.append(f"{tex_path.name}: missing input target: {target}")
+
+    for m in include_re.finditer(text):
+        target = m.group(1).strip()
+        if "/" in target or "\\" in target:
+            issues.append(f"{tex_path.name}: nested includegraphics path is not allowed: {target}")
+            continue
+        if "." in Path(target).name:
+            if target not in existing_files:
+                issues.append(f"{tex_path.name}: includegraphics file not found: {target}")
+        else:
+            matches = [target + ext for ext in allowed_image_exts if (target + ext) in existing_files]
+            if not matches:
+                issues.append(f"{tex_path.name}: includegraphics target not found (with allowed extensions): {target}")
+
+    env_idx = 0
+    for env_match in env_re.finditer(text):
+        env_idx += 1
+        env_name = env_match.group(1)
+        block = env_match.group(0)
+        if env_name.startswith("figure"):
+            if not has_caption(block):
+                issues.append(f"{tex_path.name}: figure #{env_idx} missing \\caption{{...}}")
+            if not has_label(block):
+                issues.append(f"{tex_path.name}: figure #{env_idx} missing \\label{{...}}")
+        else:
+            if not has_caption(block):
+                issues.append(f"{tex_path.name}: table/longtable #{env_idx} missing \\caption{{...}}")
+            if not has_label(block):
+                issues.append(f"{tex_path.name}: table/longtable #{env_idx} missing \\label{{...}}")
+
+missing_cites = sorted(k for k in cite_keys_used if k not in bib_keys)
+for key in missing_cites:
+    issues.append(f"Missing BibTeX key in refs.bib: {key}")
+
+if issues:
+    msg = "Lint failed with rule violations:\\n" + "\\n".join(f"- {x}" for x in issues)
+    raise SystemExit(msg)
+
+print("Lint checks passed: template/rule gates are satisfied.")
 '@ | python -
 
-# Step 2: Convert [Key] to [@Key], normalize adjacent citations, remove abstract block from body
-@'
-from pathlib import Path
-import os
-import re
+# Copy flat-source TeX files.
+Get-ChildItem -Path $PaperDir -File -Filter "*.tex" | ForEach-Object {
+    Copy-Item $_.FullName $BuildDir -Force
+}
 
-paper = Path(os.environ["PAPER_DIR"])
-build = Path(os.environ["BUILD_DIR"])
-refs_text = (paper / "refs.md").read_text(encoding="utf-8")
-manuscript = (build / "manuscript_raw.md").read_text(encoding="utf-8")
+# Copy direct bibliography source.
+Copy-Item $BibPath (Join-Path $BuildDir "refs.bib") -Force
 
-keys = re.findall(r"^\[([A-Za-z][A-Za-z0-9_]*)\]\s*$", refs_text, re.M)
-if not keys:
-    raise SystemExit("No citation keys found in refs.md")
+# Copy image assets from flat source folder.
+$imageExtensions = @("*.png", "*.jpg", "*.jpeg", "*.pdf", "*.eps")
+foreach ($ext in $imageExtensions) {
+    Get-ChildItem -Path $PaperDir -File -Filter $ext | ForEach-Object {
+        Copy-Item $_.FullName $BuildDir -Force
+    }
+}
 
-for key in sorted(set(keys), key=len, reverse=True):
-    manuscript = re.sub(rf"\[{re.escape(key)}\]", f"[@{key}]", manuscript)
-
-pattern = re.compile(r"(?:\[@[A-Za-z][A-Za-z0-9_]*\]){2,}")
-def collapse(match):
-    ids = re.findall(r"@([A-Za-z][A-Za-z0-9_]*)", match.group(0))
-    return "[" + "; ".join(f"@{x}" for x in ids) + "]"
-
-manuscript = pattern.sub(collapse, manuscript)
-(build / "manuscript_cite.md").write_text(manuscript, encoding="utf-8")
-
-body_only = re.sub(
-    r"(?s)\n<!-- BEGIN abstract\.md -->.*?<!-- END abstract\.md -->\n",
-    "\n",
-    manuscript
-)
-(build / "manuscript_body_cite.md").write_text(body_only, encoding="utf-8")
-print("Wrote manuscript_cite.md and manuscript_body_cite.md")
-'@ | python -
-
-# Step 3: Build refs.bib from refs.md
-@'
-from pathlib import Path
-import os
-import re
-
-def clean(value: str) -> str:
-    value = value.strip()
-    if value.startswith("`") and value.endswith("`"):
-        value = value[1:-1]
-    return value.strip()
-
-def esc(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}")
-
-paper = Path(os.environ["PAPER_DIR"])
-build = Path(os.environ["BUILD_DIR"])
-text = (paper / "refs.md").read_text(encoding="utf-8")
-matches = list(re.finditer(r"^\[([A-Za-z][A-Za-z0-9_]*)\]\s*$", text, re.M))
-
-entries = []
-for i, match in enumerate(matches):
-    key = match.group(1)
-    start = match.end()
-    end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-    block = text[start:end]
-    fields = dict((k.strip(), clean(v)) for k, v in re.findall(r"^\-\s+([a-z_]+):\s*(.+)$", block, re.M))
-    if "title" not in fields:
-        continue
-
-    ref_type = fields.get("type", "misc")
-    bib_type = "misc"
-    if ref_type in {"article", "article-preprint"}:
-        bib_type = "article"
-    elif ref_type in {"conference-paper"}:
-        bib_type = "inproceedings"
-    elif ref_type in {"report", "dataset-artifact-report"}:
-        bib_type = "techreport"
-
-    author = fields.get("authors_or_org", "Unknown")
-    title = fields.get("title", key)
-    year = fields.get("year", "n.d.")
-    publisher = fields.get("venue_or_publisher", "")
-    url = fields.get("path_or_url", "")
-    note = fields.get("note", "")
-    urldate = fields.get("accessed_or_retrieved", "")
-
-    lines = [
-        f"@{bib_type}{{{key},",
-        f"  author = {{{esc(author)}}},",
-        f"  title = {{{esc(title)}}},",
-        f"  year = {{{esc(year)}}},"
-    ]
-    if publisher:
-        lines.append(f"  publisher = {{{esc(publisher)}}},")
-    if url:
-        lines.append(f"  url = {{{esc(url)}}},")
-    if urldate:
-        lines.append(f"  urldate = {{{esc(urldate)}}},")
-    if note:
-        lines.append(f"  note = {{{esc(note)}}},")
-    lines.append("}")
-    entries.append("\n".join(lines))
-
-(build / "refs.bib").write_text("\n\n".join(entries).strip() + "\n", encoding="utf-8")
-print("Wrote refs.bib")
-'@ | python -
-
-# Step 4: Create body and abstract latex fragments
-pandoc (Join-Path $BuildDir "manuscript_body_cite.md") `
-    --from markdown+yaml_metadata_block+pipe_tables+raw_tex `
-    --to latex `
-    --natbib `
-    --wrap=none `
-    --resource-path="$ResourcePath" `
-    --output="$BodyFragmentPath"
-
-pandoc (Join-Path $PaperDir "abstract.md") `
-    --from markdown+pipe_tables+raw_tex `
-    --to latex `
-    --wrap=none `
-    --output="$AbstractFragmentPath"
-
-# Step 5: Copy CAS assets to build folder
+# Copy required CAS template assets.
 Copy-Item (Join-Path $TemplateDir "$ClassName.cls") $BuildDir -Force
 Copy-Item (Join-Path $TemplateDir "cas-common.sty") $BuildDir -Force
 Copy-Item (Join-Path $TemplateDir "cas-model2-names.bst") $BuildDir -Force
+if (Test-Path (Join-Path $TemplateDir "thumbnails")) {
+    Copy-Item (Join-Path $TemplateDir "thumbnails") $BuildDir -Recurse -Force
+}
 
-# Step 6: Create wrapper tex
+# Generate layout-specific wrapper from manuscript.tex.
+$masterText = Get-Content -Path $MasterTexPath -Raw
+if ($masterText -notmatch "__CAS_CLASS__") {
+    throw "manuscript.tex must contain __CAS_CLASS__ token in \\documentclass{...}."
+}
+$wrapperText = $masterText -replace "__CAS_CLASS__", $ClassName
+$WrapperPath = Join-Path $BuildDir $WrapperName
+Set-Content -Path $WrapperPath -Value $wrapperText -Encoding UTF8
+
+# Generate full/inlined wrapper for debugging and inspection.
+$env:BUILD_DIR = $BuildDir
+$env:WRAPPER_NAME = $WrapperName
+$env:FULL_WRAPPER_NAME = $FullWrapperName
 @'
 from pathlib import Path
 import os
 import re
 
-paper = Path(os.environ["PAPER_DIR"])
 build = Path(os.environ["BUILD_DIR"])
-class_name = os.environ["CLASS_NAME"]
 wrapper_name = os.environ["WRAPPER_NAME"]
+full_wrapper_name = os.environ["FULL_WRAPPER_NAME"]
 
-main_text = (paper / "main.md").read_text(encoding="utf-8")
-title_match = re.search(r'^title:\s*"(.*)"\s*$', main_text, re.M)
-title = title_match.group(1).strip() if title_match else "TODO: Title"
+input_re = re.compile(r"\\input\{([^}]+)\}")
 
-abstract = (build / "abstract_fragment.tex").read_text(encoding="utf-8").strip()
-if not abstract:
-    abstract = "TODO: Add abstract text."
+def normalize_tex_name(name: str) -> str:
+    name = name.strip()
+    if "/" in name or "\\" in name:
+        raise SystemExit(
+            f"Nested input path is not allowed in flat-source mode: {name}"
+        )
+    if not name.lower().endswith('.tex'):
+        name += '.tex'
+    return name
 
-wrapper = rf"""\documentclass[a4paper,fleqn]{{{class_name}}}
-\usepackage[authoryear,longnamesfirst]{{natbib}}
-\begin{{document}}
-\shorttitle{{{title}}}
-\shortauthors{{TODO: Authors}}
-\title[mode=title]{{{title}}}
-\author[1]{{TODO: Author Name}}
-\ead{{TODO: email}}
-\affiliation[1]{{organization={{TODO: Organization}},city={{TODO: City}},country={{TODO: Country}}}}
-\begin{{abstract}}
-{abstract}
-\end{{abstract}}
-\begin{{highlights}}
-\item TODO: highlight 1
-\item TODO: highlight 2
-\item TODO: highlight 3
-\end{{highlights}}
-\begin{{keywords}}
-embedding benchmarking \sep retrieval \sep model selection \sep local dataset
-\end{{keywords}}
-\maketitle
-\input{{body_fragment.tex}}
-\bibliographystyle{{cas-model2-names}}
-\bibliography{{refs}}
-\end{{document}}
-"""
+def inline_inputs(tex_text: str, stack: list[str]) -> str:
+    def repl(m: re.Match) -> str:
+        target = normalize_tex_name(m.group(1))
+        if target in stack:
+            raise SystemExit(f"Recursive \\input detected: {' -> '.join(stack + [target])}")
+        path = build / target
+        if not path.exists():
+            raise SystemExit(f"Missing input file in build folder: {target}")
+        child = path.read_text(encoding='utf-8')
+        return inline_inputs(child, stack + [target])
 
-(build / wrapper_name).write_text(wrapper, encoding="utf-8")
-print(f"Wrote {wrapper_name}")
+    return input_re.sub(repl, tex_text)
+
+wrapper_text = (build / wrapper_name).read_text(encoding='utf-8')
+full_text = inline_inputs(wrapper_text, [wrapper_name])
+(build / full_wrapper_name).write_text(full_text, encoding='utf-8')
+print(f"Wrote {wrapper_name} and {full_wrapper_name}")
 '@ | python -
 
 if ($CompilePdf) {
     Assert-Command -Name "xelatex"
     Assert-Command -Name "bibtex"
+
+    $texBaseName = [System.IO.Path]::GetFileNameWithoutExtension($WrapperName)
     Push-Location $BuildDir
     try {
-        & xelatex -interaction=nonstopmode -halt-on-error $WrapperName | Out-Null
-        & bibtex ([System.IO.Path]::GetFileNameWithoutExtension($WrapperName)) | Out-Null
-        & xelatex -interaction=nonstopmode -halt-on-error $WrapperName | Out-Null
-        & xelatex -interaction=nonstopmode -halt-on-error $WrapperName | Out-Null
+        Invoke-CheckedExternal -FilePath "xelatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "XeLaTeX pass 1"
+        Invoke-CheckedExternal -FilePath "bibtex" -ArgumentList @($texBaseName) -StepName "BibTeX pass"
+        Invoke-CheckedExternal -FilePath "xelatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "XeLaTeX pass 2"
+        Invoke-CheckedExternal -FilePath "xelatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "XeLaTeX pass 3"
     }
     finally {
         Pop-Location
     }
 }
 
+$pdfPath = Join-Path $BuildDir ($WrapperName -replace '\.tex$', '.pdf')
+
 Write-Host "Build complete."
 Write-Host "  Layout: $Layout"
+Write-Host "  Build folder: $BuildDir"
 Write-Host "  Wrapper: $(Join-Path $BuildDir $WrapperName)"
+Write-Host "  Full wrapper: $(Join-Path $BuildDir $FullWrapperName)"
 Write-Host "  Bib: $(Join-Path $BuildDir 'refs.bib')"
 if ($CompilePdf) {
-    Write-Host "  PDF: $(Join-Path $BuildDir ($WrapperName -replace '\.tex$', '.pdf'))"
+    Write-Host "  PDF: $pdfPath"
+} else {
+    Write-Host "  PDF: not generated (use -CompilePdf)"
 }

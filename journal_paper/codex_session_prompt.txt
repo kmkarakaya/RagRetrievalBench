@@ -1,0 +1,9 @@
+Use the TeX-first workflow in this repo.
+
+Rules:
+1) Edit only `journal_paper/manuscript.tex`, `journal_paper/*.tex`, and `journal_paper/refs.bib`.
+2) Follow CAS template conventions from `journal_paper/template/`.
+3) Keep flat source paths: no nested paths in `\input{...}` or `\includegraphics{...}`.
+4) Every table/longtable/figure must include both `\caption{...}` and `\label{...}`.
+5) Ensure all citation keys resolve in `refs.bib`.
+6) Run `powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1` before declaring success.

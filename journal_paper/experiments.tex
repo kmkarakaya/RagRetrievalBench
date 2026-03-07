@@ -1,0 +1,186 @@
+\section{Experiments}\label{experiments}
+
+\subsection{Experimental Snapshot}\label{experimental-snapshot}
+
+This draft uses the frozen 2026-03-05 run family:
+
+\begin{itemize}
+\tightlist
+\item
+  Aggregate report run ID: \texttt{2026-03-05\_11-32-49} \citep{Aggregate_Report_2026_03_05}
+\item
+  \texttt{education\_eng} run timestamp: \texttt{2026-03-05\_11-27-28} \citep{Raw_Education_Eng_2026_03_05}
+\item
+  \texttt{education\_tr} run timestamp: \texttt{2026-03-05\_11-29-07} \citep{Raw_Education_Tr_2026_03_05}
+\item
+  \texttt{law\_tr} run timestamp: \texttt{2026-03-05\_11-30-27} \citep{Raw_Law_Tr_2026_03_05}
+\end{itemize}
+
+Primary evaluation intent:
+
+demonstrate pipeline effectiveness for practical model selection, not to claim a universal best model.
+
+\subsection{Datasets}\label{datasets}
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\toprule\noalign{}
+Dataset & Documents (PDFs) & Chunks & Queries & Qrels \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+education\_eng & 29 & 572 & 50 & 215 \\
+education\_tr & 29 & 619 & 50 & 199 \\
+law\_tr & 2 & 723 & 50 & 210 \\
+Total & 60 & 1914 & 150 & 624 \\
+\end{longtable}
+
+Source:
+
+Aggregate table \texttt{Dataset\ Statistics\ Summary}. \citep{Aggregate_Report_2026_03_05}
+
+Demonstration scope:
+
+demonstrated with 3 datasets and 5 models.
+
+\subsection{Dataset Provenance}\label{dataset-provenance}
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+Dataset Group & Source Key & Retrieval Date \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{education\_eng}, \texttt{education\_tr} & \texttt{TED\_Regulations} & \texttt{01/01/2026} \\
+\texttt{law\_tr} & \texttt{BDDK\_Mevzuat} & \texttt{01/01/2026} \\
+\end{longtable}
+
+Source details:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{TED\_Regulations}: TED University Regulations and Guidelines for Education \citep{TED_Regulations}
+\item
+  \texttt{BDDK\_Mevzuat}: Bankacilik Duzenleme ve Denetleme Kurumu (BDDK) Mevzuat listesi \citep{BDDK_Mevzuat}
+\end{itemize}
+
+Provenance note:
+
+\begin{itemize}
+\tightlist
+\item
+  The education datasets were curated from the TED University regulations/guidelines source above.
+\item
+  The law dataset was curated from the BDDK regulations source above. \citep{TED_Regulations, BDDK_Mevzuat}
+\end{itemize}
+
+\subsection{Shared Evaluation Setup}\label{shared-evaluation-setup}
+
+\begin{itemize}
+\tightlist
+\item
+  Retrieval backend: ChromaDB vector search with cosine similarity.
+\item
+  Cutoff: \texttt{k=10} for all metrics.
+\item
+  Chunking: \texttt{1000} size, \texttt{200} overlap.
+\item
+  Query count: \texttt{50} per dataset.
+\item
+  Candidate pool for qrels labeling: \texttt{20}.
+\item
+  Same five embedding models evaluated on each dataset.
+\end{itemize}
+
+Sources:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{config.py} \citep{Config_Py}
+\item
+  Aggregate section \texttt{Methodology} and dataset raw-result \texttt{config} blocks. \citep{Aggregate_Report_2026_03_05, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05}
+\end{itemize}
+
+Decision-support framing:
+
+\begin{itemize}
+\tightlist
+\item
+  this setup is intentionally fixed so users can compare retrieval quality and operational metrics to choose the best suitable embedding model for user/application requirements.
+\item
+  the workflow is designed for developers/practitioners and is pipeline reusable by any developer.
+\end{itemize}
+
+\subsection{Controlled Variables}\label{controlled-variables}
+
+Held constant across datasets:
+
+\begin{itemize}
+\tightlist
+\item
+  Metric definitions and cutoff
+\item
+  Embedding model list
+\item
+  Candidate pool size
+\item
+  Chunking parameters
+\item
+  Reporting pipeline and aggregate analysis procedure
+\end{itemize}
+
+Varied by dataset:
+
+\begin{itemize}
+\tightlist
+\item
+  Corpus language/domain
+\item
+  Corpus size and document composition
+\end{itemize}
+
+\subsection{Known Comparability Limitation}\label{known-comparability-limitation}
+
+\texttt{law\_tr} has only 2 source PDFs but 723 chunks, while education datasets each have 29 PDFs. This structural imbalance can influence retrieval behavior and should be interpreted as a limitation when comparing cross-domain outcomes.
+
+Sources:
+
+\begin{itemize}
+\tightlist
+\item
+  Aggregate \texttt{Dataset\ Statistics\ Summary}
+\item
+  Dataset sections under \texttt{Dataset-Specific\ Analysis} in aggregate report \citep{Aggregate_Report_2026_03_05}
+\end{itemize}
+
+\subsection{Report Outputs and Utility}\label{report-outputs-and-utility}
+
+For each run, the pipeline emits:
+
+\begin{itemize}
+\tightlist
+\item
+  per-dataset benchmark reports (markdown/pdf),
+\item
+  aggregate cross-dataset report (markdown/pdf),
+\item
+  visualization assets for metrics, ranking, consistency, and timing.
+\end{itemize}
+
+These outputs are treated as automatic benchmarking reports across various metrics and as well-structured dynamic report outputs (timestamped markdown/pdf + visualizations) used for cross-dataset comparison for dataset-specific model selection.
+
+\subsection{Pending Submission-Quality Additions}\label{pending-submission-quality-additions}
+
+The following are intentionally tracked as pending in this draft stage:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Light human qrels audit (sample, protocol, agreement metric)
+\item
+  Compute environment table (CPU/GPU/RAM/software versions)
+\end{enumerate}

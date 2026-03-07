@@ -1,0 +1,67 @@
+\section{Conclusion}\label{conclusion}
+
+This journal draft demonstrates the effectiveness of an end-to-end embedding benchmarking pipeline for local dataset evaluation and practical model selection. The frozen multi-dataset snapshot generated on 2026-03-05 shows that embedding behavior is dataset-dependent and that local benchmarking is necessary for fit-for-purpose deployment decisions. \citep{Aggregate_Report_2026_03_05}
+
+The run demonstrates language-sensitive variation (\texttt{education\_eng} vs \texttt{education\_tr}) and domain-sensitive variation (\texttt{education\_tr} vs \texttt{law\_tr}) under one fixed setup with 3 datasets and 5 models. The pipeline also exposes quality-speed tradeoffs through joint reporting of retrieval metrics and operational metrics. \citep{Aggregate_Report_2026_03_05, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05}
+
+The main outcome is practical utility: the generated reports provide automatic benchmarking reports across various metrics and well-structured dynamic report outputs (timestamped markdown/pdf + visualizations), enabling cross-dataset comparison for dataset-specific model selection and helping users choose the best suitable embedding model for user/application requirements.
+
+The implementation is publicly available, and the workflow is intended to be pipeline reusable by any developer. \citep{GitHub_RagRetrievalBench}
+
+Dataset provenance has been documented for this draft:
+
+\begin{itemize}
+\tightlist
+\item
+  Education datasets: TED University regulations/guidelines URL, retrieved on 01/01/2026.
+\item
+  Law dataset: BDDK regulations URL, retrieved on 01/01/2026. \citep{TED_Regulations, BDDK_Mevzuat}
+\end{itemize}
+
+\subsection{Boundaries and Pending Validation}\label{boundaries-and-pending-validation}
+
+Supported claims are bounded to:
+
+\begin{itemize}
+\tightlist
+\item
+  the three evaluated datasets
+\item
+  the frozen run timestamps
+\item
+  the configured metrics and retrieval setup
+\end{itemize}
+
+Pending items before submission-quality lock:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Light human qrels audit (sampling protocol and agreement metric)
+\item
+  Compute environment appendix (CPU/GPU/RAM/software versions)
+\end{enumerate}
+
+Current manuscript state:
+
+\begin{itemize}
+\tightlist
+\item
+  Draft evidence complete, validation appendix pending.
+\end{itemize}
+
+\subsection{Future Work}\label{future-work}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Expand provenance appendix to per-document source mapping and add human-audit validity appendix.
+\item
+  Add sensitivity analyses for query count and candidate pool settings.
+\item
+  Extend cross-dataset evaluation with additional Turkish and multilingual domains.
+\item
+  Test robustness under alternative chunking and retrieval cutoff settings.
+\end{enumerate}

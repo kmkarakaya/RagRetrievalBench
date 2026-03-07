@@ -1,0 +1,96 @@
+\section{Introduction}\label{introduction}
+
+This paper aims to create and test an embedding benchmarking pipeline that can evaluate different embedding model performances on local datasets so users can choose the best suitable embedding model for user/application requirements. The contribution is therefore not a universal ranking claim; it is a practical decision-support pipeline for developers and practitioners building Retrieval-Augmented Generation (RAG) systems. \citep{Aggregate_Report_2026_03_05, Rag_Benchmark_Py}
+
+RAG quality depends on retrieval quality, and retrieval quality depends on how well the embedding model matches the target corpus. Public benchmark leaderboards are useful references, but they are insufficient for direct deployment decisions on local documents. For practical engineering, the key question is: which embedding model is most suitable for this dataset and this application constraint profile? \citep{Lewis_RAG_2021}
+
+\subsection{Motivation}\label{motivation}
+
+Teams deploying RAG systems usually need a repeatable and local workflow that can:
+
+\begin{itemize}
+\tightlist
+\item
+  evaluate multiple embedding models under one fixed setup,
+\item
+  generate automatic benchmarking reports across various metrics,
+\item
+  and compare models across multiple datasets before production selection.
+\end{itemize}
+
+The proposed pipeline addresses this gap by producing well-structured dynamic report outputs (timestamped markdown/pdf + visualizations) and by supporting cross-dataset comparison for dataset-specific model selection.
+
+\subsection{Study Setup}\label{study-setup}
+
+The effectiveness of the pipeline is demonstrated with 3 datasets and 5 models in a frozen 2026-03-05 run family:
+
+\begin{itemize}
+\tightlist
+\item
+  Datasets: \texttt{education\_eng}, \texttt{education\_tr}, \texttt{law\_tr}
+\item
+  Embedding models: 5 sentence-transformer models configured in \texttt{config.py}
+\item
+  Education datasets were curated from TED University regulations/guidelines source URL on \texttt{01/01/2026}.
+\item
+  Law dataset was curated from BDDK regulations source URL on \texttt{01/01/2026}.
+\item
+  Dataset evidence source keys: \citep{Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05, TED_Regulations, BDDK_Mevzuat}
+\end{itemize}
+
+This setup enables controlled analysis of:
+
+\begin{itemize}
+\tightlist
+\item
+  language sensitivity within education (\texttt{education\_eng} vs \texttt{education\_tr}),
+\item
+  domain sensitivity within Turkish (\texttt{education\_tr} vs \texttt{law\_tr}),
+\item
+  and quality-speed tradeoffs relevant to deployment.
+\end{itemize}
+
+\subsection{Contributions}\label{contributions}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  We present a reusable local embedding benchmarking pipeline for practical model selection.
+\item
+  We show that the pipeline produces automatic benchmarking reports across various metrics and runtime measurements.
+\item
+  We show that the same pipeline supports cross-dataset comparison for dataset-specific model selection.
+\item
+  We demonstrate the full workflow with 3 datasets and 5 models and provide traceable, timestamped artifacts.
+\item
+  We make the pipeline reusable by any developer through the public repository. \citep{GitHub_RagRetrievalBench}
+\end{enumerate}
+
+\subsection{Research Questions}\label{research-questions}
+
+\begin{itemize}
+\tightlist
+\item
+  RQ1 (Pipeline Utility): Can the proposed pipeline provide actionable evidence for selecting embeddings on local datasets?
+\item
+  RQ2 (Language Effect): Do model rankings and MAP outcomes change between English and Turkish education datasets under identical settings?
+\item
+  RQ3 (Domain Effect): How do model performance profiles change between Turkish education and Turkish law datasets?
+\item
+  RQ4 (Operational Tradeoff): How does the pipeline expose quality-speed tradeoffs (MAP, latency, throughput) for fit-for-purpose selection?
+\end{itemize}
+
+\subsection{Study Boundaries}\label{study-boundaries}
+
+\begin{itemize}
+\tightlist
+\item
+  Claims are bounded to the frozen run and evaluated datasets.
+\item
+  Results are used to demonstrate pipeline effectiveness and practical utility.
+\item
+  We do not claim universal model superiority beyond this setup.
+\item
+  Submission-quality validity additions (human qrels audit and compute environment) are tracked as pending in this draft; baseline dataset provenance is now documented.
+\end{itemize}
