@@ -26,7 +26,7 @@ Positioning note:
 
 \subsection{Pipeline Utility for Model Selection}\label{pipeline-utility-for-model-selection}
 
-The frozen outputs provide six quality metrics at \texttt{k=10} together with runtime measurements for all 5 models on all 3 datasets. This supports cross-dataset comparison for dataset-specific model selection and enables users to choose the best suitable embedding model for user/application requirements. \citep{Aggregate_Report_2026_03_05}
+The frozen outputs provide six quality metrics at \texttt{k=10} together with runtime measurements for all 5 models on all 3 datasets. This supports cross-dataset comparison for dataset-specific model selection and enables practitioners to choose the most suitable embedding model for application requirements. \citep{Aggregate_Report_2026_03_05}
 
 Dataset source provenance for this evaluation:
 
@@ -62,18 +62,19 @@ Model IDs used in tables:
 
 Selected MAP evidence by dataset:
 
-\begin{longtable}[]{@{}lrr@{}}
-\caption{Selected MAP@10 evidence for education\_eng and education\_tr datasets.}\label{tbl:rq1_selected_map_evidence}\\
-\toprule\noalign{}
+\begin{table}[t]
+\caption{Selected MAP@10 evidence for education\_eng and education\_tr datasets.}\label{tbl:rq1_selected_map_evidence}
+\centering
+\begin{tabular}{@{}lrr@{}}
+\toprule
 Model & education\_eng MAP@10 & education\_tr MAP@10 \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
+\midrule
 M4 & 0.6121 & 0.1915 \\
 M5 & 0.5404 & 0.5508 \\
 M3 & 0.5020 & 0.4876 \\
-\end{longtable}
+\bottomrule
+\end{tabular}
+\end{table}
 
 Interpretation: ranking and score profiles are language-sensitive under otherwise fixed evaluation settings. \citep{Aggregate_Report_2026_03_05}
 
@@ -99,18 +100,19 @@ Interpretation: this run supports domain impact in performance level/difficulty,
 
 From the aggregate summary, M5 has the best overall average rank (\texttt{2.00}) and the lowest reported CV (\texttt{0.357}), with two dataset wins. \citep{Aggregate_Report_2026_03_05}
 
-\begin{longtable}[]{@{}lrrrr@{}}
-\caption{Cross-dataset consistency summary for selected embedding models.}\label{tbl:cross_dataset_consistency_summary}\\
-\toprule\noalign{}
+\begin{table}[t]
+\caption{Cross-dataset consistency summary for selected embedding models.}\label{tbl:cross_dataset_consistency_summary}
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
 Model & Avg Rank & Mean MAP & CV & Datasets Won \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
+\midrule
 M5 & 2.00 & 0.4857 & 0.357 & 2 \\
 M4 & 2.33 & 0.3299 & 0.608 & 1 \\
 M3 & 3.00 & 0.4281 & 0.399 & 0 \\
-\end{longtable}
+\bottomrule
+\end{tabular}
+\end{table}
 
 Source table: \texttt{Cross-Dataset\ Model\ Performance\ Summary}. \citep{Aggregate_Report_2026_03_05}
 

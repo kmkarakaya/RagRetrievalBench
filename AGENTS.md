@@ -41,6 +41,11 @@ These rules apply to all Codex sessions in this repository.
 ## Citation and Bibliography Rules
 - Use natbib citation commands (`\citep`, `\citet`, etc.).
 - Every cited key must exist in `journal_paper/refs.bib`.
+- For website-style resources, follow the local CAS template pattern from `journal_paper/template/cas-refs.bib`:
+  - use `@misc`
+  - use `howpublished = {\url{...}}` for the website address
+  - prefer concise fields instead of report-style metadata
+- For organizational or corporate authors in BibTeX, wrap the full name in double braces, for example `author = {{Sentence Transformers}}`, so BibTeX does not invert it into forms such as `Project, R.`.
 - Keep bibliography contract exactly:
   - `\bibliographystyle{cas-model2-names}`
   - `\bibliography{refs}`
@@ -66,6 +71,14 @@ These rules apply to all Codex sessions in this repository.
   - tradeoff discussion
   - dataset-specific outcomes
 - Do not let `method.tex` absorb result interpretation, metric-equation exposition reserved for Results, or manuscript-snapshot setup details that belong in Experiments.
+
+## Terminology Rule
+- In reader-facing paper prose, prefer `paper` over `manuscript` for statements such as `this paper`, `the paper reports`, or `the paper demonstrates`.
+- Reserve `manuscript` for repo workflow, source-file instructions, build guidance, and references to the submission artifact as a file/package.
+- Avoid report-style traceability language in the main paper body unless it is methodologically necessary.
+- In reader-facing paper prose, prefer `practitioner` for the person applying the pipeline to local corpora.
+- Avoid mixing `user`, `developer`, and `practitioner` in the paper body unless the distinction is genuinely necessary.
+- Reserve `developer` for implementation/repository contexts and `user` for interface/product contexts.
 
 ## Method Writing Guidance
 - For reusable pipeline descriptions in `method.tex`, prefer generalized wording such as `document collection` unless the file format itself is methodologically important.

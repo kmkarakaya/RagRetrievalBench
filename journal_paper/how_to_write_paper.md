@@ -3,7 +3,9 @@
 This file is the practical guide for a human working with Codex in VS Code.
 
 ## 1) What to edit
+
 Edit only these source files:
+
 - `journal_paper/manuscript.tex`
 - `journal_paper/*.tex`
 - `journal_paper/refs.bib`
@@ -11,6 +13,7 @@ Edit only these source files:
 Do not edit generated files inside `journal_paper/build/...`.
 
 ## 2) What each control file does
+
 - `AGENTS.md`
   - repo-wide rules automatically available to Codex in this repository
   - use this as the non-negotiable policy layer
@@ -22,7 +25,9 @@ Do not edit generated files inside `journal_paper/build/...`.
   - use this when the task is about tables, figures, labels, citations, layout, or template compliance
 
 ## 3) How the human should use them
+
 For a normal paper-writing session in VS Code:
+
 1. Start a new Codex chat.
 2. Tell Codex to read:
    - `AGENTS.md`
@@ -32,6 +37,7 @@ For a normal paper-writing session in VS Code:
 4. Then give the actual section-editing task.
 
 Use the skill explicitly when:
+
 - editing tables or figures
 - moving content between sections
 - fixing labels/cross-references
@@ -39,6 +45,7 @@ Use the skill explicitly when:
 - resolving LaTeX build/layout issues
 
 ## 4) Recommended session starter prompt
+
 At the start of a new chat, paste:
 
 ```text
@@ -51,6 +58,7 @@ Run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 
 ```
 
 ## 5) How to use `build.ps1`
+
 `journal_paper/build.ps1` is the required validation gate.
 
 Use:
@@ -60,6 +68,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1
 ```
 
 This checks:
+
 - repo/template lint rules
 - captions/labels
 - path and structural rules
@@ -72,6 +81,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -Com
 ```
 
 This does the full validation path:
+
 - lint/template checks
 - wrapper generation
 - XeLaTeX/BibTeX/PDF build
@@ -79,6 +89,7 @@ This does the full validation path:
 For real manuscript editing, prefer `-CompilePdf`, because some failures only appear during actual LaTeX compilation.
 
 ## 6) How to interpret build results
+
 - If lint fails:
   - fix manuscript-rule violations first
 - If PDF compile fails but lint passes:
@@ -87,6 +98,7 @@ For real manuscript editing, prefer `-CompilePdf`, because some failures only ap
   - treat that as a machine issue, not a manuscript-logic issue
 
 Always ask Codex to report:
+
 - files changed
 - summary of fixes
 - latest build folder
@@ -94,6 +106,7 @@ Always ask Codex to report:
 - remaining warnings, if any
 
 ## 7) Practical advice for section work
+
 - Tell Codex which section owns the content before asking for edits.
 - Ask Codex to keep prose, tables, and figures aligned.
 - Ask Codex to reference tables/figures in the text.
@@ -111,6 +124,7 @@ If the figure is not available yet, add a placeholder figure in the section with
 ```
 
 ## 8) Copy-Paste Prompt Library
+
 Use these as ready-made prompts in VS Code instead of rewriting the same instructions each time.
 
 ### A. Start a new manuscript-editing session
@@ -131,7 +145,8 @@ Focus on journal_paper/<section>.tex only.
 Rewrite this section in scientific journal style using the facts already available in the repo and generated reports.
 Keep the section within its proper manuscript scope and do not duplicate content that belongs in other sections.
 Keep prose, tables, and figures aligned.
-Reference tables and figures in the text where appropriate.
+Reference tables and figures in the text where appropriate. 
+For the figures write a placeholder and propose a short prompt to be used to generate gigures later. 
 Always regenerate the PDF before declaring success.
 ```
 
@@ -157,7 +172,7 @@ Keep the figure path flat inside journal_paper/.
 ### E. Review an image and replace a placeholder
 
 ```text
-Check whether this image is appropriate for the intended figure in the section.
+Check whether this image is appropriate for the intended figure in the section. Also ensure that the text recerencing this image is in line with the figure.
 If it is acceptable, replace the placeholder in the relevant .tex file with the real image.
 Keep the template figure structure correct and regenerate the PDF.
 If the image is only partially acceptable, say what is still weak but insert it if it is usable.
@@ -208,7 +223,70 @@ If anything is weak or inconsistent, fix it.
 Then run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf and report the result.
 ```
 
+### J2. Check bibliography format rules
+
+```text
+Read AGENTS.md and use codex_skills/latex-template-compliance/SKILL.md.
+Check journal_paper/refs.bib against the local CAS template files under journal_paper/template.
+For website-style resources, use the template-consistent @misc pattern with howpublished = {\url{...}}.
+For organizational authors, use double braces so BibTeX does not invert the name into a fake personal-author form.
+Fix any non-compliant or awkward-looking bibliography entries, then run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf and report the result.
+```
+
+### K. Finalize one section before moving on
+
+```text
+We will finalize journal_paper/<section>.tex for now.
+
+Do these final checks carefully:
+
+1. Proofread the entire section and correct:
+- typos
+- vague wording
+- repetitive wording
+- expressions that are too informal, weak, or unsuitable for a scientific journal paper
+
+2. Check section cohesion and coherence:
+- make sure the section reads as one consistent argument
+- make sure each subsection supports the section purpose
+- make sure the prose matches the tables and figures
+- make sure tables and figures are referenced in the text where appropriate
+- make sure captions, headings, and row/column wording are aligned with the surrounding prose
+
+3. Check journal_paper/plan.md and verify that this section has not missed any topic, argument, methodological step, or manuscript-relevant evidence that belongs in this section.
+If something is missing and belongs here, add it.
+If it belongs in another section, state that briefly and do not duplicate it here.
+
+4. Read AGENTS.md and use codex_skills/latex-template-compliance/SKILL.md as a checklist.
+Ensure the section follows the Elsevier CAS template rules and the repo-specific manuscript rules.
+Fix any weak template-compliance issue you find.
+
+5. Strengthen readability and defensibility where needed:
+- extend underdeveloped claims
+- add short supporting explanations where a reviewer could object that a statement is abrupt, unsupported, or unclear
+- remove unnecessary implementation-style wording
+- keep the writing in scientific journal style
+
+6. Use subagents if useful for parallel review of prose, structure, and template compliance.
+
+7. Keep manuscript boundaries and stability intact:
+- do not absorb content that belongs in other sections
+- keep labels, citations, and cross-references stable unless a change is necessary
+- do not introduce new evidence, run timestamps, or quantitative claims that are inconsistent with the current manuscript snapshot
+
+8. Regenerate the PDF before declaring success:
+powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf
+
+9. Then report:
+- what you revised
+- any residual weaknesses or open issues that still remain in the section
+- whether any issue remains
+- the latest build folder
+- the PDF path
+```
+
 ## 9) Definition of done
+
 - Changes are made only in intended TeX-first source files.
 - `journal_paper/build.ps1 -CompilePdf` completes successfully, unless you explicitly accept an environment blocker.
 - Codex reports the latest build folder and PDF path.

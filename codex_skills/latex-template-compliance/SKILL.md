@@ -53,6 +53,11 @@ For template-grounded details and canonical command patterns, load:
 - Ensure every cited key exists in `journal_paper/refs.bib`.
 - Do not use unresolved placeholder citation styles.
 - Keep key names stable once introduced; avoid silent key renames.
+- For website-style resources, follow the local CAS template example in `journal_paper/template/cas-refs.bib`:
+  - use `@misc`
+  - use `howpublished = {\url{...}}`
+  - avoid report-style over-specification unless the extra metadata is methodologically necessary
+- For organizational or corporate authors, wrap the full author string in double braces, for example `author = {{RagRetrievalBench}}`, so BibTeX does not render inverted pseudo-person names such as `Project, R.`.
 
 ## Section-Boundary Guidance
 - Keep `journal_paper/method.tex` focused on:
@@ -74,6 +79,14 @@ For template-grounded details and canonical command patterns, load:
 ## Wording Guidance For Reusable Methods
 - When describing a reusable pipeline in `method.tex`, prefer generalized wording such as `document collection` unless a specific source format is methodologically important.
 - If the current manuscript snapshot uses a concrete source format (for example PDFs), mention that as a factual implementation detail in the relevant subsection rather than making the whole method unnecessarily format-specific.
+
+## Terminology Guidance
+- In reader-facing scholarly prose, prefer `paper` over `manuscript` for statements such as `this paper`, `the paper presents`, or `the paper reports`.
+- Reserve `manuscript` for workflow and source-management contexts, such as `manuscript.tex`, build steps, or submission-package instructions.
+- Avoid report-oriented internal traceability language in the paper body unless it is required for methodological clarity.
+- In reader-facing scholarly prose, prefer `practitioner` for the person applying the pipeline to local corpora.
+- Avoid mixing `user`, `developer`, and `practitioner` in the paper body unless the distinction is genuinely necessary.
+- Reserve `developer` for implementation/repository contexts and `user` for interface/product contexts.
 
 ## Required Validation
 - Always run:
