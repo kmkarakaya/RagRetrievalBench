@@ -1,11 +1,14 @@
 ---
 name: latex-template-compliance
-description: Enforce CAS LaTeX manuscript formatting rules for journal_paper TeX-first workflow. Use when editing manuscript.tex, section .tex files, refs.bib, tables, figures, citations, and build.ps1 lint/build checks.
+description: Enforce Elsevier CAS template rules for journal_paper TeX-first workflow. Use when editing manuscript.tex, section .tex files, refs.bib, tables, figures, front matter, citations, and build.ps1 lint/build checks.
 ---
 
 # CAS Compliance Workflow
 
 Use this workflow whenever a task touches manuscript content or formatting.
+
+For template-grounded details and canonical command patterns, load:
+- `references/template_rules.md`
 
 ## Source Editing Rules
 - Edit only TeX-first manuscript sources:
@@ -18,6 +21,18 @@ Use this workflow whenever a task touches manuscript content or formatting.
 - Use CAS class via `__CAS_CLASS__` token in `manuscript.tex`.
 - Keep section includes via `\input{...}` with flat filenames only.
 - Keep figure assets in the same flat folder and reference with flat names.
+- Keep CAS front matter blocks present in `manuscript.tex`:
+  - `\shorttitle{...}`
+  - `\shortauthors{...}`
+  - `\title[mode=title]{...}`
+  - at least one `\author[...]` and matching `\affiliation[...]`
+  - `\begin{abstract}...\end{abstract}`
+  - `\begin{highlights}...\end{highlights}`
+  - `\begin{keywords}...\end{keywords}`
+  - `\maketitle`
+- Keep bibliography contract:
+  - `\bibliographystyle{cas-model2-names}`
+  - `\bibliography{refs}`
 
 ## Table/Figure Rules
 - Require both `\caption{...}` and `\label{...}` for:
@@ -25,17 +40,47 @@ Use this workflow whenever a task touches manuscript content or formatting.
   - `longtable`
   - `figure`, `figure*`
 - Keep labels unique and meaningful.
+- Prefer template-aligned formatting:
+  - tables: `booktabs` style (`\toprule`, `\midrule`, `\bottomrule`)
+  - figures: `\centering` + explicit width option in `\includegraphics[...]`
+- Keep table/figure labels cross-referenceable from text (`\ref{...}` where relevant).
+- Keep captions, headings, row labels, and surrounding prose semantically aligned. If the artifact and prose drift apart, revise one or both sides until they describe the same workflow or evidence.
+- If a figure presents a finer-grained workflow than the prose, revise the prose so it follows the figure sequence explicitly rather than leaving the figure to carry unsupported detail.
+- Prefer regular `table` environments for short manuscript tables. Use `longtable` only when genuine multi-page behavior is needed; small `longtable` blocks in this repo have triggered XeLaTeX split-box failures after unrelated layout changes.
 
 ## Citation Rules
 - Use natbib citation commands (`\citep`, `\citet`, etc.).
 - Ensure every cited key exists in `journal_paper/refs.bib`.
 - Do not use unresolved placeholder citation styles.
+- Keep key names stable once introduced; avoid silent key renames.
+
+## Section-Boundary Guidance
+- Keep `journal_paper/method.tex` focused on:
+  - proposed pipeline/workflow design
+  - artifact construction
+  - indexing/evaluation logic
+  - reporting/reproducibility
+- Keep `journal_paper/experiments.tex` focused on:
+  - manuscript-specific setup
+  - dataset context and provenance
+  - evaluated model roster
+  - controlled variables and limitations
+- Keep `journal_paper/results.tex` focused on:
+  - metric presentation
+  - comparative evidence
+  - tradeoffs and findings
+- Do not let Method absorb result interpretation or manuscript-snapshot setup details that belong in Experiments or Results.
+
+## Wording Guidance For Reusable Methods
+- When describing a reusable pipeline in `method.tex`, prefer generalized wording such as `document collection` unless a specific source format is methodologically important.
+- If the current manuscript snapshot uses a concrete source format (for example PDFs), mention that as a factual implementation detail in the relevant subsection rather than making the whole method unnecessarily format-specific.
 
 ## Required Validation
 - Always run:
   - `powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1`
 - If PDF compile is part of request:
   - `powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf`
+- For layout-sensitive edits involving tables, figures, captions, or section reflow, prefer running `-CompilePdf` even if the user did not explicitly ask for it, because lint-only checks may miss XeLaTeX pagination and float-placement failures.
 - Treat build lint failures as blocking defects.
 
 ## Quick Checklist

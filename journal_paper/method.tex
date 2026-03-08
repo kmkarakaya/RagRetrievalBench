@@ -1,194 +1,119 @@
 \section{Method}\label{method}
 
-\subsection{Pipeline}\label{pipeline}
+This study proposes a reusable local benchmarking pipeline for selecting embedding models under corpus-specific Retrieval-Augmented Generation (RAG) requirements. The method is organized as a staged workflow that transforms local document collections into benchmark-ready corpora, synthetic queries, relevance judgments, per-model vector indexes, and structured reports. The ordering of these stages is deliberate: each intermediate artifact becomes a controlled input to the next stage, which allows all candidate embedding models to be evaluated under the same benchmark evidence rather than under model-specific or manually curated test sets.
 
-The benchmark follows the repository pipeline implemented in \texttt{rag\_benchmark.py} and is designed as tooling for developer decision support. \citep{Rag_Benchmark_Py}
+\subsection{Pipeline Overview}\label{pipeline-overview}
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  Prepare corpus from dataset PDFs.
-\item
-  Generate synthetic queries from sampled chunks.
-\item
-  Generate qrels via LLM-based relevance judgments over retrieved candidates.
-\item
-  Initialize per-model vector collections.
-\item
-  Evaluate retrieval metrics and timing.
-\item
-  Generate per-dataset benchmark reports (markdown/pdf + visualizations).
-\item
-  Generate aggregate cross-dataset comparison reports.
-\end{enumerate}
+The pipeline operates at the dataset level and begins with explicit dataset routing, as illustrated in Figure~\ref{fig:method_pipeline_workflow}. Each corpus is processed in isolation so that document inputs, chunked corpora, synthetic queries, qrels, vector collections, and reports remain separated across datasets. This design reduces cross-dataset contamination and allows the same methodological template to be applied repeatedly to document collections that differ in language, domain, and scale. After routing, the workflow advances through document ingestion, chunking, query generation, and relevance construction, thereby producing the benchmark artifacts required for comparative retrieval.
 
-Datasets are isolated by \texttt{-\/-dataset} routing and \texttt{configure\_for\_dataset()} in \texttt{config.py}. \citep{Config_Py}
+Once these shared artifacts have been created, the pipeline branches into model-specific indexing and evaluation. Separate vector collections are built for each candidate embedding model, and each model is evaluated against the same query and qrels resources rather than against model-specific or manually curated evidence. The final stage consolidates the resulting outputs into dataset-level reports and, when multiple corpora are available, into an aggregate comparison report. The sequence of stages and their intermediate products are summarized in Table~\ref{tbl:method_pipeline_stages} and illustrated conceptually in Figure~\ref{fig:method_pipeline_workflow}.
 
-Pipeline purpose statement:
+\begin{table}[t]
+\caption{Stage sequence and intermediate artifacts of the proposed embedding benchmarking workflow.}\label{tbl:method_pipeline_stages}
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}p{0.38\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}@{}}
+\toprule
+Stage & Input & Process & Output \\
+\midrule
+Dataset routing & Local dataset selection & Bind one dataset to isolated working paths so downstream artifacts remain separated across corpora & Dataset-specific run context \\
+Document ingestion & Routed document collection & Parse source documents and normalize extracted text for downstream processing & Textual corpus \\
+Chunking & Textual corpus & Segment documents into overlapping units suitable for embedding and retrieval & Chunked corpus \\
+Query generation & Chunked corpus & Sample seed chunks and generate natural-language queries in the source language of the seed content & Synthetic query set \\
+Relevance construction & Query set and chunked corpus & Retrieve a bounded candidate pool for each query and assign binary relevance labels through LLM-assisted judgment & Qrels resource \\
+Multi-model indexing & Chunked corpus and selected embedding models & Build a separate vector collection for each embedding model so retrieval runs remain isolated and reproducible & Per-model vector collections \\
+Retrieval evaluation & Query set, qrels, and per-model collections & Execute the same fixed-depth retrieval workflow for every model over the same benchmark artifacts & Ranking artifacts and timing traces \\
+Reporting & Dataset-level evaluation artifacts & Produce dataset-level reports and aggregate comparison artifacts for downstream interpretation & Benchmark reports and visual summaries \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\begin{itemize}
-\tightlist
-\item
-  enable selection of the best suitable embedding model for user/application requirements using local data and operational constraints.
-\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{conceptual_overview.jpg}
+\caption{Conceptual overview of the proposed embedding benchmarking pipeline.}\label{fig:method_pipeline_workflow}
+\end{figure}
 
-\subsection{Frozen Configuration Used in This Manuscript}\label{frozen-configuration-used-in-this-manuscript}
+\subsection{Corpus Preparation}\label{corpus-preparation}
 
-The manuscript uses one fixed snapshot from 2026-03-05 and does not mix run timestamps.
+The first stage converts each local document collection into a benchmarkable text corpus. Source documents are ingested from the local corpus and parsed into textual segments; in the present manuscript snapshot, these source documents are provided as PDF files. To preserve local context while keeping units manageable for downstream embedding models, the extracted text is segmented by recursive character-based chunking with controlled overlap between adjacent segments. This strategy reduces the probability that semantically dependent passages are split into entirely disconnected units, while still producing retrieval items that can be embedded and indexed efficiently. The chunking settings used in this stage, together with the shared workflow parameters that govern later stages, are listed in Table~\ref{tbl:method_workflow_parameters}.
 
-Primary settings:
+Dataset-level isolation is maintained during corpus preparation. Each dataset yields its own chunked corpus and retains its own storage path for downstream artifacts. As a result, the same pipeline can be reused across multiple corpora without mixing documents, collections, or reports between experiments.
 
-\begin{itemize}
-\tightlist
-\item
-  k = 10
-\item
-  chunk\_size = 1000
-\item
-  chunk\_overlap = 200
-\item
-  candidate\_pool\_size = 20
-\item
-  document\_batch\_size = 32
-\item
-  reinitialize\_collections = True
-\item
-  n\_queries = 50
-\item
-  qrels\_embedding\_model\_index = 4 (mapped to model ID M5 below)
-\item
-  llm\_model = models/gemini-2.5-flash-lite
-\end{itemize}
+\begin{table}[t]
+\caption{Fixed workflow parameters governing chunking, query construction, indexing, and retrieval evaluation.}\label{tbl:method_workflow_parameters}
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.13\linewidth}>{\raggedright\arraybackslash}p{0.51\linewidth}@{}}
+\toprule
+Parameter & Value & Role in the workflow \\
+\midrule
+Chunk size & 1000 & Determines the maximum character length of each corpus segment before embedding \\
+Chunk overlap & 200 & Preserves continuity between adjacent chunks and reduces boundary-induced information loss \\
+Queries per dataset & 50 & Fixes the size of the synthetic evaluation set generated for each corpus \\
+Chunks per query seed & 1 & Anchors each generated query to one sampled source chunk during query construction \\
+Candidate pool size & 20 & Limits the number of retrieved candidates examined during relevance construction \\
+Document batch size & 32 & Controls batched embedding throughput during vector collection construction \\
+Collection reinitialization & True & Rebuilds vector collections so each benchmark run starts from a controlled index state \\
+Shared retrieval cutoff & 10 & Fixes the number of ranked chunks returned per query during retrieval evaluation \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Model IDs used across manuscript sections:
+\subsection{Synthetic Query and Relevance Construction}\label{synthetic-query-and-relevance-construction}
 
-\begin{itemize}
-\tightlist
-\item
-  M1: all-MiniLM-L6-v2
-\item
-  M2: all-mpnet-base-v2
-\item
-  M3: paraphrase-multilingual-MiniLM-L12-v2
-\item
-  M4: all-MiniLM-L12-v2
-\item
-  M5: paraphrase-multilingual-mpnet-base-v2
-\end{itemize}
+After corpus construction, the pipeline constructs benchmark queries and relevance judgments through the sequence shown in Figure~\ref{fig:method_qrels_workflow}. Each instance begins with a seed chunk sampled from the corpus. Rather than relying on externally authored questions, the method prompts a large language model to generate a concise natural-language query in the same language as that sampled chunk. This design keeps query formulation anchored to the linguistic and topical properties of the target corpus while avoiding the cost of manually preparing a query set for each new dataset.
 
-Evidence sources:
+Relevance construction then proceeds from the generated query. The system retrieves a bounded candidate pool of corpus chunks, with the candidate set size fixed by the shared workflow parameters in Table~\ref{tbl:method_workflow_parameters}, and presents these query--chunk pairs for binary relevance labeling. The output of this stage is therefore not a free-form annotation record, but a qrels resource in which each candidate is marked as relevant or non-relevant for later retrieval evaluation. Because the query set and qrels are created before comparative model assessment begins, all embedding models are evaluated against the same benchmark artifacts under a controlled protocol.
 
-\begin{itemize}
-\tightlist
-\item
-  \texttt{config.py} \citep{Config_Py}
-\item
-  raw JSON config block for education\_eng run (2026-03-05 11:27:28) \citep{Raw_Education_Eng_2026_03_05}
-\item
-  raw JSON config block for education\_tr run (2026-03-05 11:29:07) \citep{Raw_Education_Tr_2026_03_05}
-\item
-  raw JSON config block for law\_tr run (2026-03-05 11:30:27) \citep{Raw_Law_Tr_2026_03_05}
-\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{query_qrels.png}
+\caption{Workflow for synthetic query generation and binary relevance construction.}\label{fig:method_qrels_workflow}
+\end{figure}
 
-\subsection{Evaluated Embedding Models}\label{evaluated-embedding-models}
+\subsection{Embedding Index Construction}\label{embedding-index-construction}
 
-All evaluated embeddings are sentence-transformer variants and are referenced in text as M1-M5 for readability. Exact canonical strings are preserved in \texttt{config.py} and frozen raw-result artifacts. \citep{Config_Py, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05}
+The comparative evaluation stage uses a fixed set of sentence-transformer models spanning lightweight, higher-capacity, and multilingual alternatives within a single benchmarking design. Each model is assigned its own vector collection so that embedding generation, storage, and retrieval remain isolated across models. This separation is methodologically important because it ensures that observed differences arise from the embedding models themselves rather than from shared or overwritten index state. The exact benchmarked model roster is specified in the experimental setup. \citep{SentenceTransformers_Pretrained}
 
-Demonstration setup statement:
+Model-specific collections are built from the same chunked corpus. This means that corpus content, query set, and relevance judgments remain fixed while only the embedding function changes across runs. Such control is necessary if the benchmark is to support fit-for-purpose model selection rather than confound model comparison with changes in the evaluation dataset itself.
 
-\begin{itemize}
-\tightlist
-\item
-  this journal paper is demonstrated with 3 datasets and 5 models.
-\end{itemize}
+\subsection{Retrieval Evaluation Workflow}\label{retrieval-evaluation-workflow}
 
-\subsection{Metrics and Operational Measurements}\label{metrics-and-operational-measurements}
+Once the vector collections are initialized, the pipeline executes the retrieval loop shown in Figure~\ref{fig:method_retrieval_workflow}. Each evaluation instance begins with a synthetic query drawn from the shared benchmark set. That query is submitted to a model-specific ChromaDB collection, where the embedding model under evaluation determines the vector representation used for search. The system then returns a ranked list of retrieved chunks under a fixed cutoff, ensuring that every model is tested at the same retrieval depth. The shared evaluation settings that constrain this loop are listed in Table~\ref{tbl:method_workflow_parameters}. \citep{ChromaDB_Docs}
 
-Retrieval metrics:
+The ranked results are subsequently aligned with the previously constructed qrels so that each query is interpreted against the same binary relevance resource, regardless of which embedding model produced the ranking. This ordering is methodologically important because corpus segmentation, query construction, and relevance judgments are all fixed before comparative retrieval begins. In combination with collection reinitialization, this design isolates representation quality from changes in benchmark artifacts or index state, allowing observed differences to be attributed more directly to the interaction between the candidate embedding model and the corpus.
 
-\begin{itemize}
-\tightlist
-\item
-  \texttt{MAP@10}
-\item
-  \texttt{Recall@10}
-\item
-  \texttt{Precision@10}
-\item
-  \texttt{NDCG@10}
-\item
-  \texttt{MRR@10}
-\item
-  \texttt{Success@10}
-\end{itemize}
+The retrieval stage produces two classes of outputs. First, it emits evaluation-ready ranking artifacts that can be used in later scoring and comparative analysis. Second, it records timing traces associated with retrieval execution, thereby preserving operational evidence alongside effectiveness-oriented outputs. These timing by-products do not alter the retrieval protocol itself, but they allow the benchmark to support practical model selection under a single controlled workflow.
 
-Operational measurements:
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{evaluation_workflow.png}
+\caption{Retrieval evaluation workflow from model-specific vector search to evaluation-ready ranking artifacts.}\label{fig:method_retrieval_workflow}
+\end{figure}
 
-\begin{itemize}
-\tightlist
-\item
-  Embedding time and throughput (\texttt{chunks/sec})
-\item
-  Average query retrieval latency (\texttt{ms/query})
-\end{itemize}
+\subsection{Automated Reporting and Reproducibility}\label{automated-reporting-and-reproducibility}
 
-These outputs are intended to support cross-dataset comparison for dataset-specific model selection.
+The final stage transforms raw benchmark outputs into structured artifacts intended for manuscript analysis and engineering reuse. At the dataset level, the pipeline generates benchmark reports and accompanying visual summaries that document corpus characteristics, ranking artifacts, and timing traces. When multiple datasets are available, these dataset-level artifacts are consolidated into an aggregate report that supports cross-dataset inspection without altering the underlying per-dataset evidence. The reporting outputs are summarized in Table~\ref{tbl:method_reporting_outputs}, and the relationship between dataset-level and aggregate artifacts is depicted in Figure~\ref{fig:method_reporting_workflow}.
 
-\subsection{Statistical and Aggregate Analysis}\label{statistical-and-aggregate-analysis}
+\begin{table}[t]
+\caption{Reporting outputs produced by the proposed benchmarking pipeline.}\label{tbl:method_reporting_outputs}
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}@{}}
+\toprule
+Output level & Artifacts & Purpose \\
+\midrule
+Dataset level & Benchmark report, ranking summaries, timing summaries, and dataset-specific visualizations & Preserve the complete evaluation trace for one corpus and one shared model set \\
+Aggregate level & Cross-dataset comparison report and comparative visual summaries & Consolidate multiple dataset-level outputs into a reusable comparison package for cross-corpus inspection \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-The aggregate report includes:
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth]{report_generation.png}
+\caption{Reporting flow from dataset-specific benchmark outputs to aggregate comparison artifacts.}\label{fig:method_reporting_workflow}
+\end{figure}
 
-\begin{itemize}
-\tightlist
-\item
-  Cross-dataset ranking by MAP
-\item
-  Coefficient of variation (CV) and stability summaries
-\item
-  Paired t-tests and effect-size reporting
-\item
-  Friedman test
-\item
-  Cross-dataset visual summaries (heatmaps, radar chart, consistency chart)
-\end{itemize}
-
-Canonical aggregate artifact:
-
-\begin{itemize}
-\tightlist
-\item
-  aggregate report for run \texttt{2026-03-05\_11-32-49} \citep{Aggregate_Report_2026_03_05}
-\end{itemize}
-
-Reporting utility statement:
-
-\begin{itemize}
-\tightlist
-\item
-  the pipeline produces automatic benchmarking reports across various metrics and well-structured dynamic report outputs (timestamped markdown/pdf + visualizations).
-\end{itemize}
-
-\subsection{Reproducibility Controls}\label{reproducibility-controls}
-
-\begin{itemize}
-\tightlist
-\item
-  Fixed frozen run IDs are documented in \texttt{journal\_paper/plan.md}.
-\item
-  Numeric values in manuscript sections must be taken from frozen aggregate/raw artifacts.
-\item
-  If new runs are introduced, snapshot IDs and all dependent numeric statements must be updated before manuscript edits continue.
-\item
-  Dataset curation provenance is fixed for this draft:
-
-  \begin{itemize}
-  \tightlist
-  \item
-    Education datasets source (retrieved 01/01/2026) \citep{TED_Regulations}
-  \item
-    Law dataset source (retrieved 01/01/2026) \citep{BDDK_Mevzuat}
-  \end{itemize}
-\item
-  The implementation is publicly available and pipeline reusable by any developer. \citep{GitHub_RagRetrievalBench}
-\end{itemize}
+The method is designed for reproducibility at both the artifact and workflow levels. Intermediate benchmark resources are materialized as explicit corpus, query, and qrels artifacts; model evaluation is performed on isolated vector collections; and reporting outputs are stored as timestamped run products. The implementation of this pipeline is publicly available for inspection and reuse, which supports transparent reconstruction of the benchmarking workflow described in this manuscript. \citep{GitHub_RagRetrievalBench}

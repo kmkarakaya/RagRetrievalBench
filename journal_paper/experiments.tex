@@ -22,18 +22,20 @@ demonstrate pipeline effectiveness for practical model selection, not to claim a
 
 \subsection{Datasets}\label{datasets}
 
-\begin{longtable}[]{@{}lrrrr@{}}
-\toprule\noalign{}
+\begin{table}[t]
+\caption{Dataset statistics summary for the frozen 2026-03-05 run family.}\label{tbl:dataset_statistics_summary}
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
 Dataset & Documents (PDFs) & Chunks & Queries & Qrels \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
+\midrule
 education\_eng & 29 & 572 & 50 & 215 \\
 education\_tr & 29 & 619 & 50 & 199 \\
 law\_tr & 2 & 723 & 50 & 210 \\
 Total & 60 & 1914 & 150 & 624 \\
-\end{longtable}
+\bottomrule
+\end{tabular}
+\end{table}
 
 Source:
 
@@ -45,16 +47,18 @@ demonstrated with 3 datasets and 5 models.
 
 \subsection{Dataset Provenance}\label{dataset-provenance}
 
-\begin{longtable}[]{@{}lll@{}}
-\toprule\noalign{}
+\begin{table}[t]
+\caption{Dataset provenance sources and retrieval dates used in this manuscript.}\label{tbl:dataset_provenance}
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
 Dataset Group & Source Key & Retrieval Date \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
+\midrule
 \texttt{education\_eng}, \texttt{education\_tr} & \texttt{TED\_Regulations} & \texttt{01/01/2026} \\
 \texttt{law\_tr} & \texttt{BDDK\_Mevzuat} & \texttt{01/01/2026} \\
-\end{longtable}
+\bottomrule
+\end{tabular}
+\end{table}
 
 Source details:
 
@@ -94,12 +98,29 @@ Provenance note:
   Same five embedding models evaluated on each dataset.
 \end{itemize}
 
+\begin{table}[t]
+\caption{Embedding model set used in the frozen experimental configuration.}\label{tbl:experiment_embedding_models}
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.08\linewidth}>{\raggedright\arraybackslash}p{0.44\linewidth}>{\raggedright\arraybackslash}p{0.12\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}@{}}
+\toprule
+ID & Model & Dimension & Experimental role \\
+\midrule
+M1 & sentence-transformers/all-MiniLM-L6-v2 & 384 & Lightweight baseline for efficient indexing and retrieval \\
+M2 & sentence-transformers/all-mpnet-base-v2 & 768 & Higher-capacity monolingual baseline within the benchmarked family \\
+M3 & sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 & 384 & Compact multilingual baseline for cross-language corpus support \\
+M4 & sentence-transformers/all-MiniLM-L12-v2 & 384 & Deeper MiniLM variant for comparison against lighter baselines \\
+M5 & sentence-transformers/paraphrase-multilingual-mpnet-base-v2 & 768 & Higher-capacity multilingual model also used to support candidate retrieval during qrels construction \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 Sources:
 
 \begin{itemize}
 \tightlist
 \item
-  \texttt{config.py} \citep{Config_Py}
+  \texttt{config.py} and the sentence-transformers model catalogue. \citep{Config_Py, SentenceTransformers_Pretrained}
 \item
   Aggregate section \texttt{Methodology} and dataset raw-result \texttt{config} blocks. \citep{Aggregate_Report_2026_03_05, Raw_Education_Eng_2026_03_05, Raw_Education_Tr_2026_03_05, Raw_Law_Tr_2026_03_05}
 \end{itemize}

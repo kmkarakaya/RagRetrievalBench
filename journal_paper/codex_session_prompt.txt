@@ -1,9 +1,43 @@
-Use the TeX-first workflow in this repo.
+Use this repo workflow exactly.
+For full workflow details, see `journal_paper/how_to_write_paper.md`.
 
-Rules:
-1) Edit only `journal_paper/manuscript.tex`, `journal_paper/*.tex`, and `journal_paper/refs.bib`.
-2) Follow CAS template conventions from `journal_paper/template/`.
-3) Keep flat source paths: no nested paths in `\input{...}` or `\includegraphics{...}`.
-4) Every table/longtable/figure must include both `\caption{...}` and `\label{...}`.
-5) Ensure all citation keys resolve in `refs.bib`.
-6) Run `powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1` before declaring success.
+Session contract for Codex:
+1) Read and follow `AGENTS.md` and `codex_skills/latex-template-compliance/SKILL.md`.
+2) Use TeX-first only. Edit only:
+   - `journal_paper/manuscript.tex`
+   - `journal_paper/*.tex`
+   - `journal_paper/refs.bib`
+3) Do not use or reintroduce markdown-to-latex assembly.
+4) Follow CAS template conventions from `journal_paper/template/`.
+5) Keep flat source paths only:
+   - no nested paths in `\input{...}`
+   - no nested paths in `\includegraphics{...}`
+6) For every `table`, `longtable`, `figure`:
+   - include `\caption{...}` and `\label{...}`
+   - keep labels unique
+7) Keep bibliography contract unchanged:
+   - `\bibliographystyle{cas-model2-names}`
+   - `\bibliography{refs}`
+8) Ensure every citation key exists in `refs.bib`.
+9) Keep section boundaries strict:
+   - `journal_paper/method.tex` = proposed pipeline/workflow design, artifact construction, indexing/evaluation logic, reporting/reproducibility
+   - `journal_paper/experiments.tex` = manuscript-specific setup, dataset context/provenance, model roster, controlled variables, limitations
+   - `journal_paper/results.tex` = metric presentation, comparative evidence, tradeoffs, findings
+   - do not move result interpretation into Method
+10) Keep prose, tables, and figures aligned:
+   - reference tables/figures explicitly in the text where relevant
+   - if a figure presents a more explicit workflow than the prose, revise the prose to follow the figure sequence
+   - keep captions, headings, and row/column wording consistent with the surrounding section text
+11) Prefer stable LaTeX structures:
+   - use regular `table` for short tables
+   - use `longtable` only when multi-page behavior is actually necessary
+   - prefer `booktabs` table style and CAS-like `figure` blocks with `\centering` and explicit width
+12) For reusable pipeline descriptions, prefer generalized wording such as `document collection` unless a specific file format is methodologically important; mention concrete formats like PDF only as factual setup details when needed.
+13) Before declaring done, run:
+   - `powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf`
+14) If lint/build reports errors, fix them and rerun until there are 0 `ERROR` findings.
+15) Report completion with:
+   - files changed
+   - summary of fixes
+   - latest build folder path
+   - status of warnings (if any)
