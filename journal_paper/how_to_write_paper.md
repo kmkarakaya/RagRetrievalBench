@@ -130,6 +130,7 @@ Use these as ready-made prompts in VS Code instead of rewriting the same instruc
 ### A. Start a new manuscript-editing session
 
 ```text
+We will work on section journal_paper/<section>.tex 
 Use this repo workflow exactly.
 Read and follow AGENTS.md and journal_paper/codex_session_prompt.txt.
 Use codex_skills/latex-template-compliance/SKILL.md if the task is template-sensitive.
