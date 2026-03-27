@@ -2,9 +2,13 @@
 
 \subsection{RAG Retrieval Evaluation and Embedding Benchmarking}\label{rag-retrieval-evaluation-and-embedding-benchmarking}
 
-RAG systems combine retrieval and generation, so retrieval quality directly affects answer grounding and reliability. Prior work has shown that embedding choice and retrieval configuration strongly influence downstream performance. However, many benchmark studies are leaderboard-oriented and evaluated on standardized corpora, which may not reflect local enterprise or domain-specific collections. \citep{Lewis_RAG_2021}
+RAG systems depend on retrieval quality to maintain answer grounding and downstream reliability, so retrieval design remains a central determinant of end-task behavior. Foundational work establishes this dependency, and later survey evidence frames retrieval as a multi-component design space spanning query processing, retrieval, reranking, and generation-time integration. \citep{Lewis_RAG_2021, Zhu_LLMIR_Survey_2025}
 
-Recent work also highlights practical requirements beyond ranking quality: reproducibility, runtime efficiency, and task-aligned validation. This motivates reusable local benchmarking pipelines that can produce decision-ready outputs for practitioners. \citep{SentenceTransformers_Pretrained, HuggingFace_SentenceTransformers, ChromaDB_Docs}
+Recent applied studies reinforce this point in domain-specific settings. Knowledge-graph-augmented RAG pipelines for cybersecurity and customs support report that retrieval-side design choices materially affect answer quality and contextual relevance. \citep{Gao_KG_RAG_Power_2025, Hu_ICCARAG_2025} QuIM-RAG further demonstrates that retrieval-oriented query matching strategies can improve question-answering effectiveness relative to simpler baseline retrieval flows. \citep{Saha_QuIMRAG_2024}
+
+Related evidence from question-retrieval research also indicates that metadata-aware retrieval strategies can improve ranking quality in practical question-answering environments, which is consistent with the broader claim that retrieval quality is highly configuration-sensitive. \citep{Ghasemi_Metadata_QR_2024}
+
+Taken together, these studies motivate retrieval-aware system design, but they are typically optimized for one task setting or one domain-specific application pipeline. In contrast, this paper focuses on controlled cross-dataset embedding-model selection under a fixed evaluation protocol, with reusable benchmark artifacts and reporting outputs intended for practitioner-facing local deployment decisions.
 
 \subsection{Preliminary Conference Study (Short Context)}\label{preliminary-conference-study-short-context}
 

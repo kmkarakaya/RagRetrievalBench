@@ -123,7 +123,178 @@ Recommended wording:
 If the figure is not available yet, add a placeholder figure in the section with a proper caption and label, and include a short nearby prompt/comment so I can later generate the figure with Banana 2.
 ```
 
-## 8) Copy-Paste Prompt Library
+## 8) Related Work: 5-Round Related-Work Development
+
+### Summary
+
+- Use a **two-batch, 5-round workflow** to build a strong `related.tex` with controlled evidence growth and explicit gap closure.
+- Final target: **12-16 peer-reviewed papers** total.
+- Core principle: the agent writes only from manuscript context + your provided paper metadata/abstracts; no invented facts.
+
+### Implementation Changes (Round-by-Round Prompt Set)
+
+1. **Round 1: Topic Mapping and Search Blueprint (Agent, no file edits)**
+
+```text
+Use this repo workflow exactly.
+Read AGENTS.md, journal_paper/codex_session_prompt.txt, and codex_skills/latex-template-compliance/SKILL.md.
+Do not edit files in this round.
+
+Task:
+Read manuscript context from intro.tex, related.tex, method.tex, experiments.tex, results.tex, conclusion.tex.
+Produce:
+1) 6-8 thematic related-work clusters relevant to this paper.
+2) For each cluster:
+- why it matters for this paper’s claims
+- 5-8 precise search queries
+- inclusion/exclusion criteria
+- target paper count for batch-1 vs batch-2
+3) Claim-coverage map linking each cluster to manuscript claims.
+4) A no-overlap guide: what stays in Related Work vs Method/Experiments/Results.
+Constraints:
+- no web search
+- no fabricated papers or metadata
+- no edits yet
+```
+
+2. **Round 2: User Literature Collection Batch-1 (User action using template)**
+
+```text
+Create/refresh journal_paper/literature_round1.md as a strict intake template for batch-1 papers.
+
+Template fields per paper:
+- paper_id
+- title
+- authors
+- year
+- venue
+- publication_type (journal/conference/workshop/preprint)
+- doi_or_url
+- abstract
+- why_relevant_to_this_paper = optional
+- optional: dataset_context, retrieval_setting, embedding_family, evaluation_metrics, reported_limitations
+- confidence_note (mark uncertain metadata)
+
+Also include:
+- top-of-file checklist for complete entries
+- one placeholder example block (dummy values only)
+
+Do not edit related.tex or refs.bib in this round.
+```
+
+User fills `literature_round1.md` with **7-10 papers**.
+
+3. **Round 3: Batch-1 Integration + Gap Analysis (Agent edits related.tex + refs.bib)**
+
+```text
+Use this repo workflow exactly.
+Read and follow AGENTS.md, journal_paper/codex_session_prompt.txt, and codex_skills/latex-template-compliance/SKILL.md.
+Focus only on:
+- journal_paper/related.tex
+- journal_paper/refs.bib
+Input:
+- journal_paper/literature_round1.md
+
+Task:
+1) Add BibTeX entries for all valid batch-1 papers.
+2) Integrate batch-1 papers into related.tex using thematic grouping.
+3) Add comparative writing (not isolated paper summaries).
+4) Produce a gap memo at the end of your response:
+- missing themes
+- weak claim coverage
+- recommended batch-2 paper types and count (5-7 papers)
+5) If critical metadata is missing (authors, year, or title), do not add the BibTeX entry; list it under blocked/unresolved metadata.
+
+Anti-hallucination rules:
+- Use only metadata/claims from literature_round1.md.
+- Do not invent missing metadata or study findings.
+- For non-critical missing fields, use minimal valid BibTeX and report the omission.
+- No external citations beyond provided papers.
+- Every citation key used in related.tex must resolve in refs.bib.
+
+Run:
+powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf
+
+Report:
+- added citation keys
+- blocked/unresolved metadata list
+- build folder + PDF path
+
+```
+
+4. **Round 4: User Literature Collection Batch-2 (Targeted closure)**
+
+```text
+Based on the Round-3 gap memo, create/update journal_paper/literature_round2.md template with same schema as round1.
+Include a “required gap” tag per paper (e.g., reproducibility gap, local-corpus gap, multilingual gap, evaluation-design gap).
+Do not edit related.tex or refs.bib in this round.
+```
+
+User fills `literature_round2.md` with **5-7 targeted papers**.
+
+5. **Round 5: Final Integration, Positioning, and Publication-Ready Polish (Agent)**
+
+```text
+Use this repo workflow exactly.
+Read AGENTS.md, codex_session_prompt, and latex-template-compliance skill.
+Focus on:
+- journal_paper/related.tex
+- journal_paper/refs.bib
+Inputs:
+- journal_paper/literature_round1.md
+- journal_paper/literature_round2.md
+
+Task:
+1) Add round-2 BibTeX entries and merge with existing keys cleanly.
+2) Finalize related.tex as a cohesive thematic argument:
+- what prior work covers
+- what remains unresolved
+- how this paper differs and why contributions are valid
+- concise pros/cons of prior approaches where evidence exists
+3) Ensure writing is journal-grade and non-repetitive.
+4) Ensure no scope bleed into Method/Experiments/Results.
+5) Keep citation integrity strict.
+6) If critical metadata is missing (authors, year, or title), do not add the BibTeX entry; list it under blocked/unresolved metadata.
+7) Every citation key used in related.tex must exist in refs.bib, and no TBD/Unknown placeholder fields may remain in final entries.
+
+Anti-hallucination rules:
+- no claim without support in provided abstracts/metadata
+- no fabricated venue/year/DOI/method details
+- no “SOTA” claims unless explicitly evidenced in provided text
+
+Run:
+powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf
+Report:
+- files changed
+- total papers integrated
+- final thematic groups used
+- remaining evidence limitations
+- latest build folder + PDF path
+```
+
+### Test Plan
+
+- **Citation integrity**: all `\citep` keys in `related.tex` resolve in `refs.bib`.
+- **Metadata integrity**: missing paper metadata is flagged, never fabricated.
+- **Argument integrity**: each thematic subsection includes comparison + gap + positioning sentence.
+- **Scope integrity**: no migration of setup/result details from Experiments/Results into Related Work.
+- **Build gate**: `build.ps1 -CompilePdf` succeeds with 0 lint `ERROR`.
+
+### Public Interfaces / Types
+
+- No code/API changes.
+- New workflow input files:
+  - `journal_paper/literature_round1.md`
+  - `journal_paper/literature_round2.md`
+
+### Assumptions and Defaults
+
+- Preferred structure: thematic grouping.
+- Source policy: peer-reviewed first; preprints only if justified.
+- Final literature size: 12-16 papers total.
+- Two-batch acquisition is required to close gaps before final synthesis.
+
+## 9) Copy-Paste Prompt Library
 
 Use these as ready-made prompts in VS Code instead of rewriting the same instructions each time.
 
@@ -149,6 +320,22 @@ Keep prose, tables, and figures aligned.
 Reference tables and figures in the text where appropriate. 
 For the figures write a placeholder and propose a short prompt to be used to generate gigures later. 
 Always regenerate the PDF before declaring success.
+```
+
+### B2. Full polish pass for one section wording
+
+```text
+Do a full polish pass on journal_paper/<section>.tex to make it read like a finished journal section:
+- tighten the narrative arc
+- strengthen scholarly framing
+- clarify contribution framing
+- improve transitions into the rest of the paper
+
+Keep the section within its proper manuscript scope and do not duplicate content that belongs in other sections.
+Do not introduce new claims that are unsupported by existing repo facts, generated reports, or current manuscript evidence.
+Preserve labels/citations unless a change is necessary for correctness.
+After all edits summarize what you have done along with the reasons.
+Regenerate the PDF before declaring success.
 ```
 
 ### C. Keep section boundaries strict
@@ -286,7 +473,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -Com
 - the PDF path
 ```
 
-## 9) Definition of done
+## 10) Definition of done
 
 - Changes are made only in intended TeX-first source files.
 - `journal_paper/build.ps1 -CompilePdf` completes successfully, unless you explicitly accept an environment blocker.
