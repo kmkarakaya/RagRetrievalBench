@@ -1,6 +1,29 @@
-# How To Write This Paper With Codex (TeX-First)
+# How To Write This Paper With Codex
 
 This file is the practical guide for a human working with Codex in VS Code.
+
+## Full Workflow: From Solved Repo to Paper Writing
+
+Working assumption:
+
+- The work starts from one repository that already contains the solved coding problem, implementation, experiment outputs in JSON format, and the problem/approach/proposed-method context in repo files.
+
+Start-here workflow:
+
+1. Select the target journal/paper and place the LaTeX template under `journal_paper/template/`.
+2. Ask the agent to review the template and align `AGENTS.md` and `codex_skills/latex-template-compliance/SKILL.md` if template constraints require updates.
+3. Prepare `journal_paper/publication_plan.md` with the agent as the canonical planning baseline.
+4. Start one section cycle in a target `.tex` file: draft writing, table work, image placeholder/insertion, revision, polish, and temporary finalize.
+5. Repeat the same section cycle for the next sections until all major manuscript sections are covered.
+6. Run the dedicated related-work cycle: agent prepares topic blueprint and search queries, user collects papers/metadata/key comments, agent integrates evidence into `journal_paper/refs.bib` and `journal_paper/related.tex`, then performs final positioning polish.
+7. If context window gets crowded, start a new chat and reboot workflow with `journal_paper/codex_session_prompt.txt`.
+8. Validate and compile using `journal_paper/build.ps1`; generated artifacts are written under `journal_paper/build/<timestamp>/`.
+
+![alt text](repo_to_paper.png)
+
+Authority contract:
+
+- Policy rules come from `AGENTS.md`, template-compliance checks come from `codex_skills/latex-template-compliance/SKILL.md`, operational prompting comes from this `journal_paper/how_to_write_paper.md`, and planning state comes from `journal_paper/publication_plan.md`.
 
 ## 1) What to edit
 
@@ -20,6 +43,9 @@ Do not edit generated files inside `journal_paper/build/...`.
 - `journal_paper/codex_session_prompt.txt`
   - short session bootstrap text you can paste into a new Codex chat
   - use this to force the session into the paper workflow immediately
+- `journal_paper/publication_plan.md`
+  - canonical planning source for paper-writing cycles
+  - use this for claim boundaries, snapshot constraints, and step-1 planning
 - `codex_skills/latex-template-compliance/SKILL.md`
   - detailed CAS/LaTeX workflow guidance
   - use this when the task is about tables, figures, labels, citations, layout, or template compliance
@@ -32,6 +58,7 @@ For a normal paper-writing session in VS Code:
 2. Tell Codex to read:
    - `AGENTS.md`
    - `journal_paper/codex_session_prompt.txt`
+   - `journal_paper/publication_plan.md`
 3. If the task is formatting-heavy or template-sensitive, also tell Codex to use:
    - `codex_skills/latex-template-compliance/SKILL.md`
 4. Then give the actual section-editing task.
@@ -51,6 +78,7 @@ At the start of a new chat, paste:
 ```text
 Use this repo workflow exactly.
 Read and follow AGENTS.md and journal_paper/codex_session_prompt.txt.
+Use journal_paper/publication_plan.md as the canonical planning baseline.
 If the task is template-sensitive, also use codex_skills/latex-template-compliance/SKILL.md.
 Edit only journal_paper/manuscript.tex, journal_paper/*.tex, and journal_paper/refs.bib.
 Follow Elsevier CAS template conventions.
@@ -252,63 +280,71 @@ User fills `literature_round2.md` with **5-7 targeted papers**.
 
 ```text
 Use this repo workflow exactly.
-Read AGENTS.md, codex_session_prompt, and latex-template-compliance skill.
-Focus on:
+Read and follow:
+- AGENTS.md
+- journal_paper/codex_session_prompt.txt
+- codex_skills/latex-template-compliance/SKILL.md
+
+Edit scope (strict):
 - journal_paper/related.tex
 - journal_paper/refs.bib
-Inputs:
+
+Read-only inputs:
 - journal_paper/literature_round1.md
 - journal_paper/literature_round2.md
+- journal_paper/intro.tex
+- journal_paper/method.tex
+- journal_paper/experiments.tex
+- journal_paper/results.tex
+- journal_paper/conclusion.tex
 
-Task:
-1) Add round-2 BibTeX entries and merge with existing keys cleanly.
-2) Finalize related.tex as a cohesive thematic argument:
-- what prior work covers
-- what remains unresolved
-- how this paper differs and why contributions are valid
-- concise pros/cons of prior approaches where evidence exists
-3) Ensure writing is journal-grade and non-repetitive.
-4) Ensure no scope bleed into Method/Experiments/Results.
-5) Keep citation integrity strict.
-6) If critical metadata is missing (authors, year, or title), do not add the BibTeX entry; list it under blocked/unresolved metadata.
-7) Every citation key used in related.tex must exist in refs.bib, and no TBD/Unknown placeholder fields may remain in final entries.
+Objective:
+Deliver a publication-ready Related Work section by reconciling all claims with the provided literature abstracts/metadata and aligning positioning with this paper’s actual claims and section boundaries.
+
+Tasks:
+1) Bibliography reconciliation (final pass)
+- Add any missing valid BibTeX entries from literature_round1.md and literature_round2.md.
+- Deduplicate/merge overlapping entries and keep citation keys stable where already used.
+- If critical metadata is missing (authors, year, or title), do not add the entry; list it under blocked/unresolved metadata.
+- Remove/replace placeholder fields (e.g., TBD, Unknown) in touched entries.
+
+2) Claim–evidence proofreading and correction
+- Audit each substantive claim in related.tex against the provided abstracts/metadata only.
+- If a claim is overstated, unsupported, or ambiguous, rewrite it conservatively or remove it.
+- Keep comparative writing (not isolated paper summaries): coverage, limitations, and relevance to this paper’s claims.
+- No “SOTA” or superiority statements unless explicitly evidenced in provided text.
+
+3) Positioning and scope discipline
+- Ensure related.tex clearly states:
+  - what prior work covers,
+  - what remains unresolved,
+  - how this paper differs and why its contributions are valid.
+- Keep strict boundaries: do not move setup/result details from Method/Experiments/Results into Related Work.
+- Keep terminology consistent with repo guidance (reader-facing “paper”, “practitioner”).
+
+4) Citation integrity and style checks
+- Every citation key used in related.tex must exist in refs.bib.
+- Do not cite papers outside literature_round1.md and literature_round2.md in this pass.
+- Ensure prose is journal-grade, concise, non-repetitive, and thematically grouped.
 
 Anti-hallucination rules:
-- no claim without support in provided abstracts/metadata
-- no fabricated venue/year/DOI/method details
-- no “SOTA” claims unless explicitly evidenced in provided text
+- Use only claims supported by literature_round1.md / literature_round2.md abstracts and metadata.
+- Do not invent venue/year/DOI/method details.
+- Do not infer quantitative outcomes not present in provided text.
+- When evidence is weak, explicitly hedge instead of asserting.
 
 Run:
 powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf
+
 Report:
 - files changed
-- total papers integrated
+- added/updated citation keys
+- blocked/unresolved metadata list
+- claim adjustments made due to insufficient evidence (softened/removed)
 - final thematic groups used
 - remaining evidence limitations
 - latest build folder + PDF path
 ```
-
-### Test Plan
-
-- **Citation integrity**: all `\citep` keys in `related.tex` resolve in `refs.bib`.
-- **Metadata integrity**: missing paper metadata is flagged, never fabricated.
-- **Argument integrity**: each thematic subsection includes comparison + gap + positioning sentence.
-- **Scope integrity**: no migration of setup/result details from Experiments/Results into Related Work.
-- **Build gate**: `build.ps1 -CompilePdf` succeeds with 0 lint `ERROR`.
-
-### Public Interfaces / Types
-
-- No code/API changes.
-- New workflow input files:
-  - `journal_paper/literature_round1.md`
-  - `journal_paper/literature_round2.md`
-
-### Assumptions and Defaults
-
-- Preferred structure: thematic grouping.
-- Source policy: peer-reviewed first; preprints only if justified.
-- Final literature size: 12-16 papers total.
-- Two-batch acquisition is required to close gaps before final synthesis.
 
 ## 9) Copy-Paste Prompt Library
 
@@ -457,7 +493,7 @@ Do these final checks carefully:
 - make sure tables and figures are referenced in the text where appropriate
 - make sure captions, headings, and row/column wording are aligned with the surrounding prose
 
-3. Check journal_paper/plan.md and verify that this section has not missed any topic, argument, methodological step, or manuscript-relevant evidence that belongs in this section.
+3. Check journal_paper/publication_plan.md and verify that this section has not missed any topic, argument, methodological step, or manuscript-relevant evidence that belongs in this section.
 If something is missing and belongs here, add it.
 If it belongs in another section, state that briefly and do not duplicate it here.
 
