@@ -138,23 +138,39 @@ If the figure is not available yet, add a placeholder figure in the section with
 ```text
 Use this repo workflow exactly.
 Read AGENTS.md, journal_paper/codex_session_prompt.txt, and codex_skills/latex-template-compliance/SKILL.md.
-Do not edit files in this round.
+
+Round scope:
+- Read-only on manuscript files.
+- Write output only to: journal_paper/literature_blueprint.md
+- Do not edit any other file in this round.
 
 Task:
-Read manuscript context from intro.tex, related.tex, method.tex, experiments.tex, results.tex, conclusion.tex.
-Produce:
-1) 6-8 thematic related-work clusters relevant to this paper.
+Read manuscript context from:
+- journal_paper/intro.tex
+- journal_paper/related.tex
+- journal_paper/method.tex
+- journal_paper/experiments.tex
+- journal_paper/results.tex
+- journal_paper/conclusion.tex
+
+Then create/update journal_paper/literature_blueprint.md with:
+
+1) 3-4 thematic related-work clusters relevant to this paper.
 2) For each cluster:
 - why it matters for this paper’s claims
 - 5-8 precise search queries
-- inclusion/exclusion criteria
+- inclusion criteria
+- exclusion criteria
 - target paper count for batch-1 vs batch-2
 3) Claim-coverage map linking each cluster to manuscript claims.
 4) A no-overlap guide: what stays in Related Work vs Method/Experiments/Results.
+
 Constraints:
 - no web search
 - no fabricated papers or metadata
-- no edits yet
+- use only evidence from manuscript context
+- save the full blueprint in journal_paper/literature_blueprint.md
+
 ```
 
 2. **Round 2: User Literature Collection Batch-1 (User action using template)**
@@ -225,7 +241,7 @@ Report:
 4. **Round 4: User Literature Collection Batch-2 (Targeted closure)**
 
 ```text
-Based on the Round-3 gap memo, create/update journal_paper/literature_round2.md template with same schema as round1.
+Based on the Round-3 gap memo, create/update journal_paper/literature_blueprint_round2.md template with same schema as journal_paper/literature_blueprint.md round1.
 Include a “required gap” tag per paper (e.g., reproducibility gap, local-corpus gap, multilingual gap, evaluation-design gap).
 Do not edit related.tex or refs.bib in this round.
 ```

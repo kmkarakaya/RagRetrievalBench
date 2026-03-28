@@ -8,11 +8,11 @@ Public leaderboards remain informative as external references, but they are not 
 
 A practical evaluation workflow must satisfy two requirements simultaneously. First, candidate embedding models must be compared under one shared protocol so that observed differences are attributable to model behavior rather than to inconsistent evaluation settings. Second, the workflow must produce reusable outputs that support both immediate selection decisions and later re-analysis.
 
-These requirements motivate an end-to-end local benchmarking pipeline that materializes benchmark artifacts, evaluates multiple models consistently, and reports both retrieval effectiveness and operational behavior in structured outputs. This design targets fit-for-purpose selection for practitioners rather than universal ranking claims. \citep{Rag_Benchmark_Py}
+These requirements motivate an end-to-end local benchmarking pipeline that materializes benchmark artifacts, evaluates multiple models consistently, and reports both retrieval effectiveness and operational behavior in structured outputs. This design targets fit-for-purpose selection for practitioners rather than universal ranking claims. \citep{GitHub_RagRetrievalBench}
 
 \subsection{Problem Framing and Paper Objective}\label{study-setup}
 
-This paper addresses the following problem: how can practitioners select embedding models for local RAG deployment using transparent and reproducible evidence rather than ad hoc trial-and-error? To answer this problem, the paper presents a reusable local benchmarking pipeline that supports controlled multi-model evaluation and automatic report generation from one consistent workflow. \citep{Aggregate_Report_2026_03_05}
+This paper addresses the following problem: how can practitioners select embedding models for local RAG deployment using transparent and reproducible evidence rather than ad hoc trial-and-error? To answer this problem, the paper presents a reusable local benchmarking pipeline that supports controlled multi-model evaluation and automatic report generation from one consistent workflow. \citep{GitHub_RagRetrievalBench}
 
 The workflow is demonstrated on a fixed experimental snapshot covering three datasets and five embedding models. Setup details, including provenance and controlled parameters, are provided in Section~\ref{experiments}; quantitative comparative evidence is reported in Section~\ref{results}.
 
@@ -49,6 +49,6 @@ Guided by these contributions, the empirical analysis addresses four research qu
 
 \subsection{Scope and Paper Organization}\label{study-boundaries}
 
-The claims are bounded to the fixed snapshot and evaluated corpus set. The paper does not claim universal model superiority beyond this scope; instead, it evaluates whether the proposed workflow produces reliable local evidence for fit-for-purpose selection under controlled conditions. \citep{Aggregate_Report_2026_03_05}
+The claims are bounded to the fixed snapshot and evaluated corpus set. The paper does not claim universal model superiority beyond this scope; instead, it evaluates whether the proposed workflow produces reliable local evidence for fit-for-purpose selection under controlled conditions.
 
 Section~\ref{related-work} positions the paper against prior work, Section~\ref{method} describes the proposed workflow, Section~\ref{experiments} documents the experimental setup, Section~\ref{results} reports comparative evidence, and Section~\ref{conclusion} concludes with implications and future directions.
