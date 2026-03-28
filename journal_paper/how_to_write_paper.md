@@ -350,12 +350,28 @@ Report:
 
 Use these as ready-made prompts in VS Code instead of rewriting the same instructions each time.
 
+### A0. Kick off full repo-to-paper workflow
+
+```text
+We start from a solved coding repo where implementation, JSON experiment outputs, and problem/method context already exist.
+
+Use this repo workflow exactly.
+1) First review the target journal template under journal_paper/template/.
+2) If template constraints require it, update AGENTS.md and codex_skills/latex-template-compliance/SKILL.md.
+3) Prepare or refresh journal_paper/publication_plan.md as the canonical planning baseline through user interaction:
+   - ask focused questions to lock objective, claims, boundaries, in-scope/out-of-scope items, and evidence snapshot
+   - summarize decisions and get user confirmation before writing/updating the plan
+
+
+```
+
 ### A. Start a new manuscript-editing session
 
 ```text
 We will work on section journal_paper/<section>.tex 
 Use this repo workflow exactly.
 Read and follow AGENTS.md and journal_paper/codex_session_prompt.txt.
+Use journal_paper/publication_plan.md as the canonical planning baseline.
 Use codex_skills/latex-template-compliance/SKILL.md if the task is template-sensitive.
 Edit only journal_paper/manuscript.tex, journal_paper/*.tex, and journal_paper/refs.bib.
 Follow Elsevier CAS template conventions.
@@ -370,7 +386,7 @@ Rewrite this section in scientific journal style using the facts already availab
 Keep the section within its proper manuscript scope and do not duplicate content that belongs in other sections.
 Keep prose, tables, and figures aligned.
 Reference tables and figures in the text where appropriate. 
-For the figures write a placeholder and propose a short prompt to be used to generate gigures later. 
+For the figures write a placeholder and propose a short prompt to be used to generate figures later. 
 Always regenerate the PDF before declaring success.
 ```
 
@@ -412,7 +428,7 @@ Keep the figure path flat inside journal_paper/.
 ### E. Review an image and replace a placeholder
 
 ```text
-Check whether this image is appropriate for the intended figure in the section. Also ensure that the text recerencing this image is in line with the figure.
+Check whether this image is appropriate for the intended figure in the section. Also ensure that the text referencing this image is in line with the figure.
 If it is acceptable, replace the placeholder in the relevant .tex file with the real image.
 Keep the template figure structure correct and regenerate the PDF.
 If the image is only partially acceptable, say what is still weak but insert it if it is usable.
