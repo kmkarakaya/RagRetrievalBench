@@ -25,6 +25,13 @@ Keep these blocks in `manuscript.tex`:
 9. `\begin{keywords}...\end{keywords}`
 10. `\maketitle`
 
+### Abstract authoring note (CAS class behavior)
+- CAS `sc`/`dc` classes in this repo route abstract content through `\jobname.abs` using `verbatimwrite` in `cas-common.sty`.
+- Keep final abstract prose directly in the `\begin{abstract}...\end{abstract}` block in `manuscript.tex`.
+- Avoid `\input{abstract.tex}` or macro placeholders inside the abstract block, because they may be emitted as literal text in PDF output.
+- If `journal_paper/abstract.tex` is used during drafting, copy the finalized text into `manuscript.tex` before build.
+- During validation, inspect `build/<timestamp>/manuscript_cas_<layout>.abs`; it should contain real abstract prose.
+
 ## Sectioning and Labels
 - Prefer `\section{...}\label{...}` style for top-level sections.
 - Keep labels stable and unique.

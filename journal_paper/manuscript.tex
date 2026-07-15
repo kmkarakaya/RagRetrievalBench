@@ -17,7 +17,9 @@
 \affiliation[1]{organization={Department of Software Engineering, TED University},city={Ankara},country={T\"urkiye}}
 \cortext[1]{Corresponding author}
 \begin{abstract}
-\input{abstract.tex}
+Local retrieval-augmented generation (RAG) deployments require corpus-specific embedding selection because retrieval effectiveness can vary across language, domain, and document composition. This paper introduces an end-to-end local benchmarking pipeline designed as a fixed-protocol workflow with five stages: corpus preparation, synthetic query generation, relevance-judgment (qrels) construction, multi-model retrieval evaluation, and automated reporting. The pipeline is implemented as a configurable and reproducible software process that reports six retrieval metrics (\texttt{MAP@10}, \texttt{Recall@10}, \texttt{Precision@10}, \texttt{NDCG@10}, \texttt{MRR@10}, \texttt{Success@10}) and preserves both machine-readable raw results and timestamped visual reports.
+
+Its practical advantage is that practitioners can compare candidate models under one shared setup, inspect quality-speed tradeoffs, and reuse artifacts for verification and cross-dataset analysis. We demonstrate the pipeline on a frozen snapshot with three datasets (\texttt{education\_eng}, \texttt{education\_tr}, \texttt{law\_tr}) and five sentence-transformer models, covering 60 source documents, 1{,}914 chunks, 150 synthetic queries, and 624 relevance judgments (qrels). The sample application shows language-sensitive ranking changes, domain-sensitive performance shifts within Turkish corpora, and clear quality-speed tradeoffs, supporting fit-for-purpose local model selection rather than universal superiority claims.
 \end{abstract}
 \begin{highlights}
 \item A reusable local pipeline benchmarks embedding models for fit-for-purpose selection.

@@ -1,4 +1,4 @@
-\section{Results}\label{results}
+﻿\section{Results}\label{results}
 
 This section reports the evidence produced by the proposed benchmarking pipeline under the fixed experimental setup described in Section~\ref{experiments}. The purpose of the reported results is practical model selection for local corpora rather than universal leaderboard comparison. Because the pipeline generates full benchmark reports automatically and dynamically, only a selected subset of the most decision-relevant tables and figures is included here. The full automatically generated reports and supporting artifacts are available through the public repository for interested readers. \citep{GitHub_RagRetrievalBench}
 
@@ -177,22 +177,59 @@ M5 & 14.1 & 70.91 & 59.36 \\
 
 \subsection{Language Effect}\label{language-effect}
 
-The comparison between Table~\ref{tbl:education_eng_metrics} and Table~\ref{tbl:education_tr_metrics} shows a clear language effect within the education domain. In English, the strongest three models are monolingual and tightly clustered near \texttt{MAP@10} of 0.61. In Turkish, the multilingual models become decisively better, with \texttt{M5} and \texttt{M3} substantially outperforming the monolingual alternatives. This shift is also reflected in the automatically generated per-dataset figures shown earlier and is the clearest evidence in the paper that the most suitable embedding model depends on corpus language rather than on one global ranking alone.
+This subsection speaks directly to RQ2 in the paper's fixed-snapshot setting: the question is whether model behavior changes between the English and Turkish education corpora when the evaluation protocol is held constant. Table~\ref{tbl:language_effect_comparison} shows that the English results are tightly clustered, with all five models falling between 0.5020 and 0.6121 in \texttt{MAP@10}. Because the English and Turkish corpora were evaluated under the same chunking, query generation, qrels construction, retrieval cutoff, and model roster described in Section~\ref{method}, the cross-language differences reflect corpus language under a shared protocol rather than a change in setup.
 
-% Prompt: Create a clean journal-style grouped bar chart comparing MAP@10 for models M1-M5 on education_eng and education_tr, with paired bars per model, white background, muted academic colors, and publication-style typography.
-\begin{figure}
+The Turkish results separate the models much more sharply. The monolingual English-oriented models (\texttt{M1}, \texttt{M2}, and \texttt{M4}) all decline substantially on \texttt{education\_tr}: \texttt{M1} drops by 0.4696, \texttt{M2} by 0.5183, and \texttt{M4} by 0.4206. By contrast, the multilingual mpnet models remain stable across languages: \texttt{M3} changes by only $-0.0144$, and \texttt{M5} is the only model that improves, rising by $+0.0104$. The evidence therefore suggests a language-level family tendency rather than a universal rule, and it also shows that \texttt{M4} remains competitive on \texttt{education\_eng}, so an English-oriented model can still be a strong choice when the corpus language matches the model family.
+
+The practical implication is straightforward. For local retrieval deployment, language should be treated as a first-order selection variable: the best model for an English corpus is not necessarily the best model for a Turkish corpus, even when both corpora are evaluated under the same benchmark workflow. That is the main value of this result for the paper's fit-for-purpose claim.
+
+\begin{table}[t]
+\caption{Cross-language MAP@10 comparison within the education domain.}\label{tbl:language_effect_comparison}
 \centering
-\fbox{\begin{minipage}[c][0.2\textheight][c]{0.92\linewidth}\centering Placeholder for language-effect comparison chart\\education\_eng vs education\_tr \texttt{MAP@10} by model\end{minipage}}
-\caption{Placeholder for a direct visual comparison of model performance across the English and Turkish education datasets.}\label{fig:results_language_effect}
-\end{figure}
+\small
+\begin{tabular}{@{}lccr@{}}
+\toprule
+Model & education\_eng MAP@10 & education\_tr MAP@10 & $\Delta$ (eng $\to$ tr) \\
+\midrule
+M1 & 0.6067 & 0.1371 & $-0.4696$ \\
+M2 & 0.6074 & 0.0891 & $-0.5183$ \\
+M3 & 0.5020 & 0.4876 & $-0.0144$ \\
+M4 & 0.6121 & 0.1915 & $-0.4206$ \\
+M5 & 0.5404 & 0.5508 & $+0.0104$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Domain Effect Within Turkish}\label{domain-effect-within-turkish}
 
-The comparison between Table~\ref{tbl:education_tr_metrics} and Table~\ref{tbl:law_tr_metrics} isolates a domain effect under the same language. The ranking order of the strongest two Turkish-capable models remains stable, with \texttt{M5} first and \texttt{M3} second on both datasets. However, the absolute scores decline on the law/regulation corpus: \texttt{M5} decreases from 0.5508 to 0.3659 in \texttt{MAP@10}, and \texttt{M3} decreases from 0.4876 to 0.2948. The domain shift therefore changes the absolute level of retrieval effectiveness even when the identity of the best candidate model remains unchanged.
+This subsection addresses RQ3 in the fixed-snapshot setting: once language is held constant as Turkish, does changing the domain from education to law/regulation alter model behavior? Table~\ref{tbl:turkish_domain_comparison} compares the two Turkish corpora under the same chunking, query-generation, qrels construction, retrieval cutoff, and model roster described in Section~\ref{method}. Because the protocol is shared, the differences in Table~\ref{tbl:turkish_domain_comparison} reflect corpus domain rather than a change in evaluation setup.
+
+\begin{table}[t]
+\caption{Cross-domain comparison within the Turkish corpora.}\label{tbl:turkish_domain_comparison}
+\centering
+\small
+\begin{tabular}{@{}l l r r r@{}}
+\toprule
+Model & Family & education\_tr MAP@10 & law\_tr MAP@10 & $\Delta$ (law $\!-\!$ education) \\
+\midrule
+M1 & English-oriented & 0.1371 & 0.0929 & $-0.0442$ \\
+M2 & English-oriented & 0.0891 & 0.0928 & $+0.0037$ \\
+M3 & Multilingual & 0.4876 & 0.2948 & $-0.1928$ \\
+M4 & English-oriented & 0.1915 & 0.1863 & $-0.0052$ \\
+M5 & Multilingual & 0.5508 & 0.3659 & $-0.1849$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The comparison shows a domain effect that is real but not uniform across models. The multilingual pair remains the strongest on both Turkish corpora, with \texttt{M5} and \texttt{M3} holding the top two positions in each dataset. However, both multilingual models lose substantially more absolute quality on \texttt{law\_tr} than the English-oriented models do: \texttt{M5} drops by 0.1849 and \texttt{M3} by 0.1928, while \texttt{M1} and \texttt{M4} decline only modestly and \texttt{M2} is essentially flat. The law/regulation corpus is therefore harder overall, but the domain shift interacts with model family rather than affecting all models equally. The practical implication is that Turkish-language benchmarking should not stop at a single Turkish corpus: a practitioner selecting an embedding model for legal or regulatory material should benchmark on that domain specifically, because Turkish-as-a-whole evidence can overstate performance on law/regulation documents.
 
 \subsection{Quality-Speed Tradeoff}\label{quality-speed-tradeoff}
 
-Table~\ref{tbl:quality_speed_summary} combines aggregate quality and timing evidence. The strongest overall model, \texttt{M5}, has the highest mean \texttt{MAP@10} and the best average rank, but it is substantially slower than the MiniLM variants in both embedding throughput and query latency. Conversely, \texttt{M1} is the fastest model in the benchmark, yet it trails the strongest multilingual models in aggregate retrieval quality. This contrast is the most practically important operational finding of the paper: the best quality model is not the fastest model, and the preferred choice therefore depends on whether the practitioner prioritizes retrieval effectiveness, indexing cost, or interactive latency.
+Table~\ref{tbl:quality_speed_summary} combines aggregate quality and timing evidence, and Figure~\ref{fig:results_quality_speed_tradeoff} makes the same tradeoff visible as a two-dimensional ranking. The points separate into three useful regimes. \texttt{M5} occupies the quality-leading end of the plot with the highest mean \texttt{MAP@10} at 0.4857, but it does so at a weighted latency of 60.55 ms/query and a throughput range of 14.1--15.2 chunks/s. \texttt{M1} anchors the speed-leading end with the lowest weighted latency at 28.54 ms/query and the highest throughput range of 48.0--57.1 chunks/s, but its mean \texttt{MAP@10} is only 0.2789. \texttt{M2} is the weakest aggregate choice in this snapshot because it combines the lowest mean \texttt{MAP@10} (0.2631) with the highest weighted latency (69.29 ms/query) and the slowest throughput range (3.9--8.6 chunks/s).
+
+Read cautiously through the model roster in Table~\ref{tbl:experiment_embedding_models}, this also suggests a family-level tendency: the multilingual models (\texttt{M3} and \texttt{M5}) provide the strongest cross-dataset retrieval quality, while the English models (\texttt{M1}, \texttt{M2}, and \texttt{M4}) are generally faster. That pattern should not be treated as absolute, however, because \texttt{M4} remains competitive on \texttt{education\_eng} and therefore shows that an English-oriented model can still be an effective choice on an English corpus.
+
+The middle of the plot contains \texttt{M3} and \texttt{M4}, which are the most plausible compromise candidates when neither extreme is acceptable. \texttt{M3} is the stronger of the two on absolute retrieval quality, with mean \texttt{MAP@10} of 0.4281, while keeping latency close to \texttt{M4} at 35.05 ms/query versus 38.43 ms/query. \texttt{M4}, in turn, has the better average rank at 2.33, which suggests that it was more often near the top across the three datasets even though its mean \texttt{MAP@10} is lower than \texttt{M3}'s. The practical reading is therefore straightforward: \texttt{M5} is the best choice when retrieval effectiveness matters most, \texttt{M1} is the best choice when latency dominates, and \texttt{M3} or \texttt{M4} are the more balanced options for deployments that need an intermediate quality-speed compromise. On this evidence, no single model dominates all others jointly; the preferred embedding model depends on whether the practitioner values retrieval effectiveness, indexing cost, or interactive response time more strongly.
 
 \begin{table}[t]
 \caption{Aggregate quality-speed summary for the benchmarked embedding models.}\label{tbl:quality_speed_summary}
@@ -211,11 +248,10 @@ M5 & 0.4857 & 2.00 & 60.55 & 14.1--15.2 \\
 \end{tabular}
 \end{table}
 
-% Prompt: Create a publication-quality journal scatter plot with weighted query latency on the x-axis and mean MAP@10 on the y-axis for models M1-M5, annotate each point with model ID, use white background, muted academic colors, and clean academic styling.
 \begin{figure}
 \centering
-\fbox{\begin{minipage}[c][0.22\textheight][c]{0.92\linewidth}\centering Placeholder for quality-speed tradeoff scatter plot\\Mean \texttt{MAP@10} vs weighted query latency\end{minipage}}
-\caption{Placeholder for a quality-speed tradeoff view of the benchmarked embedding models.}\label{fig:results_quality_speed_tradeoff}
+\includegraphics[width=0.92\linewidth]{results_quality_speed_tradeoff.png}
+\caption{Quality-speed tradeoff scatter plot for the benchmarked embedding models.}\label{fig:results_quality_speed_tradeoff}
 \end{figure}
 
 \subsection{Statistical Note}\label{statistical-note}

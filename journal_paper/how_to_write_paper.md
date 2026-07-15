@@ -198,7 +198,6 @@ Constraints:
 - no fabricated papers or metadata
 - use only evidence from manuscript context
 - save the full blueprint in journal_paper/literature_blueprint.md
-
 ```
 
 2. **Round 2: User Literature Collection Batch-1 (User action using template)**
@@ -263,7 +262,6 @@ Report:
 - added citation keys
 - blocked/unresolved metadata list
 - build folder + PDF path
-
 ```
 
 4. **Round 4: User Literature Collection Batch-2 (Targeted closure)**
@@ -361,8 +359,6 @@ Use this repo workflow exactly.
 3) Prepare or refresh journal_paper/publication_plan.md as the canonical planning baseline through user interaction:
    - ask focused questions to lock objective, claims, boundaries, in-scope/out-of-scope items, and evidence snapshot
    - summarize decisions and get user confirmation before writing/updating the plan
-
-
 ```
 
 ### A. Start a new manuscript-editing session

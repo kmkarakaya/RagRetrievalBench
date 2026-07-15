@@ -33,6 +33,12 @@ For template-grounded details and canonical command patterns, load:
 - Keep bibliography contract:
   - `\bibliographystyle{cas-model2-names}`
   - `\bibliography{refs}`
+- Abstract handling rule (critical for CAS `sc` and `dc` layouts):
+  - In this template family, the `abstract` environment is written to `\jobname.abs` via `verbatimwrite` (`cas-common.sty`).
+  - Keep final abstract prose as literal text inside `\begin{abstract}...\end{abstract}` in `manuscript.tex`.
+  - Do not place `\input{abstract.tex}` or custom macro calls inside the abstract block; these can render as literal tokens (for example `abstract.tex`) in the PDF.
+  - If `journal_paper/abstract.tex` is used as a drafting helper, manually synchronize its final text into the abstract block in `manuscript.tex` before running builds.
+  - After compile, verify `journal_paper/build/<timestamp>/manuscript_cas_<layout>.abs` contains prose content, not filename or macro artifacts.
 
 ## Table/Figure Rules
 - Require both `\caption{...}` and `\label{...}` for:
