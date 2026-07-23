@@ -1812,7 +1812,7 @@ def _write_markdown_report(
         # Methodology
         f.write("## Methodology\n\n")
         f.write("### Evaluation Setup\n\n")
-        f.write("- **Retrieval Method**: ChromaDB vector search with cosine similarity\n")
+        f.write(f"- **Retrieval Method**: ChromaDB vector search ({getattr(cfg, 'hnsw_space', 'l2')} distance space; similarity 1/(1+d))\n")
         
         # Get k value from first dataset
         first_ds = list(datasets.values())[0]

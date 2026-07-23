@@ -115,6 +115,15 @@ document_batch_size = 32
 # Add this line to your benchmark_config.py file
 reinitialize_collections = True  # Set to False to skip re-embedding if collections exist
 
+# ChromaDB HNSW distance space: "l2" (squared Euclidean, ChromaDB's default) or "cosine".
+# Ranking-based metrics are invariant to the monotonic similarity=1/(1+d) transform,
+# so "l2" and "cosine" typically produce the same ordering.
+hnsw_space = "l2"
+
+# Capture a lightweight environment snapshot (Python/library versions, device) into
+# the raw-result JSON so timing/throughput evidence is interpretable across machines.
+log_environment = True
+
 # Directory containing PDF files for embedding
 pdf_dir = "utils/pdfs"  # Directory containing PDFs
 chunk_size = 1000
@@ -140,8 +149,31 @@ chunks_per_query = 1
 # How many candidates to retrieve for labeling
 candidate_pool_size = 20
 
-# Index of the embedding model to use for qrels generation (0-based, from embedding_models list)
-qrels_embedding_model_index = 4  # Use paraphrase-multilingual-mpnet-base-v2 for better Turkish support
+# Index of the embedding model to use for qrels generation (0-based, from embedding_models list).
+# Only used when qrels_pooling = False (legacy single-model candidate pool).
+qrels_embedding_model_index = 4  # paraphrase-multilingual-mpnet-base-v2
+
+# --- Benchmark-construction controls (see method/experiments sections of the paper) ---
+
+# Random seed for reproducible seed-chunk sampling. Set to None to disable seeding.
+random_seed = 42
+
+# Qrels candidate-pool construction.
+#   True  -> model-independent pooling: for each query, union the top candidate_pool_size
+#            chunks retrieved by EVERY model in embedding_models, then LLM-judge the union.
+#            This keeps the ground truth from privileging any single evaluated model.
+#   False -> legacy single-model pool using qrels_embedding_model_index.
+qrels_pooling = True
+
+# Store explicit negative (0) judgments in qrels.tsv alongside positives (1).
+# The loader ignores 0-rows for evaluation, but keeping them makes non-relevant
+# decisions auditable rather than discarded.
+qrels_store_negatives = True
+
+# Force each query's seed/source chunk to be relevant without judging it.
+#   False -> judge the seed chunk like any other candidate (unbiased; paper default).
+#   True  -> legacy behavior guaranteeing one positive per query.
+force_source_chunk_relevant = False
 
 # LLM settings
 llm_model = "models/gemini-2.5-flash-lite"

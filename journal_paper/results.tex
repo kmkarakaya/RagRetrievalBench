@@ -1,10 +1,10 @@
-﻿\section{Results}\label{results}
+\section{Results}\label{results}
 
 This section reports the evidence produced by the proposed benchmarking pipeline under the fixed experimental setup described in Section~\ref{experiments}. The purpose of the reported results is practical model selection for local corpora rather than universal leaderboard comparison. Because the pipeline generates full benchmark reports automatically and dynamically, only a selected subset of the most decision-relevant tables and figures is included here. The full automatically generated reports and supporting artifacts are available through the public repository for interested readers. \citep{GitHub_RagRetrievalBench}
 
 \subsection{Cross-Dataset Headline Findings}\label{cross-dataset-headline-findings}
 
-The fixed three-dataset snapshot yields three immediate findings. First, Table~\ref{tbl:cross_dataset_consistency_summary} shows that the multilingual mpnet model (\texttt{M5}) is the strongest overall candidate by average rank and mean \texttt{MAP@10}. Second, Table~\ref{tbl:dataset_result_summary} shows that retrieval difficulty is dataset-dependent: \texttt{education\_eng} is the easiest benchmark in this paper, whereas \texttt{law\_tr} is the hardest. Third, Figure~\ref{fig:results_cross_dataset_performance} shows that the English benchmark is more tightly clustered at a high absolute score level, while the Turkish benchmarks separate more strongly by language and domain. Taken together, these shared-protocol artifacts show that the pipeline can turn heterogeneous local corpora into one directly comparable decision-support view, which is the paper's main answer to RQ1. The aggregate diagnostics in Table~\ref{tbl:cross_dataset_consistency_summary} extend that answer by showing that the workflow also produces robustness evidence, not only point estimates: the same benchmark can identify models that are strong on average, models that degrade sharply under language or domain shift, and models whose behavior is comparatively stable across the full metric set.
+The fixed three-dataset snapshot yields three immediate findings. First, Table~\ref{tbl:cross_dataset_consistency_summary} shows that the multilingual mpnet model (\texttt{M5}) is the strongest overall candidate by average rank and mean \texttt{MAP@10}; Section~\ref{robustness-pooled-qrels} confirms that this ordering persists when the relevance judgments are rebuilt from a single-model rather than a model-independent candidate pool. Second, Table~\ref{tbl:dataset_result_summary} shows that retrieval difficulty is driven mainly by language: \texttt{education\_eng} is by far the easiest benchmark (mean \texttt{MAP@10} 0.45), whereas the two Turkish corpora are markedly harder and of similar difficulty to each other (0.21 each). Third, Figure~\ref{fig:results_cross_dataset_performance} shows that the English benchmark sits at a higher absolute score level, while the Turkish benchmarks are lower and separate the roster mainly by model family. Taken together, these shared-protocol artifacts show that the pipeline can turn heterogeneous local corpora into one directly comparable decision-support view, which is the paper's main answer to RQ1. The aggregate diagnostics in Table~\ref{tbl:cross_dataset_consistency_summary} extend that answer by showing that the workflow also produces robustness evidence, not only point estimates: the same benchmark can identify models that are strong on average, models that degrade sharply under language shift, and models whose behavior is comparatively stable across the full metric set.
 
 \begin{table}[t]
 \caption{Dataset-level performance summary for the fixed experimental snapshot.}\label{tbl:dataset_result_summary}
@@ -13,9 +13,9 @@ The fixed three-dataset snapshot yields three immediate findings. First, Table~\
 \toprule
 Dataset & Best model & Top MAP@10 & Mean MAP@10 \\
 \midrule
-education\_eng & M4 & 0.6121 & 0.5737 \\
-education\_tr & M5 & 0.5508 & 0.2912 \\
-law\_tr & M5 & 0.3659 & 0.2065 \\
+education\_eng & M1 & 0.5260 & 0.4534 \\
+education\_tr & M5 & 0.3606 & 0.2121 \\
+law\_tr & M5 & 0.3577 & 0.2107 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -28,16 +28,16 @@ law\_tr & M5 & 0.3659 & 0.2065 \\
 \toprule
 Model & Avg Rank & Mean MAP@10 & All-metric CV & Worst drop & Score range & Wins \\
 \midrule
-M5 & 2.00 & 0.4857 & 0.357 & 0.743 & 0.728 & 2 \\
-M4 & 2.33 & 0.3299 & 0.608 & 0.910 & 0.910 & 1 \\
-M3 & 3.00 & 0.4281 & 0.399 & 0.794 & 0.762 & 0 \\
-M1 & 3.67 & 0.2789 & 0.741 & 0.927 & 0.908 & 0 \\
-M2 & 4.00 & 0.2631 & 0.796 & 0.932 & 0.932 & 0 \\
+M5 & 2.00 & 0.3810 & 0.410 & 0.767 & 0.736 & 2 \\
+M3 & 3.00 & 0.3051 & 0.462 & 0.793 & 0.760 & 0 \\
+M4 & 3.00 & 0.2799 & 0.561 & 0.869 & 0.832 & 0 \\
+M1 & 3.33 & 0.2536 & 0.684 & 0.896 & 0.858 & 1 \\
+M2 & 3.67 & 0.2408 & 0.686 & 0.902 & 0.864 & 0 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tbl:cross_dataset_consistency_summary} connects the aggregate ranking to the paper's language and domain claims. Average rank and mean \texttt{MAP@10} identify strong aggregate performers, while all-metric CV, worst drop, and score range show how stable each model is across the six retrieval metrics and three dataset conditions. This supports RQ2 and RQ3 because the largest drops occur when model behavior interacts with corpus language and domain: the English-oriented models remain competitive on \texttt{education\_eng} but become much less stable across the Turkish conditions, whereas \texttt{M5} combines the best average rank with the smallest consistency penalty in this snapshot.
+Table~\ref{tbl:cross_dataset_consistency_summary} connects the aggregate ranking to the paper's language and domain claims. Average rank and mean \texttt{MAP@10} identify strong aggregate performers, while three consistency diagnostics summarize how stable each model is across the six retrieval metrics and three dataset conditions. For a given model, let $S$ be its set of scores over all six metrics and all three datasets; the \emph{all-metric CV} is $\mathrm{std}(S)/\mathrm{mean}(S)$ (relative variability, lower is more stable), the \emph{worst drop} is $(\max S-\min S)/\max S$ (the largest relative fall from the model's best to its worst score), and the \emph{score range} is $\max S-\min S$ (the same gap in absolute terms). This speaks to RQ2 and RQ3 within the snapshot: the largest drops occur when model behavior interacts with corpus language---the English-oriented models are competitive on \texttt{education\_eng} but far less stable across the Turkish conditions---whereas \texttt{M5} combines the best average rank with the smallest consistency penalty (\texttt{CV}~0.41) in this snapshot.
 
 \begin{figure}
 \centering
@@ -47,9 +47,9 @@ Table~\ref{tbl:cross_dataset_consistency_summary} connects the aggregate ranking
 
 \subsection{Dataset-Level Results: education\_eng}\label{results-education-eng}
 
-The English education subset produces the strongest retrieval scores in the present paper. Table~\ref{tbl:education_eng_metrics} shows that three monolingual models (\texttt{M4}, \texttt{M2}, and \texttt{M1}) cluster closely at the top of the ranking, with \texttt{M4} reaching the highest \texttt{MAP@10} at 0.6121, followed almost immediately by \texttt{M2} at 0.6074 and \texttt{M1} at 0.6067. Figure~\ref{fig:results_education_eng_model_comparison} reinforces this pattern by showing that the top three models remain tightly grouped across the full metric profile rather than separating on only one score.
+The English education subset produces the strongest retrieval scores in the present paper. Table~\ref{tbl:education_eng_metrics} shows that the three English-trained models (\texttt{M1}, \texttt{M2}, and \texttt{M4}) lead, with \texttt{M1} reaching the highest \texttt{MAP@10} at 0.5260, \texttt{M2} close behind at 0.5022, and \texttt{M4} a little lower at 0.4587; the multilingual models \texttt{M5} (0.4246) and \texttt{M3} (0.3557) trail. Figure~\ref{fig:results_education_eng_model_comparison} reinforces this English-favors-monolingual pattern across the full metric profile.
 
-Table~\ref{tbl:education_eng_timing}, however, shows that these near-tied quality results come with different operational costs: \texttt{M1} has the lowest query latency at 28.10 ms/query, \texttt{M4} remains close at 32.36 ms/query, and \texttt{M2} is much slower at 58.41 ms/query. For English education corpora, the benchmark therefore narrows the practical shortlist to \texttt{M4}, \texttt{M1}, and \texttt{M2}: \texttt{M4} is the strongest quality-first choice, \texttt{M1} is the latency-first choice, and \texttt{M2} is mainly defensible when its near-top retrieval quality matters more than its higher cost.
+Table~\ref{tbl:education_eng_timing} shows that \texttt{M1} is the standout choice here: it combines the highest \texttt{MAP@10} with the lowest query latency at 13.10 ms/query. \texttt{M2} matches its quality closely (0.5022) but at roughly three times the latency (42.62 ms/query), while \texttt{M4} is a slightly lower-quality, low-latency alternative (0.4587 at 24.31 ms/query). For English education corpora, the benchmark therefore points to \texttt{M1} as both the quality-first and latency-first choice, with \texttt{M4} as a lightweight alternative and \texttt{M2} defensible only when its marginally higher \texttt{MRR@10} matters more than its higher cost.
 
 \begin{table}[t]
 \caption{Retrieval metrics for the \texttt{education\_eng} dataset.}\label{tbl:education_eng_metrics}
@@ -59,11 +59,11 @@ Table~\ref{tbl:education_eng_timing}, however, shows that these near-tied qualit
 \toprule
 Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10 \\
 \midrule
-M1 & 0.6067 & 0.7984 & 0.300 & 0.7227 & 0.8147 & 0.98 \\
-M2 & 0.6074 & 0.7654 & 0.292 & 0.7163 & 0.8216 & 1.00 \\
-M3 & 0.5020 & 0.6838 & 0.270 & 0.6146 & 0.7060 & 0.92 \\
-M4 & 0.6121 & 0.8183 & 0.316 & 0.7345 & 0.8260 & 1.00 \\
-M5 & 0.5404 & 0.7666 & 0.310 & 0.6703 & 0.7747 & 0.98 \\
+M1 & 0.5260 & 0.6529 & 0.369 & 0.6626 & 0.8325 & 0.96 \\
+M2 & 0.5022 & 0.6180 & 0.354 & 0.6405 & 0.8398 & 0.96 \\
+M3 & 0.3557 & 0.5087 & 0.277 & 0.4990 & 0.6867 & 0.96 \\
+M4 & 0.4587 & 0.6065 & 0.338 & 0.6150 & 0.8392 & 0.96 \\
+M5 & 0.4246 & 0.5384 & 0.304 & 0.5595 & 0.7757 & 0.96 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -76,11 +76,11 @@ M5 & 0.5404 & 0.7666 & 0.310 & 0.6703 & 0.7747 & 0.98 \\
 \toprule
 Model & Chunks/s & Avg ms/chunk & Query latency (ms/query) \\
 \midrule
-M1 & 57.1 & 17.51 & 28.10 \\
-M2 & 8.6 & 115.92 & 58.41 \\
-M3 & 48.2 & 20.73 & 35.30 \\
-M4 & 47.3 & 21.14 & 32.36 \\
-M5 & 15.1 & 66.02 & 63.54 \\
+M1 & 51.3 & 19.49 & 13.10 \\
+M2 & 7.7 & 129.66 & 42.62 \\
+M3 & 44.1 & 22.68 & 24.81 \\
+M4 & 43.2 & 23.15 & 24.31 \\
+M5 & 13.9 & 72.16 & 41.07 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -93,9 +93,9 @@ M5 & 15.1 & 66.02 & 63.54 \\
 
 \subsection{Dataset-Level Results: education\_tr}\label{results-education-tr}
 
-The Turkish education subset reverses the preferred model family. As shown in Table~\ref{tbl:education_tr_metrics}, the multilingual models \texttt{M5} and \texttt{M3} clearly separate from the three monolingual alternatives across all six retrieval metrics, with \texttt{M5} reaching 0.5508 \texttt{MAP@10}, \texttt{M3} reaching 0.4876, and the next-best monolingual model \texttt{M4} reaching only 0.1915. Figure~\ref{fig:results_education_tr_model_comparison} makes this sharper ranking visible by showing a clean multilingual-versus-monolingual split across the full metric profile.
+The Turkish education subset reverses the preferred model family. As shown in Table~\ref{tbl:education_tr_metrics}, the multilingual models \texttt{M5} and \texttt{M3} clearly separate from the three monolingual alternatives across all six retrieval metrics, with \texttt{M5} reaching 0.3606 \texttt{MAP@10}, \texttt{M3} reaching 0.2972, and the next-best monolingual model \texttt{M4} reaching only 0.1854. Figure~\ref{fig:results_education_tr_model_comparison} makes this sharper ranking visible by showing a clean multilingual-versus-monolingual split across the full metric profile.
 
-Table~\ref{tbl:education_tr_timing} shows that the quality advantage is obtained at different costs: \texttt{M3} remains relatively close to the lightweight models at 34.84 ms/query, whereas the higher-capacity \texttt{M5} rises to 58.75 ms/query. For Turkish education corpora, the pipeline therefore reduces the practical candidate set to \texttt{M5} and \texttt{M3}: \texttt{M5} is preferred when retrieval effectiveness dominates, while \texttt{M3} is the lower-latency compromise.
+Table~\ref{tbl:education_tr_timing} shows that the quality advantage is obtained at different costs: \texttt{M3} remains relatively close to the lightweight models at 25.63 ms/query, whereas the higher-capacity \texttt{M5} rises to 42.72 ms/query. For Turkish education corpora, the pipeline therefore reduces the practical candidate set to \texttt{M5} and \texttt{M3}: \texttt{M5} is preferred when retrieval effectiveness dominates, while \texttt{M3} is the lower-latency compromise.
 
 \begin{table}[t]
 \caption{Retrieval metrics for the \texttt{education\_tr} dataset.}\label{tbl:education_tr_metrics}
@@ -105,11 +105,11 @@ Table~\ref{tbl:education_tr_timing} shows that the quality advantage is obtained
 \toprule
 Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10 \\
 \midrule
-M1 & 0.1371 & 0.2397 & 0.088 & 0.2061 & 0.3019 & 0.50 \\
-M2 & 0.0891 & 0.2031 & 0.068 & 0.1473 & 0.1976 & 0.46 \\
-M3 & 0.4876 & 0.6702 & 0.240 & 0.6137 & 0.7585 & 0.96 \\
-M4 & 0.1915 & 0.2768 & 0.090 & 0.2647 & 0.4013 & 0.62 \\
-M5 & 0.5508 & 0.7413 & 0.290 & 0.6715 & 0.7830 & 0.98 \\
+M1 & 0.1231 & 0.1897 & 0.146 & 0.1956 & 0.2788 & 0.58 \\
+M2 & 0.0940 & 0.1913 & 0.136 & 0.1766 & 0.2561 & 0.58 \\
+M3 & 0.2972 & 0.3953 & 0.256 & 0.4259 & 0.6369 & 0.88 \\
+M4 & 0.1854 & 0.2579 & 0.168 & 0.2951 & 0.5345 & 0.72 \\
+M5 & 0.3606 & 0.4876 & 0.308 & 0.5067 & 0.7590 & 0.96 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -122,11 +122,11 @@ M5 & 0.5508 & 0.7413 & 0.290 & 0.6715 & 0.7830 & 0.98 \\
 \toprule
 Model & Chunks/s & Avg ms/chunk & Query latency (ms/query) \\
 \midrule
-M1 & 48.0 & 20.85 & 29.36 \\
-M2 & 3.9 & 259.30 & 75.98 \\
-M3 & 45.3 & 22.09 & 34.84 \\
-M4 & 43.8 & 22.83 & 42.60 \\
-M5 & 14.3 & 70.05 & 58.75 \\
+M1 & 43.5 & 23.00 & 16.87 \\
+M2 & 3.6 & 278.16 & 49.86 \\
+M3 & 41.3 & 24.19 & 25.63 \\
+M4 & 41.9 & 23.84 & 28.53 \\
+M5 & 13.3 & 75.33 & 42.72 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -139,9 +139,9 @@ M5 & 14.3 & 70.05 & 58.75 \\
 
 \subsection{Dataset-Level Results: law\_tr}\label{results-law-tr}
 
-The Turkish law/regulation subset is the most difficult benchmark in the fixed snapshot, yet it preserves the same top-two ordering observed in \texttt{education\_tr}. Table~\ref{tbl:law_tr_metrics} shows that \texttt{M5} remains the best model at 0.3659 \texttt{MAP@10}, followed by \texttt{M3} at 0.2948, while the remaining models trail at substantially lower scores. Compared with \texttt{education\_tr}, absolute \texttt{MAP@10} decreases for \texttt{M1}, \texttt{M3}, \texttt{M4}, and \texttt{M5}, while \texttt{M2} remains nearly unchanged at 0.0928 versus 0.0891, which shows that domain shift within the same language affects models unevenly rather than uniformly. Figure~\ref{fig:results_law_tr_model_comparison} reinforces this interpretation by preserving the same top-two ordering as \texttt{education\_tr} but at a visibly lower absolute score level across metrics.
+The Turkish law/regulation subset is of similar overall difficulty to \texttt{education\_tr} (mean \texttt{MAP@10} 0.2107 versus 0.2121) and preserves the same model-family ordering. Table~\ref{tbl:law_tr_metrics} shows that \texttt{M5} remains the best model at 0.3577 \texttt{MAP@10}, followed by \texttt{M3} at 0.2624, while the remaining models trail. Compared with \texttt{education\_tr}, per-model \texttt{MAP@10} changes only modestly---\texttt{M5} and \texttt{M3} are almost flat (within 0.035), \texttt{M2} and \texttt{M4} edge slightly up, and \texttt{M1} edges slightly down---so within Turkish the shift from education to law/regulation has little effect on either difficulty or ranking in this snapshot. Figure~\ref{fig:results_law_tr_model_comparison} reinforces this by showing the same multilingual-led ordering at a similar absolute level to \texttt{education\_tr}.
 
-Table~\ref{tbl:law_tr_timing} shows that the operational ranking remains broadly similar to the other datasets. For legal and regulatory corpora, the benchmark therefore supports a domain-specific shortlist led by \texttt{M5} and \texttt{M3}, while also showing that Turkish education results cannot be used as a direct proxy for Turkish legal deployment.
+Table~\ref{tbl:law_tr_timing} shows that the operational ranking remains broadly similar to the other datasets. For legal and regulatory corpora, the benchmark therefore supports the same \texttt{M5}/\texttt{M3} shortlist as Turkish education; in this snapshot the two Turkish domains behave alike, so language rather than domain is the dominant selection factor here, though the single-corpus-per-domain design means this should be confirmed on the specific target domain before deployment.
 
 \begin{table}[t]
 \caption{Retrieval metrics for the \texttt{law\_tr} dataset.}\label{tbl:law_tr_metrics}
@@ -151,11 +151,11 @@ Table~\ref{tbl:law_tr_timing} shows that the operational ranking remains broadly
 \toprule
 Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10 \\
 \midrule
-M1 & 0.0929 & 0.1925 & 0.072 & 0.1591 & 0.2570 & 0.52 \\
-M2 & 0.0928 & 0.1926 & 0.078 & 0.1621 & 0.2838 & 0.52 \\
-M3 & 0.2948 & 0.4764 & 0.198 & 0.4226 & 0.5743 & 0.82 \\
-M4 & 0.1863 & 0.3022 & 0.116 & 0.2801 & 0.4342 & 0.72 \\
-M5 & 0.3659 & 0.6327 & 0.252 & 0.5134 & 0.6303 & 0.92 \\
+M1 & 0.1117 & 0.2125 & 0.100 & 0.1915 & 0.3185 & 0.60 \\
+M2 & 0.1263 & 0.2235 & 0.112 & 0.2065 & 0.3457 & 0.58 \\
+M3 & 0.2624 & 0.3836 & 0.198 & 0.3825 & 0.5707 & 0.80 \\
+M4 & 0.1956 & 0.3278 & 0.126 & 0.2860 & 0.3980 & 0.76 \\
+M5 & 0.3577 & 0.4903 & 0.224 & 0.4815 & 0.6659 & 0.90 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -168,11 +168,11 @@ M5 & 0.3659 & 0.6327 & 0.252 & 0.5134 & 0.6303 & 0.92 \\
 \toprule
 Model & Chunks/s & Avg ms/chunk & Query latency (ms/query) \\
 \midrule
-M1 & 48.2 & 20.75 & 28.17 \\
-M2 & 3.9 & 256.37 & 73.50 \\
-M3 & 44.8 & 22.33 & 35.01 \\
-M4 & 45.6 & 21.91 & 40.33 \\
-M5 & 14.1 & 70.91 & 59.36 \\
+M1 & 42.3 & 23.66 & 18.74 \\
+M2 & 3.5 & 285.80 & 62.14 \\
+M3 & 41.4 & 24.15 & 24.71 \\
+M4 & 42.1 & 23.73 & 27.78 \\
+M5 & 13.5 & 74.24 & 44.95 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -185,9 +185,9 @@ M5 & 14.1 & 70.91 & 59.36 \\
 
 \subsection{Language Effect}\label{language-effect}
 
-Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, the English and Turkish education corpora provide a controlled test of whether model behavior changes with corpus language. Table~\ref{tbl:language_effect_comparison} shows that the English results are tightly clustered, with all five models falling between 0.5020 and 0.6121 in \texttt{MAP@10}, whereas the Turkish results separate the roster much more sharply.
+Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, the English and Turkish education corpora provide a within-snapshot comparison of whether model behavior changes with corpus language. Because the comparison rests on a single corpus per language, language here is confounded with corpus identity, so the effect below is a bounded case observation rather than an isolated language effect. Table~\ref{tbl:language_effect_comparison} shows that the English results sit in a relatively narrow high band, with all five models between 0.3557 and 0.5260 in \texttt{MAP@10}, whereas the Turkish results are both lower and more spread by model family.
 
-The monolingual English-oriented models (\texttt{M1}, \texttt{M2}, and \texttt{M4}) all decline substantially on \texttt{education\_tr}: \texttt{M1} drops by 0.4696, \texttt{M2} by 0.5183, and \texttt{M4} by 0.4206. By contrast, the multilingual models remain stable across languages: \texttt{M3} changes by only $-0.0144$, and \texttt{M5} is the only model that improves, rising by $+0.0104$. The evidence therefore suggests a language-level family tendency within this snapshot rather than a universal rule, and it also shows that \texttt{M4} remains competitive on \texttt{education\_eng}, so an English-oriented model can still be a strong choice when the corpus language matches the model family.
+The monolingual English-oriented models (\texttt{M1}, \texttt{M2}, and \texttt{M4}) all decline substantially on \texttt{education\_tr}: \texttt{M1} drops by 0.4029, \texttt{M2} by 0.4082, and \texttt{M4} by 0.2733. By contrast, the multilingual models are far more stable across languages, each dropping only about 0.06 (\texttt{M3} by $0.0585$ and \texttt{M5} by $0.0640$). The evidence therefore suggests a language-level family tendency within this snapshot rather than a universal rule, and it also shows that \texttt{M1} leads \texttt{education\_eng}, so an English-trained model can still be the strong choice when the corpus language matches the model family.
 
 The practical implication is straightforward. For local retrieval deployment, language should be treated as a first-order selection variable: the best model for an English corpus is not necessarily the best model for a Turkish corpus, even when both corpora are evaluated under the same benchmark workflow. That is the main value of this result for the paper's fit-for-purpose claim.
 
@@ -199,18 +199,18 @@ The practical implication is straightforward. For local retrieval deployment, la
 \toprule
 Model & education\_eng MAP@10 & education\_tr MAP@10 & $\Delta$ (eng $\to$ tr) \\
 \midrule
-M1 & 0.6067 & 0.1371 & $-0.4696$ \\
-M2 & 0.6074 & 0.0891 & $-0.5184$ \\
-M3 & 0.5020 & 0.4876 & $-0.0144$ \\
-M4 & 0.6121 & 0.1915 & $-0.4206$ \\
-M5 & 0.5404 & 0.5508 & $+0.0104$ \\
+M1 & 0.5260 & 0.1231 & $-0.4029$ \\
+M2 & 0.5022 & 0.0940 & $-0.4082$ \\
+M3 & 0.3557 & 0.2972 & $-0.0585$ \\
+M4 & 0.4587 & 0.1854 & $-0.2733$ \\
+M5 & 0.4246 & 0.3606 & $-0.0640$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Domain Effect Within Turkish}\label{domain-effect-within-turkish}
 
-Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, Table~\ref{tbl:turkish_domain_comparison} isolates what changes when the corpus stays Turkish but the domain shifts from education to law/regulation.
+Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, Table~\ref{tbl:turkish_domain_comparison} compares what changes when the corpus stays Turkish but the domain shifts from education to law/regulation. As with the language comparison, this rests on one corpus per domain, so domain is confounded with corpus structure---notably \texttt{law\_tr}'s two long regulatory documents---and the shift below is a bounded case observation rather than a general domain effect.
 
 \begin{table}[t]
 \caption{Cross-domain comparison within the Turkish corpora.}\label{tbl:turkish_domain_comparison}
@@ -220,24 +220,24 @@ Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, Tabl
 \toprule
 Model & Family & education\_tr MAP@10 & law\_tr MAP@10 & $\Delta$ (law $\!-\!$ education) \\
 \midrule
-M1 & English-oriented & 0.1371 & 0.0929 & $-0.0442$ \\
-M2 & English-oriented & 0.0891 & 0.0928 & $+0.0037$ \\
-M3 & Multilingual & 0.4876 & 0.2948 & $-0.1929$ \\
-M4 & English-oriented & 0.1915 & 0.1863 & $-0.0052$ \\
-M5 & Multilingual & 0.5508 & 0.3659 & $-0.1848$ \\
+M1 & English-oriented & 0.1231 & 0.1117 & $-0.0114$ \\
+M2 & English-oriented & 0.0940 & 0.1263 & $+0.0323$ \\
+M3 & Multilingual & 0.2972 & 0.2624 & $-0.0348$ \\
+M4 & English-oriented & 0.1854 & 0.1956 & $+0.0102$ \\
+M5 & Multilingual & 0.3606 & 0.3577 & $-0.0029$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The comparison shows a domain effect that is real but not uniform across models. The multilingual pair remains the strongest on both Turkish corpora, with \texttt{M5} and \texttt{M3} holding the top two positions in each dataset. However, both multilingual models lose substantially more absolute quality on \texttt{law\_tr} than the English-oriented models do: \texttt{M5} drops by 0.1849 and \texttt{M3} by 0.1928, while \texttt{M1} and \texttt{M4} decline only modestly and \texttt{M2} is essentially flat. The law/regulation corpus is therefore harder overall, but the domain shift interacts with model family rather than affecting all models equally. The practical implication is that Turkish-language benchmarking should not stop at a single Turkish corpus: a practitioner selecting an embedding model for legal or regulatory material should benchmark on that domain specifically, because Turkish-as-a-whole evidence can overstate performance on law/regulation documents.
+The comparison shows that, in this snapshot, the domain shift from education to law/regulation within Turkish has only a small and mixed effect. The multilingual pair remains the strongest on both Turkish corpora, with \texttt{M5} and \texttt{M3} holding the top two positions in each dataset, and their scores are essentially flat across the shift (\texttt{M5} $-0.0029$, \texttt{M3} $-0.0348$); the English-oriented models move only slightly and in mixed directions (\texttt{M2} $+0.0323$, \texttt{M4} $+0.0102$, \texttt{M1} $-0.0114$). Unlike the large language effect of the previous subsection, there is no systematic education-to-law difficulty gap here, and the model ranking is preserved. The practical reading is that language is the dominant selection factor in this snapshot while these two Turkish domains behave similarly; because the design has only one corpus per domain, however, this similarity should not be over-generalized, and a practitioner facing a markedly different domain should still benchmark it directly rather than assume transfer.
 
 \subsection{Quality-Speed Tradeoff}\label{quality-speed-tradeoff}
 
-Table~\ref{tbl:quality_speed_summary} combines aggregate quality and timing evidence, and Figure~\ref{fig:results_quality_speed_tradeoff} makes the same tradeoff visible as a two-dimensional ranking. The points separate into three useful regimes. \texttt{M5} occupies the quality-leading end of the plot with the highest mean \texttt{MAP@10} at 0.4857, but it does so at a weighted latency of 60.55 ms/query and a throughput range of 14.1--15.1 chunks/s. \texttt{M1} anchors the speed-leading end with the lowest weighted latency at 28.54 ms/query and the highest throughput range of 48.0--57.1 chunks/s, but its mean \texttt{MAP@10} is only 0.2789. \texttt{M2} is the weakest aggregate choice in this snapshot because it combines the lowest mean \texttt{MAP@10} (0.2631) with the highest weighted latency (69.29 ms/query) and the slowest throughput range (3.9--8.6 chunks/s).
+Table~\ref{tbl:quality_speed_summary} combines aggregate quality and timing evidence, and Figure~\ref{fig:results_quality_speed_tradeoff} makes the same tradeoff visible as a two-dimensional ranking. The points separate into three useful regimes. \texttt{M5} occupies the quality-leading end of the plot with the highest mean \texttt{MAP@10} at 0.3810, but it does so at a weighted latency of 42.94 ms/query and a throughput range of 13.3--13.9 chunks/s. \texttt{M1} anchors the speed-leading end with the lowest weighted latency at 16.28 ms/query and the highest throughput range of 42.3--51.3 chunks/s, but its mean \texttt{MAP@10} is only 0.2536. \texttt{M2} is the weakest aggregate choice in this snapshot because it combines the lowest mean \texttt{MAP@10} (0.2408) with the highest weighted latency (51.66 ms/query) and the slowest throughput range (3.5--7.7 chunks/s).
 
-Within this roster, the multilingual models \texttt{M3} and \texttt{M5} provide the strongest cross-dataset retrieval quality, but speed is not a pure family effect because the monolingual \texttt{M2} is the slowest model overall. The more defensible snapshot-bounded reading is that multilingual models lead on average retrieval quality, while low latency is concentrated in \texttt{M1} and, to a lesser extent, \texttt{M4}. This pattern should not be treated as universal, however, because \texttt{M4} remains competitive on \texttt{education\_eng} and therefore shows that an English-oriented model can still be an effective choice when the corpus and deployment priority align.
+Within this roster, the multilingual models \texttt{M3} and \texttt{M5} provide the strongest cross-dataset retrieval quality, while low latency is concentrated in the lightweight MiniLM models (\texttt{M1}, and to a lesser extent \texttt{M3} and \texttt{M4}); speed is not a pure family effect, because the monolingual mpnet model \texttt{M2} is the slowest model overall. This pattern should not be treated as universal: \texttt{M1} leads \texttt{education\_eng}, showing that an English-trained model can still be an effective choice when the corpus and deployment priority align.
 
-The middle of the plot contains \texttt{M3} and \texttt{M4}, which are the most plausible compromise candidates when neither extreme is acceptable. \texttt{M3} is the stronger of the two on absolute retrieval quality, with mean \texttt{MAP@10} of 0.4281, while keeping latency close to \texttt{M4} at 35.05 ms/query versus 38.43 ms/query. \texttt{M4}, in turn, has the better average rank at 2.33, which suggests that it was more often near the top across the three datasets even though its mean \texttt{MAP@10} is lower than \texttt{M3}'s. The practical reading is therefore straightforward: \texttt{M5} is the best choice when retrieval effectiveness matters most, \texttt{M1} is the best choice when latency dominates, and \texttt{M3} or \texttt{M4} are the more balanced options for deployments that need an intermediate quality-speed compromise. On this evidence, no single model dominates all others jointly; the preferred embedding model depends on whether the practitioner values retrieval effectiveness, indexing cost, or interactive response time more strongly.
+The middle of the plot contains \texttt{M3} and \texttt{M4}, the most plausible compromise candidates when neither extreme is acceptable. \texttt{M3} is the stronger of the two on absolute retrieval quality, with mean \texttt{MAP@10} of 0.3051 versus 0.2799, at a similar latency (25.05 ms/query versus 26.91), and the two share an average rank of 3.00. The practical reading is therefore straightforward: \texttt{M5} is the best choice when retrieval effectiveness matters most, \texttt{M1} is the best choice when latency and indexing throughput dominate, and \texttt{M3} is the best-balanced compromise for deployments that need an intermediate quality-speed profile. On this evidence, no single model dominates all others jointly; the preferred embedding model depends on whether the practitioner values retrieval effectiveness, indexing cost, or interactive response time more strongly.
 
 \begin{table}[t]
 \caption{Aggregate quality-speed summary for the benchmarked embedding models.}\label{tbl:quality_speed_summary}
@@ -247,11 +247,11 @@ The middle of the plot contains \texttt{M3} and \texttt{M4}, which are the most 
 \toprule
 Model & Mean MAP@10 & Avg Rank & Weighted latency (ms/query) & Throughput range (chunks/s) \\
 \midrule
-M1 & 0.2789 & 3.67 & 28.54 & 48.0--57.1 \\
-M2 & 0.2631 & 4.00 & 69.29 & 3.9--8.6 \\
-M3 & 0.4281 & 3.00 & 35.05 & 44.8--48.2 \\
-M4 & 0.3299 & 2.33 & 38.43 & 43.8--47.3 \\
-M5 & 0.4857 & 2.00 & 60.55 & 14.1--15.1 \\
+M1 & 0.2536 & 3.33 & 16.28 & 42.3--51.3 \\
+M2 & 0.2408 & 3.67 & 51.66 & 3.5--7.7 \\
+M3 & 0.3051 & 3.00 & 25.05 & 41.3--44.1 \\
+M4 & 0.2799 & 3.00 & 26.91 & 41.9--43.2 \\
+M5 & 0.3810 & 2.00 & 42.94 & 13.3--13.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -264,23 +264,55 @@ M5 & 0.4857 & 2.00 & 60.55 & 14.1--15.1 \\
 
 \subsection{Statistical Decision Support}\label{statistical-decision-support}
 
-The benchmark pipeline is intended not only to rank embedding models, but also to help a practitioner judge whether observed performance differences are strong enough to guide deployment decisions. For this reason, the automatically generated aggregate report includes statistical comparison outputs in addition to the descriptive metric tables and visual summaries reported above. In the current implementation, the aggregate report computes paired \texttt{MAP@10} comparisons between model pairs across datasets and a Friedman test over the five-model roster \citep{GitHub_RagRetrievalBench}. Table~\ref{tbl:statistical_decision_support} summarizes the decision-relevant outputs for the present three-dataset snapshot.
+The benchmark is intended not only to rank embedding models but to indicate whether observed differences are distinguishable from sampling noise. Comparing models with a Friedman test or paired $t$-tests over only three dataset-level means would be underpowered and easy to over-read. We therefore report query-level uncertainty instead. Treating the 150 queries as the unit of analysis, we compute percentile bootstrap 95\% confidence intervals for each model's aggregate \texttt{MAP@10} ($B=10{,}000$ resamples) and paired bootstrap intervals with two-sided bootstrap $p$-values for the difference between \texttt{M5} and each other model. Table~\ref{tbl:bootstrap_ci} and Figure~\ref{fig:bootstrap_forest} report the result for the snapshot's pooled qrels.
 
 \begin{table}[t]
-\caption{Statistical decision-support outputs generated by the aggregate report for the current snapshot.}\label{tbl:statistical_decision_support}
+\caption{Query-level bootstrap analysis of aggregate \texttt{MAP@10} over the 150 queries (the snapshot's model-independent pooled qrels, $B=10{,}000$ resamples). The paired columns give \texttt{M5}$-$model differences with 95\% bootstrap intervals and two-sided bootstrap $p$-values.}\label{tbl:bootstrap_ci}
 \centering
 \small
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-Test & Comparison & Result & Decision-support reading \\
+Model & Mean \texttt{MAP@10} [95\% CI] & \texttt{M5}$-$model $\Delta$ [95\% CI] & $p$ \\
 \midrule
-Friedman & All five models & $\chi^2=3.47$, \texttt{p=0.483} & No global significant difference \\
-Paired t-test & M5 vs. M4 & \texttt{p=0.339}, $d=0.83$ & Top-ranked pair not statistically separated \\
-Paired t-test & M5 vs. M3 & \texttt{p=0.028}, $d=0.52$ & Significant under the report configuration \\
+M5 & 0.380 [0.336, 0.427] & --- & --- \\
+M3 & 0.304 [0.265, 0.345] & $+0.076$ [$+0.046, +0.107$] & $<0.001$ \\
+M4 & 0.278 [0.236, 0.323] & $+0.103$ [$+0.056, +0.151$] & $<0.001$ \\
+M1 & 0.250 [0.206, 0.295] & $+0.131$ [$+0.077, +0.184$] & $<0.001$ \\
+M2 & 0.237 [0.195, 0.282] & $+0.143$ [$+0.088, +0.200$] & $<0.001$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-These results should not be read as evidence that all models are interchangeable. Rather, they show how the pipeline separates descriptive performance differences from statistical decision support. The descriptive evidence remains practically useful: \texttt{M5} has the best mean \texttt{MAP@10}, the best average rank, and the strongest Turkish-corpus performance, while \texttt{M1} has the lowest weighted latency. The statistical output adds a cautionary layer: because the aggregate comparison is based on only three dataset-level paired observations, broad claims about universal model superiority are not warranted from this snapshot alone.
+\begin{figure}
+\centering
+\includegraphics[width=0.82\linewidth]{results_bootstrap_forest.png}
+\caption{Forest plot of aggregate \texttt{MAP@10} over the 150 queries with 95\% percentile bootstrap confidence intervals (model-independent pooled qrels). The intervals are wide and overlap across models, yet \texttt{M5} is separated from every other model.}\label{fig:bootstrap_forest}
+\end{figure}
 
-This distinction is central to the paper's contribution. A practitioner using the pipeline on a local corpus receives both model-selection evidence and uncertainty-oriented context. If a report shows large and statistically supported differences, the practitioner can treat the ranking as stronger deployment evidence. If, as in this snapshot, the global test is non-significant and the top-ranked pair is not statistically separated, the practitioner should prioritize fit-for-purpose criteria such as corpus language, domain, latency budget, indexing throughput, and tolerance for retrieval errors. In this way, the statistical report output supports the pipeline's goal: it helps users select a suitable embedding model for their own dataset and application requirements without overstating what the benchmark evidence can prove.
+Read this way, \texttt{M5} has the highest aggregate \texttt{MAP@10}, and its advantage over every other model---including the next-best multilingual model \texttt{M3}---is clearly separable from query-level sampling noise ($p<0.001$ for all four pairwise comparisons). The intervals also keep the snapshot's limits visible: the per-model CIs are wide and overlap, and the ordering is not uniform across conditions. On \texttt{education\_eng} the monolingual models lead and \texttt{M5} is in fact significantly behind the best English model \texttt{M1} ($\Delta=-0.101$, $p=0.020$), whereas on both Turkish corpora \texttt{M5} leads. The bootstrap layer is therefore advisory, snapshot-bounded decision support rather than a universal significance claim, and it replaces the earlier three-point test as the paper's inferential evidence.
+
+\subsection{Robustness to Candidate-Pool Construction}\label{robustness-pooled-qrels}
+
+The relevance judgments used throughout this paper are built from a model-independent candidate pool: for each query the top-20 candidates retrieved by all five models are unioned, deduplicated, and judged by the LLM ($9{,}296$ query--chunk pairs across the three datasets, with explicit positive and negative labels). This design deliberately prevents any single evaluated model from shaping the ground truth. A natural concern is whether the reported ranking is sensitive to this choice---in particular, whether \texttt{M5}'s lead is an artifact of how the pool is built. To probe this, we compare against a single-model candidate pool that uses only \texttt{M5}, an evaluated model, to retrieve the candidates, which was the construction used in the earlier version of this snapshot.
+
+Two findings follow. First, the model-independent pool surfaces substantially more relevant chunks than the single-model pool---312 versus 215 positives on \texttt{education\_eng}, 354 versus 199 on \texttt{education\_tr}, and 286 versus 210 on \texttt{law\_tr}---so restricting candidate generation to one model under-covers relevance. Second, and decisively for the paper's claims, the model ranking is stable across the two constructions. Table~\ref{tbl:pooled_survival} shows that the aggregate ordering \texttt{M5}~$>$~\texttt{M3}~$>$~\texttt{M4}~$>$~\texttt{M1}~$>$~\texttt{M2} is identical under both the single-model and the model-independent pools, and the per-dataset top two are likewise preserved (\texttt{M5} then \texttt{M3} on both Turkish corpora; monolingual models leading on English). Under the model-independent pool---where \texttt{M5} has no privileged role---\texttt{M5} remains the strongest aggregate model, and its advantage over \texttt{M3} is significant at the query level ($p<0.001$; Table~\ref{tbl:bootstrap_ci}). The headline findings are therefore not artifacts of the candidate-pool construction; removing \texttt{M5}'s privileged role leaves its lead intact.
+
+\begin{table}[t]
+\caption{Aggregate \texttt{MAP@10} model ranking under two qrels constructions: a single-model (\texttt{M5}-only) candidate pool and the model-independent pool used in this paper. The ordering is identical; only absolute scores differ.}\label{tbl:pooled_survival}
+\centering
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.66\linewidth}@{}}
+\toprule
+Qrels construction & Aggregate ranking by mean \texttt{MAP@10} \\
+\midrule
+Single-model (\texttt{M5}-only) pool & M5 (0.486) $>$ M3 (0.428) $>$ M4 (0.330) $>$ M1 (0.279) $>$ M2 (0.263) \\
+Model-independent pool (this paper) & M5 (0.381) $>$ M3 (0.305) $>$ M4 (0.280) $>$ M1 (0.254) $>$ M2 (0.241) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Qualitative Examples and Error Analysis}\label{examples-error-analysis}
+
+To make the benchmark task concrete, consider the \texttt{education\_eng} query \emph{``What are the requirements for students to pass each level and advance in the ELS program?''}, generated from a seed chunk of the English-language-school regulations. A judged-relevant chunk describes how a student is ``placed in the next level of the one they have completed successfully,'' directly answering the question, whereas a judged-non-relevant near-miss is an admission chunk listing GCE A-Level entry grades, which is topically adjacent (levels and passing grades) but concerns admission rather than in-program progression. The Turkish examples are analogous: an \texttt{education\_tr} query asks about the university's budget and accounting principles, and a \texttt{law\_tr} query asks about the reorganization of departments and representative offices in capital-market institutions. These illustrate that the synthetic queries are corpus-grounded and that the negative judgments are plausible near-misses rather than random distractors.
+
+Three observations temper and contextualize the results. First, in this snapshot each query's seed chunk is judged like any other candidate rather than force-labeled relevant; this removes the guaranteed-positive bias of a forced-seed protocol and is reflected in a high but no-longer-saturated \texttt{Success@10} on \texttt{education\_eng} (about 0.96 across models rather than 1.00). Second, the model-independent pooled qrels store explicit negative judgments alongside positives---1{,}805, 3{,}024, and 3{,}515 non-relevant labels for \texttt{education\_eng}, \texttt{education\_tr}, and \texttt{law\_tr} respectively---so non-relevant decisions are auditable rather than discarded. Third, the largest errors come from the English-trained models on the Turkish corpora (\texttt{M1}, \texttt{M2}), which tend to retrieve lexically similar but semantically off-target chunks; this is the failure mode the multilingual models avoid and the main driver of the language effect reported above.

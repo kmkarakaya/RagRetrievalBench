@@ -88,6 +88,31 @@ def get_primary_metric_key():
     return None
 
 
+def _capture_environment() -> dict:
+    """Best-effort environment snapshot for reproducibility (see config.log_environment)."""
+    import platform
+    import sys
+    env = {
+        "python_version": sys.version.split()[0],
+        "platform": platform.platform(),
+        "processor": platform.processor(),
+    }
+    for lib in ("chromadb", "sentence_transformers", "torch", "numpy"):
+        try:
+            mod = __import__(lib)
+            env[f"{lib}_version"] = getattr(mod, "__version__", "unknown")
+        except Exception:
+            env[f"{lib}_version"] = "not_installed"
+    try:
+        import torch
+        env["cuda_available"] = bool(torch.cuda.is_available())
+        env["device"] = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
+    except Exception:
+        env["cuda_available"] = None
+        env["device"] = "unknown"
+    return env
+
+
 def save_raw_results_json(dataset_name, model_results, timing_data, corpus, queries, relevant_docs, output_path):
     """
     Save structured evaluation results for aggregate analysis.
@@ -134,6 +159,12 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
             "candidate_pool_size": cfg.candidate_pool_size,
             "document_batch_size": cfg.document_batch_size,
             "reinitialize_collections": cfg.reinitialize_collections,
+            "hnsw_space": getattr(cfg, "hnsw_space", "l2"),
+            "random_seed": getattr(cfg, "random_seed", None),
+            "qrels_pooling": getattr(cfg, "qrels_pooling", True),
+            "qrels_store_negatives": getattr(cfg, "qrels_store_negatives", True),
+            "force_source_chunk_relevant": getattr(cfg, "force_source_chunk_relevant", False),
+            "qrels_embedding_model_index": cfg.qrels_embedding_model_index,
             "embedding_models": [
                 {
                     "model_name": model_cfg["model_name"],
@@ -150,6 +181,7 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
                 "compute_hit_rate": getattr(cfg, "compute_hit_rate", False)
             }
         },
+        "environment": _capture_environment() if getattr(cfg, "log_environment", False) else {},
         "models": {},
         "corpus_stats": {
             "total_pdfs": pdf_count,

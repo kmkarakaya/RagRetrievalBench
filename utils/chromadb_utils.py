@@ -96,10 +96,12 @@ def initialize_collection(corpus, model_name, collection_name):
         model_name=model_name
     )
     
-    # Create new collection
+    # Create new collection. The HNSW distance space is set explicitly from config
+    # ("l2" by default, matching ChromaDB's default squared-Euclidean space).
     collection = client.create_collection(
         name=collection_name,
-        embedding_function=sentence_transformer_ef
+        embedding_function=sentence_transformer_ef,
+        metadata={"hnsw:space": getattr(cfg, "hnsw_space", "l2")}
     )
     print(f"Created new collection: {collection_name}")
     

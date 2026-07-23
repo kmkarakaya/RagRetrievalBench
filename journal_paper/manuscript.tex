@@ -7,9 +7,9 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \begin{document}
-\shorttitle{Benchmarking of Embedding Models}
+\shorttitle{Local RAG Embedding Benchmarking}
 \shortauthors{Murat Karakaya}
-\title[mode=title]{Benchmarking of Embedding Models}
+\title[mode=title]{A Local RAG Retrieval Benchmarking Pipeline for Corpus-Specific Embedding-Model Selection}
 \author[1]{Murat Karakaya}[orcid=0000-0002-9542-6965]
 \credit{Conceptualization, Methodology, Software, Investigation, Writing - original draft, Writing - review \& editing}
 \cormark[1]
@@ -17,17 +17,18 @@
 \affiliation[1]{organization={Department of Software Engineering, TED University},city={Ankara},country={T\"urkiye}}
 \cortext[1]{Corresponding author}
 \begin{abstract}
-Local retrieval-augmented generation (RAG) deployments require corpus-specific embedding selection because retrieval effectiveness can vary across language, domain, and document composition. This paper introduces an end-to-end local benchmarking pipeline designed as a fixed-protocol workflow with five stages: corpus preparation, synthetic query generation, relevance-judgment (qrels) construction, multi-model retrieval evaluation, and automated reporting. The pipeline is implemented as a configurable and reproducible software process that reports six retrieval metrics (\texttt{MAP@10}, \texttt{Recall@10}, \texttt{Precision@10}, \texttt{NDCG@10}, \texttt{MRR@10}, \texttt{Success@10}) and preserves both machine-readable raw results and timestamped visual reports.
+Local retrieval-augmented generation (RAG) deployments require corpus-specific embedding selection because retrieval effectiveness can vary across language, domain, document composition, and operating constraints. This paper introduces an end-to-end local benchmarking pipeline for fit-for-purpose embedding-model selection. The pipeline follows a fixed-protocol workflow covering corpus preparation, synthetic query generation, relevance-judgment (qrels) construction, multi-model retrieval evaluation, and automated reporting. It reports six retrieval metrics (\texttt{MAP@10}, \texttt{Recall@10}, \texttt{Precision@10}, \texttt{NDCG@10}, \texttt{MRR@10}, \texttt{Success@10}), preserves machine-readable raw results, and generates timestamped visual and tabular reports for dataset-level and aggregate analysis.
 
-Its practical advantage is that practitioners can compare candidate models under one shared setup, inspect quality-speed tradeoffs, and reuse artifacts for verification and cross-dataset analysis. We demonstrate the pipeline on a frozen snapshot with three datasets (\texttt{education\_eng}, \texttt{education\_tr}, \texttt{law\_tr}) and five sentence-transformer models, covering 60 source documents, 1{,}914 chunks, 150 synthetic queries, and 624 relevance judgments (qrels). The sample application shows language-sensitive ranking changes, domain-sensitive performance shifts within Turkish corpora, and clear quality-speed tradeoffs, supporting fit-for-purpose local model selection rather than universal superiority claims.
+We demonstrate the pipeline on a frozen snapshot with three datasets (\texttt{education\_eng}, \texttt{education\_tr}, \texttt{law\_tr}) and five sentence-transformer models, covering 60 source documents, 1{,}914 chunks, 150 synthetic queries, and 952 positive relevance judgments. Within this snapshot the pipeline exposes language-conditioned ranking changes---English favors monolingual models while both Turkish corpora favor multilingual ones---together with clear quality--speed tradeoffs, whereas the two Turkish domains (education and law/regulation) behave similarly, so language rather than domain dominates difficulty here. In aggregate the multilingual \texttt{M5} model is the strongest quality-first candidate and \texttt{M1} the lowest-latency candidate, while the best English-corpus model is monolingual. To make the model comparison defensible rather than anecdotal, we report query-level bootstrap confidence intervals instead of tests over three dataset means, and we build the relevance judgments from a model-independent candidate pool, confirming that the ranking is stable under an alternative single-model pool. Because the queries are synthetic and the relevance labels are produced by a large language model judge without human validation, these results should be read as bounded, demonstration-level evidence for the workflow rather than as a universal embedding ranking. Overall, the pipeline supports transparent, uncertainty-aware local model selection by combining retrieval effectiveness, operational cost, consistency diagnostics, and query-level statistical support in one reproducible workflow.
 \end{abstract}
 \begin{highlights}
 \item A reusable local pipeline benchmarks embedding models for fit-for-purpose selection.
 \item The pipeline generates automatic, structured reports with quality and operational metrics.
-\item Validation on three datasets and five models shows dataset-dependent ranking differences.
+\item A three-dataset, five-model case study demonstrates dataset-dependent ranking changes.
+\item Query-level bootstrap intervals and model-independent pooled qrels support the comparison.
 \end{highlights}
 \begin{keywords}
-Embedding Benchmarking \sep Retrieval \sep Model Selection \sep Local Dataset \sep RAG
+Embedding Benchmarking \sep Retrieval \sep Model Selection \sep Local Dataset \sep RAG \sep RAG Evaluation \sep Synthetic Queries \sep Relevance Judgments
 \end{keywords}
 \maketitle
 \input{intro.tex}

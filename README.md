@@ -2,7 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Code style: black](<https://img.shields.io/badge/code%20style-black-000000.svg>)](https://github.com/psf/black)
 
 **Owner: Murat Karakaya**
 
@@ -322,13 +322,13 @@ The framework supports running benchmarks on multiple datasets with complete iso
 | `--prepare-corpus`              | Extract and chunk PDF documents                                                        |
 | `--generate-queries`            | Generate evaluation queries from corpus                                                |
 | `--generate-qrels`              | Create relevance judgments using LLM                                                   |
-| `--initialize`                  | Build embedding collections in ChromaDB (requires `--dataset`)                       |
-| `--evaluate`                    | Run retrieval evaluation and generate reports (requires `--dataset`)                 |
-| `--all`                         | Execute complete pipeline end-to-end (requires `--dataset`)                          |
+| `--initialize`                  | Build embedding collections in ChromaDB (requires`--dataset`)                        |
+| `--evaluate`                    | Run retrieval evaluation and generate reports (requires`--dataset`)                  |
+| `--all`                         | Execute complete pipeline end-to-end (requires`--dataset`)                           |
 | `--dataset <name>`              | Run benchmark on specified dataset (required for initialize/evaluate/all)              |
 | `--generate-aggregate-report`   | Generate cross-dataset comparison report with statistical analysis (includes PDF)      |
 | `--aggregate-datasets <list>`   | Specify datasets for aggregate analysis (default: auto-discover)                       |
-| `--aggregate-output-dir <path>` | Custom output directory for aggregate reports (default: aggregated_reports/)            |
+| `--aggregate-output-dir <path>` | Custom output directory for aggregate reports (default: aggregated_reports/)           |
 | `--aggregate-metrics <list>`    | Metrics to include in aggregate analysis (default: all enabled)                        |
 | `--batch-submit`                | Submit tasks to Gemini Batch API                                                       |
 | `--batch-fetch <ID>`            | Fetch results from Batch API job                                                       |

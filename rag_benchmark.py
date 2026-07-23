@@ -85,14 +85,14 @@ def parse_source_chunk_id(query_id: str) -> str | None:
         return None
     return f"{doc_name}_chunk{chunk_num}"
 
-def add_forced_source_qrel(query_id: str, qrel_map: dict[str, set[str]]) -> bool:
+def add_forced_source_qrel(query_id: str, qrel_map: dict[str, dict[str, int]]) -> bool:
     """Force-add source chunk as relevant for a query. Returns False if query_id is unparseable."""
     source_chunk_id = parse_source_chunk_id(query_id)
     if source_chunk_id is None:
         print(f"WARNING: Could not parse source chunk from query_id: {query_id}")
         return False
 
-    qrel_map.setdefault(query_id, set()).add(source_chunk_id)
+    qrel_map.setdefault(query_id, {})[source_chunk_id] = 1
     return True
 
 def parse_relevance_score(text: str) -> int:
@@ -126,7 +126,7 @@ def apply_source_chunk_coverage(query_ids: list[str], qrel_map: dict[str, set[st
 
     queries_without_any_positive_after_merge = [
         query_id for query_id in query_ids
-        if len(qrel_map.get(query_id, set())) == 0
+        if not any(int(v) > 0 for v in qrel_map.get(query_id, {}).values())
     ]
 
     coverage = {
@@ -153,15 +153,49 @@ def apply_source_chunk_coverage(query_ids: list[str], qrel_map: dict[str, set[st
 
     return coverage
 
-def write_qrels_tsv(qrel_map: dict[str, set[str]], qrels_file: str) -> int:
-    """Write deterministic, deduplicated qrels.tsv from in-memory qrel map."""
+def write_qrels_tsv(qrel_map: dict[str, dict[str, int]], qrels_file: str, store_negatives: bool = True) -> int:
+    """Write deterministic qrels.tsv (query_id<TAB>doc_id<TAB>label) from a
+    {query_id: {doc_id: label}} map. Negative rows (label 0) are written only when
+    store_negatives is True; the loader ignores 0-rows for evaluation but keeping
+    them makes non-relevant decisions auditable."""
     total_rows = 0
     with open(qrels_file, 'w', encoding='utf-8') as f:
         for query_id in sorted(qrel_map.keys()):
-            for doc_id in sorted(qrel_map[query_id]):
-                f.write(f"{query_id}\t{doc_id}\t1\n")
+            for doc_id in sorted(qrel_map[query_id].keys()):
+                label = int(qrel_map[query_id][doc_id])
+                if label <= 0 and not store_negatives:
+                    continue
+                f.write(f"{query_id}\t{doc_id}\t{label}\n")
                 total_rows += 1
     return total_rows
+
+
+def build_qrels_candidate_pool(corpus: dict, queries: dict) -> dict:
+    """Return {query_id: [(doc_id, text), ...]} candidate pool for LLM judging.
+
+    When cfg.qrels_pooling is True, the pool for each query is the deduplicated
+    union of the top cfg.candidate_pool_size chunks retrieved by EVERY model in
+    cfg.embedding_models, so the constructed ground truth does not privilege any
+    single evaluated model. When False, it uses only cfg.qrels_embedding_model_index
+    (legacy single-model pool). Collections are (re)built via initialize_collection
+    under their real names so the evaluation stage can reuse them.
+    """
+    if getattr(cfg, "qrels_pooling", True):
+        models = cfg.embedding_models
+    else:
+        models = [cfg.embedding_models[cfg.qrels_embedding_model_index]]
+
+    client = get_chromadb_client()
+    pool: dict[str, dict[str, str]] = {qid: {} for qid in queries}
+    for model_cfg in models:
+        initialize_collection(corpus, model_cfg["model_name"], model_cfg["collection_name"])
+        collection = client.get_collection(model_cfg["collection_name"])
+        for query_id, query_text in queries.items():
+            results = collection.query(query_texts=[query_text], n_results=cfg.candidate_pool_size)
+            for doc_id, text in zip(results["ids"][0], results["documents"][0]):
+                if doc_id not in pool[query_id]:
+                    pool[query_id][doc_id] = text
+    return {qid: list(docs.items()) for qid, docs in pool.items()}
 
 
 
@@ -208,6 +242,9 @@ def generate_queries_from_corpus(batch_submit=False, batch_fetch_id=None) -> boo
         print(f"ERROR: Not enough corpus chunks ({len(all_ids)}) to generate {cfg.n_queries} queries with {cfg.chunks_per_query} chunks each. Need at least {needed_chunks} chunks.")
         return False
     
+    # Seed the RNG for reproducible seed-chunk selection (see config.random_seed).
+    if getattr(cfg, "random_seed", None) is not None:
+        random.seed(cfg.random_seed)
     seed_ids = random.sample(all_ids, needed_chunks)
     print(f"Selected {len(seed_ids)} seed chunks for query generation ({cfg.n_queries} queries, {cfg.chunks_per_query} chunks per query).")
 
@@ -260,11 +297,11 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
             print(f"ERROR: Could not load queries file for qrels merge: {e}")
             return False
 
-        qrel_map: dict[str, set[str]] = {}
+        qrel_map: dict[str, dict[str, int]] = {}
         for res in results:
             key = res.get("custom_id") or res.get("key")
             text = extract_response_text(res)
-            if not key or not text:
+            if not key:
                 continue
 
             # Parse key format: query_id|||doc_id
@@ -274,12 +311,12 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
                 print(f"Skipping invalid key format: {key}")
                 continue
 
-            rel_score = parse_relevance_score(text)
-            if rel_score > 0:
-                qrel_map.setdefault(query_id, set()).add(doc_id)
+            label = 1 if parse_relevance_score(text) > 0 else 0
+            qrel_map.setdefault(query_id, {})[doc_id] = label
 
-        apply_source_chunk_coverage(sorted(queries.keys()), qrel_map)
-        rows_written = write_qrels_tsv(qrel_map, cfg.qrels_file)
+        if getattr(cfg, "force_source_chunk_relevant", False):
+            apply_source_chunk_coverage(sorted(queries.keys()), qrel_map)
+        rows_written = write_qrels_tsv(qrel_map, cfg.qrels_file, getattr(cfg, "qrels_store_negatives", True))
         print(f"Wrote qrels to {cfg.qrels_file} ({rows_written} rows).")
 
         # Update batch history to indicate successful fetch
@@ -289,90 +326,67 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
 
     # Use refactored load_corpus function
     corpus = load_corpus_from_file(cfg.corpus_file)
-    
+
     if len(corpus) == 0:
         print("ERROR: Corpus is empty. Cannot generate qrels. Please ensure PDFs are present and run --prepare-corpus first.")
         return False
-    
+
     # Load queries using refactored function
     queries = load_queries_from_file(cfg.queries_file)
     print(f"Loaded {len(queries)} queries.")
-    
+
     if len(queries) == 0:
         print("ERROR: No queries found. Cannot generate qrels. Please run --generate-queries first.")
         return False
 
-    # Initialize ChromaDB collection for retrieval
-    qrels_model = cfg.embedding_models[cfg.qrels_embedding_model_index]
-    model_name = qrels_model["model_name"]
-    collection_name = qrels_model["collection_name"] + "_qrels"
-    
-    initialize_collection(corpus, model_name, collection_name)
-    client = get_chromadb_client()
-    try:
-        collection = client.get_collection(collection_name)
-    except Exception as e:
-        print(f"Error: Collection {collection_name} not found. Did you run initialization?")
-        raise e
-    print(f"Collection {collection_name} initialized successfully.")
+    # Build the candidate pool for judging. With cfg.qrels_pooling this is the
+    # model-independent union of every model's top candidates; otherwise it is a
+    # single-model pool (legacy). See build_qrels_candidate_pool.
+    pooling = getattr(cfg, "qrels_pooling", True)
+    force = getattr(cfg, "force_source_chunk_relevant", False)
+    store_negatives = getattr(cfg, "qrels_store_negatives", True)
+    print(f"Building qrels candidate pool (pooling={'all models' if pooling else 'single model'}, "
+          f"pool size={cfg.candidate_pool_size} per model)...")
+    candidate_pool = build_qrels_candidate_pool(corpus, queries)
 
     # Batch Submission
     if batch_submit:
         print("Preparing batch request for Qrels...")
         bm = BatchManager()
         requests = []
-        
         for query_id, query_text in queries.items():
-            results = collection.query(query_texts=[query_text], n_results=cfg.candidate_pool_size)
-            ids = results['ids'][0]
-            docs = results['documents'][0]
-            
-            for i, (doc_id, text) in enumerate(zip(ids, docs)):
+            source_chunk_id = parse_source_chunk_id(query_id)
+            for i, (doc_id, text) in enumerate(candidate_pool.get(query_id, [])):
+                if force and source_chunk_id and doc_id == source_chunk_id:
+                    continue  # forced relevant without judging
                 prompt = f"Question: {query_text}\n{i+1}. [{doc_id}] \"{text}\"\n\n"
-                # Use a safe separator for the composite key
                 key = f"{query_id}|||{doc_id}"
                 req = bm.prepare_request(key, prompt, cfg.generate_qrels_system_instruction, cfg.temperature)
                 requests.append(req)
-        
+
         bm.submit_batch(requests, "qrels_gen")
         print(f"Submitted {len(requests)} judgments.")
         return True
 
     print("Generating qrels file...")
-    qrel_map: dict[str, set[str]] = {}
+    qrel_map: dict[str, dict[str, int]] = {}
     for query_id, query_text in queries.items():
-        print(f"Query ID: {query_id}, Query Text: {query_text}")
         source_chunk_id = parse_source_chunk_id(query_id)
-        
-        # Retrieve candidates for labeling related to a query from chromadb
-        results = collection.query(
-            query_texts=[query_text],
-            n_results=cfg.candidate_pool_size
-        )
-        print(f"Retrieved {len(results['ids'][0])} documents for query {query_id}.")
-        
-        for i, (doc_id, text) in enumerate(zip(results['ids'][0], results['documents'][0])):
-            if source_chunk_id and doc_id == source_chunk_id:
-                continue  # Skip if already added
-            prompt = f"Question: {query_text}\n"
-            prompt += f"{i+1}. [{doc_id}] \"{text}\"\n\n"
-            print(f"Generated prompt for query {query_id}:\n{prompt}")
-            # Send prompt to LLM to get relevance judgments
+        candidates = candidate_pool.get(query_id, [])
+        print(f"Query {query_id}: judging {len(candidates)} pooled candidates.")
+        for i, (doc_id, text) in enumerate(candidates):
+            if force and source_chunk_id and doc_id == source_chunk_id:
+                continue  # forced relevant without judging
+            prompt = f"Question: {query_text}\n{i+1}. [{doc_id}] \"{text}\"\n\n"
             relevance = generate_content(cfg.generate_qrels_system_instruction, prompt)
-            print(f"Relevance judgment for {doc_id}: {relevance}")
-            rel_score = parse_relevance_score(relevance)
-            print(f"Relevance score extracted: {rel_score}")
+            label = 1 if parse_relevance_score(relevance) > 0 else 0
+            qrel_map.setdefault(query_id, {})[doc_id] = label
+            time.sleep(cfg.llm_timeout)  # wait to avoid hitting API limits
 
-            if rel_score > 0:
-                print(f"Writing to qrels: {query_id}, {doc_id}, {rel_score}")
-                qrel_map.setdefault(query_id, set()).add(doc_id)
-            # wait for a short time to avoid hitting API limits
-            time.sleep(cfg.llm_timeout)
-
-    apply_source_chunk_coverage(sorted(queries.keys()), qrel_map)
-    rows_written = write_qrels_tsv(qrel_map, cfg.qrels_file)
+    if force:
+        apply_source_chunk_coverage(sorted(queries.keys()), qrel_map)
+    rows_written = write_qrels_tsv(qrel_map, cfg.qrels_file, store_negatives)
     print(f"Generated qrels file at {cfg.qrels_file} with {len(queries)} queries and {rows_written} rows.")
-    # Ensure the qrels file is created
     if not os.path.exists(cfg.qrels_file):
         print(f"Error: Qrels file {cfg.qrels_file} was not created.")
     else:
