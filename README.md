@@ -102,6 +102,64 @@ After installing these tools, the framework will generate PDF reports automatica
 
 ## ⚡ Quick Start
 
+### 🧭 Bring Your Own Dataset (end-to-end)
+
+Run the whole pipeline on **your own documents** and get a per-dataset report, a cross-dataset aggregate report, and publication-ready figures. Replace `mydata` with any name you like.
+
+```bash
+conda activate ragbenchmark          # ChromaDB's native index requires this env (see note below)
+
+# 1) Create the dataset folder and drop your PDFs in
+mkdir -p datasets/mydata/pdfs
+cp /path/to/your/*.pdf datasets/mydata/pdfs/
+
+# 2) Chunk the PDFs into a corpus (no LLM, fast)
+python rag_benchmark.py --dataset mydata --prepare-corpus
+
+# 3) Generate synthetic queries (LLM; batch recommended for >10 queries)
+python rag_benchmark.py --dataset mydata --generate-queries --batch-submit
+#    ...wait for the job, then fetch with the printed BATCH_ID:
+python rag_benchmark.py --dataset mydata --generate-queries --batch-fetch <BATCH_ID>
+
+# 4) Build model-independent pooled relevance judgments (LLM; batch recommended)
+#    Unions each model's top candidates, LLM-judges the union, stores 0/1 labels.
+python rag_benchmark.py --dataset mydata --generate-qrels --batch-submit
+python rag_benchmark.py --dataset mydata --generate-qrels --batch-fetch <BATCH_ID>
+
+# 5) Embed all models + evaluate + write the dataset report and figures
+python rag_benchmark.py --dataset mydata --initialize --evaluate
+```
+
+**Step 5 produces**, under `datasets/mydata/reports/`:
+
+- `raw_results_<ts>.json` — machine-readable results (metrics, timing, full config, environment snapshot)
+- `mydata_benchmark_report_<ts>.md` and `.pdf` — the human-readable dataset report
+- per-metric PNG charts (MAP, Recall, Precision, NDCG, MRR, Success, timing, corpus stats)
+
+**Compare several datasets.** Repeat steps 1–5 for each dataset (`mydata2`, `mydata3`, …), then:
+
+```bash
+python rag_benchmark.py --generate-aggregate-report
+```
+
+This writes a cross-dataset comparison report + ~20 comparison figures (radar chart, ranking/performance heatmaps, dataset-difficulty, consistency, per-metric distributions) to `aggregated_reports/<timestamp>/`.
+
+**Paper-style journal figures.** Regenerate the consolidated figures used in the manuscript (cross-dataset MAP, per-dataset metric profiles, quality–speed tradeoff) from the latest per-dataset results:
+
+```bash
+python utils/generate_journal_results_figures.py   # writes results_*.png into journal_paper/
+```
+
+**Small corpus / no batch access?** Drop the `--batch-*` flags to run synchronously, or run everything at once:
+
+```bash
+python rag_benchmark.py --dataset mydata --all      # prepare → queries → qrels → init → evaluate (synchronous LLM)
+```
+
+> `--all` uses **synchronous** LLM calls, which the Gemini free tier throttles after a few requests. For anything beyond a tiny corpus, use the batch steps above with a **billing-enabled** key (the free tier disables the Batch API).
+
+> **Run in the `ragbenchmark` conda environment.** ChromaDB's native index (`add`/`query`) works there. Do not run the pipeline from a plain `base` environment: on some machines it can crash while loading the persisted native index; if a run segfaults, first confirm the active env (`python -c "import sys; print(sys.executable)"`).
+
 ### Complete Pipeline with Batch Processing (Recommended for Large Datasets)
 
 ```bash
@@ -179,6 +237,7 @@ For large datasets, use the Gemini Batch API to reduce costs (50% cheaper) and a
 - Results are saved to your dataset's `reports/` directory
 - Use `--batch_status` to monitor job progress (shows all datasets when no --dataset specified)
 - Batch processing costs ~50% less than real-time API calls
+- The Batch API requires a **billing-enabled** Google AI key; it is disabled on the free tier (which also throttles synchronous calls after a few requests)
 
 **Phase 1: Query Generation (Batch Mode)**
 
@@ -263,10 +322,17 @@ chunk_size = 1000
 chunk_overlap = 200
 
 # Query generation
-n_queries = 5
+n_queries = 50            # synthetic queries per dataset
 chunks_per_query = 1
-candidate_pool_size = 10
-qrels_embedding_model_index = 4  # 0-based index (5th model above)
+candidate_pool_size = 20  # top-k retrieved per model for the judged candidate pool
+
+# Benchmark-construction controls (see analysis/README.md for details)
+random_seed = 42                    # reproducible seed-chunk sampling (None disables)
+qrels_pooling = True                # True: union candidates across ALL models (model-independent, unbiased)
+                                    # False: legacy single-model pool via qrels_embedding_model_index
+qrels_store_negatives = True        # store explicit 0 (non-relevant) rows alongside 1s (auditable)
+force_source_chunk_relevant = False # False: judge each query's seed chunk like any other candidate
+qrels_embedding_model_index = 4     # only used when qrels_pooling = False (0-based)
 
 # LLM settings
 llm_model = "models/gemini-2.5-flash-lite"
@@ -277,6 +343,8 @@ llm_timeout = 0.01  # Adjust to avoid rate limits for your API tier
 show_progress_bar = True
 document_batch_size = 32
 reinitialize_collections = True
+hnsw_space = "l2"        # ChromaDB distance space ("l2" default, or "cosine")
+log_environment = True   # record Python/library/device snapshot in raw_results JSON
 ```
 
 **Note**: Currently, only SentenceTransformers models are supported. Ensure model names follow the format 'sentence-transformers/model-name'.
@@ -361,10 +429,10 @@ The framework supports running benchmarks on multiple datasets with complete iso
 
 - **Input**: Queries and document corpus
 - **Process**:
-  1. Retrieve candidate documents using first embedding model
-  2. LLM-based relevance evaluation with structured JSON parsing
-  3. Rate-limited API calls with configurable timeout
-- **Output**: `qrels.tsv` in TREC format
+  1. **Model-independent pooling** — for each query, union the top-`candidate_pool_size` chunks retrieved by *every* embedding model (deduplicated), so the ground truth does not privilege any single evaluated model. Set `qrels_pooling = False` for the legacy single-model pool (`qrels_embedding_model_index`).
+  2. LLM binary relevance judging over the pooled candidates, with structured JSON parsing
+  3. Rate-limited synchronous calls or the Gemini Batch API; the query's own seed chunk is judged normally unless `force_source_chunk_relevant = True`
+- **Output**: `qrels.tsv` as `query_id <TAB> doc_id <TAB> label`, with positive (`1`) and, when `qrels_store_negatives = True`, explicit negative (`0`) judgments. The evaluator scores against the positives; negatives are retained so non-relevant decisions are auditable.
 
 ### 4. Collection Initialization (`--initialize`)
 
@@ -406,6 +474,13 @@ The framework supports running benchmarks on multiple datasets with complete iso
   - Model ranking heatmaps and radar charts
   - Dataset difficulty analysis
 - **Features**: Automated dataset discovery, statistical significance testing, publication-ready analysis
+
+### 7. Publication Figures (`utils/generate_journal_results_figures.py`)
+
+- **Input**: the latest `raw_results_*.json` for each dataset (auto-discovered)
+- **Process**: rebuild the consolidated, paper-ready figures (cross-dataset MAP@10, per-dataset metric profiles, quality–speed tradeoff) with consistent styling and anonymized `M1`–`M5` labels
+- **Output**: `results_*.png` written into `journal_paper/`
+- **Run**: `python utils/generate_journal_results_figures.py` (optional; used for the manuscript/report figures)
 
 ## 📊 Evaluation Metrics
 
