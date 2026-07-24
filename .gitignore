@@ -90,6 +90,7 @@ desktop.ini
 utils/chromadb_collections/*
 !utils/chromadb_collections/.gitkeep
 aggregated_reports/
+graphify-out/
 
 # Data files (if not needed in repo)
 datasets/
