@@ -1,8 +1,8 @@
-# Practitioner-First Manuscript Revision TODO
+# Per-Corpus Embedding-Model Selection: Manuscript Revision TODO
 
-## Scope
+## Scope and Fixed Boundaries
 
-This checklist is exclusively for strengthening the submitted paper:
+This checklist is only for repositioning and strengthening the submitted paper:
 
 - `journal_paper/manuscript.tex`
 - `journal_paper/intro.tex`
@@ -11,437 +11,415 @@ This checklist is exclusively for strengthening the submitted paper:
 - `journal_paper/experiments.tex`
 - `journal_paper/results.tex`
 - `journal_paper/conclusion.tex`
-- a new flat `journal_paper/discussion.tex`, if added
+- a new flat `journal_paper/discussion.tex`
 - `journal_paper/refs.bib`
 
-Experimental and validation work appears below only when new evidence is necessary to support revised paper content. Do not edit the TeX files until the corresponding evidence-changing tasks are complete.
+The pipeline, implementation, candidate roster, datasets, qrels, experimental protocol, frozen results, and generated artifacts are complete and will not be changed. This TODO must not request:
 
-## Non-Negotiable Paper Identity
+- pipeline or configuration changes;
+- new models, lexical/hybrid baselines, or rerankers;
+- new queries, qrels, annotations, or human audits;
+- retrieval, sensitivity, timing, or memory reruns;
+- Pareto analysis, hard-constraint filtering, or new report outputs; or
+- runtime-memory claims that the completed experiment did not measure.
 
-The paper's central contribution is:
+The purpose of the revision is to make the paper's real research motivation unmistakable while reporting the completed study honestly.
 
-> A configurable local benchmarking pipeline that helps practitioners shortlist suitable embedding models for their own corpus and project requirements by jointly considering retrieval quality, corpus language and domain, embedding/indexing speed, query latency, memory use, model size, uncertainty, and reproducibility.
+## Central Research Position
 
-The paper is a practitioner-facing benchmark-method/tool paper with a demonstration study. It is not:
+Use this argument consistently from the Abstract through the Conclusion:
 
-- a new embedding algorithm;
-- a universal embedding leaderboard;
-- a causal study that isolates language or domain effects; or
-- a claim that one model is best for every RAG deployment.
+> A practitioner should not assume that one embedding model will be optimal for every corpus under their control. The completed pipeline evaluates the same candidate roster separately on each local corpus and reports corpus-specific retrieval-quality and operational evidence. The practitioner can therefore select different models for different corpora and priorities instead of transferring one generic or aggregate winner to every collection.
 
-Language and domain must not be removed. They are important characteristics of the practitioner's corpus and therefore important inputs to benchmark design, corpus partitioning, candidate-roster design, and result interpretation. The bounded demonstrations may show language-associated or domain-associated ranking differences—or stability—but cannot attribute those outcomes solely to language or domain because each condition contains only one corpus.
+The defensible claim is **“no universally best embedding model should be assumed.”** Do not claim that the three-corpus study proves that no universal best model exists.
 
-## What Reframing Can and Cannot Fix
+The reported observations demonstrate the intended use:
 
-- **Primarily fixable through paper language and argument:** R1, M5, MIN1, MIN2, MIN12, MIN13, and the contribution-drift portions of R3 and M11.
-- **Partly fixable through clarification but still needing analysis:** M2, M3, M4, MIN3–MIN5, MIN8, and MIN9–MIN11.
-- **Not fixable by wording alone:** R2, the utility-evidence portion of R3, M1, M6–M10, and memory-aware selection. Do not disguise missing evidence with softer adjectives.
+- `M1` is the highest-`MAP@10` and lowest-latency candidate for `education_eng`.
+- `M5` is the highest-quality candidate for `education_tr` and `law_tr`.
+- `M3` is a lower-latency Turkish compromise when quality is not the only priority.
+- The appropriate choice can therefore vary by corpus and by quality-first versus latency-first requirements.
 
-## Argument Spine to Apply Throughout the Paper
+The dataset-level report is the primary decision artifact. The aggregate report is a secondary comparison showing cross-corpus behavior; it must not be presented as a requirement to deploy one model across every corpus.
 
-- [ ] **A1 — Start with the practitioner's decision problem.**
-  - Explain that practitioners face a local candidate-selection problem: available embedding models differ in retrieval quality, language coverage, speed, latency, memory footprint, model size, licensing, and deployment compatibility.
-  - Explain why generic leaderboards cannot determine the best local choice: the target corpus, information needs, preprocessing, hardware, and hard deployment constraints differ.
-  - Present the pipeline as the mechanism for producing a defensible local shortlist under those conditions.
+## Role of Language and Domain
 
-- [ ] **A2 — Define the pipeline's decision sequence in `method.tex`.**
-  1. Characterize the target corpus, including language, domain, document structure, and representative information needs.
-  2. State candidate eligibility requirements such as license, CPU/GPU compatibility, maximum model size, and maximum memory.
-  3. Decide whether heterogeneous language/domain subsets should be evaluated separately.
-  4. Construct an auditable local benchmark with queries, pooled candidates, judgments, and explicit validity checks.
-  5. Evaluate the same eligible roster under a fixed protocol.
-  6. Measure retrieval quality, embedding computation, index insertion, query latency, peak memory, and model size.
-  7. Remove candidates that violate hard project constraints.
-  8. Identify Pareto-nondominated candidates and select among them using the practitioner's stated priority.
+Language and domain remain important because they help practitioners decide which corpora or corpus subsets should be benchmarked separately. They are not removed from the motivation, RQs, results, or implications.
 
-- [ ] **A3 — Make the three datasets demonstrations of this decision process.**
-  - Present each dataset as a worked local-selection case.
-  - Use the English/Turkish education comparison to show that language-associated corpus differences can alter the shortlist.
-  - Use the two Turkish corpora to show that a domain comparison can reveal either change or stability; the observed stability is itself useful because it prevents inventing a domain effect.
-  - State that both outcomes reinforce local testing: neither difference nor transfer should be assumed in advance.
+The paper must distinguish these two statements:
 
-- [ ] **A4 — Replace universal winners with conditional recommendations.**
-  - Report recommendations in the form: “For this corpus, roster, protocol, hardware, and priority, model X is the quality-first/latency-first/memory-first candidate.”
-  - Do not write “best model” without naming the condition and decision criterion.
-  - End every aggregate recommendation with its scope: evaluated corpora, evaluated roster, retrieval configuration, qrels process, and hardware.
+- **Supported:** the English and Turkish education demonstrations produce different model-family rankings, while the two Turkish demonstrations produce similar leading rankings.
+- **Not supported:** language alone caused the first pattern, domain alone caused the second pattern, or language is generally more important than domain.
 
-- [ ] **A5 — Treat memory and model size as central only after measurement.**
-  - Add peak CPU RSS for model loading, corpus embedding/indexing, and querying.
-  - Add model artifact size, parameter count, embedding dimension, and license to the roster evidence.
-  - Do not claim memory-aware or resource-aware selection until these values appear in Experiments and Results.
-  - Do not make GPU-memory claims for a CPU-only study.
+The practical lesson is not “language dominates domain.” It is:
 
-## Preserve and Recalibrate the Four Research Questions
+> Corpus characteristics can change or preserve the recommended model in ways that should be measured rather than assumed. A practitioner managing heterogeneous corpora can run the same pipeline separately and make corpus-specific choices.
 
-Do not delete, merge, renumber, or replace the four RQ themes. Revise only enough to align them with the practitioner-selection goal and the available design.
+## Claim and Terminology Rules
+
+- [ ] Replace unqualified “best model” with “best-performing candidate for this corpus, evaluated roster, fixed protocol, metric, and operational priority.”
+- [ ] Replace “universal winner” conclusions with “corpus-specific recommendation” or “snapshot-specific aggregate ranking.”
+- [ ] Replace “actionable evidence,” “decision-grade,” and “sufficient to choose” with “decision-support evidence,” “preliminary screening,” or “supports a corpus-specific shortlist.”
+- [ ] Remove “language dominates difficulty,” “language dominates domain,” and equivalent explanatory claims.
+- [ ] Use “language-associated comparison” and “domain-associated comparison” for the current cases.
+- [ ] Use “English-oriented,” not “monolingual,” unless a primary model source verifies the stronger label.
+- [ ] Limit operational claims to the measurements actually reported: retrieval metrics, combined corpus embedding/insertion throughput, and combined query embedding/vector-search latency.
+- [ ] Mention runtime memory only as an unmeasured practitioner consideration or future extension; do not present it as an evaluated pipeline output.
+- [ ] State that all recommendations are conditional on the completed raw-L2 configuration, synthetic queries, LLM judgments, five-model roster, three corpora, and single CPU environment.
+
+## Preserve the Four Research Questions
+
+Do not delete, merge, renumber, or broadly rewrite the four RQs. Make only the following selective edits.
 
 - [ ] **RQ1 — Pipeline utility**
-  - Proposed wording: “Can the pipeline produce a reproducible, corpus-specific shortlist of embedding models with retrieval-quality, operational-cost, resource, and uncertainty evidence for a practitioner's local collection?”
-  - Preserve the existing pipeline-utility theme.
-  - Do not define utility merely as “the software produced a report.” Demonstrate utility through an actual constraint-to-shortlist decision.
+  - Change only “on a local document collection” to “on each local document collection.”
+  - Preserve the existing retrieval-quality, operational-cost, and query-level-uncertainty elements.
+  - Interpret the answer through the three separate dataset reports, not merely through the aggregate report.
 
 - [ ] **RQ2 — Language sensitivity**
-  - Proposed wording: “Under a fixed benchmark protocol, how do model rankings and quality–resource trade-offs differ between the English and Turkish education demonstration corpora, and what does this imply for language-aware local shortlisting?”
-  - Preserve language as an important selection factor.
-  - Describe a bounded comparison between two corpora, not an isolated causal language effect.
+  - Preserve the existing RQ wording and theme.
+  - Clarify immediately afterward that it is answered through a bounded comparison of the English and Turkish education corpora, not a causal language experiment.
 
 - [ ] **RQ3 — Domain sensitivity**
-  - Proposed wording: “Under a fixed benchmark protocol, how do model rankings and quality–resource trade-offs differ or remain stable between the Turkish education and law/regulation demonstration corpora, and what does this imply for domain-aware local shortlisting?”
-  - Preserve domain as an important selection factor.
-  - Make ranking difference and ranking stability equally valid answers.
+  - Minimally replace “domain-conditioned ranking changes” with “domain-associated ranking differences or stability.”
+  - Keep the domain-sensitivity theme and number.
+  - Treat the preserved Turkish ranking as a valid answer rather than a failed expected result.
 
 - [ ] **RQ4 — Operational decision support**
-  - Proposed wording: “How do retrieval effectiveness, embedding/indexing speed, query latency, peak memory, model size, and uncertainty alter the recommended shortlist under different project priorities and hard constraints?”
-  - Preserve the operational decision-support theme while adding the resource dimensions required by the paper's actual goal.
+  - Preserve the existing wording and theme.
+  - Define “operational cost” using only the reported embedding/insertion throughput and query latency.
+  - Do not add memory, model-size, Pareto, or constraint-filtering claims.
 
-## Section-Level Rewrite Map
+## Section-by-Section Repositioning
 
-- [ ] **`manuscript.tex`: title, Abstract, highlights, keywords**
-  - Keep the title practitioner- and selection-oriented; consider adding “practitioner-oriented” or “constraint-aware” only if the final evidence supports those words.
-  - Lead the Abstract with the local selection problem and pipeline decision output.
-  - Describe the datasets as three demonstrations, not language/domain experiments.
-  - Report conditional shortlist outcomes rather than a universal aggregate winner.
-  - Remove “language rather than domain dominates difficulty.”
-  - Mention memory only if A5 is completed.
+### [ ] Title, Abstract, Highlights, and Keywords — `manuscript.tex`
 
-- [ ] **`intro.tex`: motivation, gap, contributions, RQs**
-  - Reorder the motivation as: local decision problem → inadequacy of generic rankings/ad hoc trials → required evidence → proposed pipeline.
-  - Replace the current component-list contribution with the pipeline's decision logic and artifact contract.
-  - Explain language and domain as corpus characteristics that may require separate subset evaluation.
-  - Replace “sufficient to choose a model” with “supports a shortlist and an evidence-based selection subject to deployment validation.”
-  - Insert the minimally recalibrated RQ1–RQ4 wording above.
+- Preserve the current title unless a final consistency audit finds a conflict; it already emphasizes corpus-specific selection.
+- Open the Abstract with the practitioner problem: one organization may control several corpora, and the suitable embedding model may differ across them.
+- Present the pipeline as an automated, repeatable way to build one benchmark report per corpus.
+- Use the concrete per-corpus outcomes (`M1` for English quality/latency; `M5` for Turkish quality; `M3` as a Turkish latency compromise).
+- Make aggregate `M5` performance secondary.
+- Replace “language rather than domain dominates difficulty” with the observed difference-versus-stability wording.
+- Retain the limitations of synthetic queries, LLM qrels, raw L2, and the bounded roster.
+- Ensure highlights emphasize per-corpus evaluation, different possible selections, shared-protocol comparability, and auditable reports.
 
-- [ ] **`related.tex`: journal-level positioning**
-  - Compare the proposed pipeline with BEIR/MTEB-style evaluation, TREC pooling, RAG evaluation frameworks, and simpler local evaluation workflows.
-  - Focus the gap on integration for local decision support: corpus-specific benchmark construction, auditable pooled qrels, operational/resource profiling, constraint filtering, Pareto shortlisting, and reproducible artifacts.
-  - Reduce unrelated application examples that do not support this gap.
-  - State precisely which components are established and what their integration contributes.
+### [ ] Introduction and Contributions — `intro.tex`
 
-- [ ] **`method.tex`: selection method, not only data processing**
-  - Retain the staged benchmark-construction workflow.
-  - Add the complete practitioner decision sequence from A2 after reporting.
-  - Define hard constraints, eligibility filtering, Pareto dominance, and priority-based final selection.
-  - Explain when language/domain subsets should be benchmarked separately.
-  - Separate query-generator validity from relevance-judge validity and add the human-audit step to the method.
-  - Define the intended primary similarity configuration and all reported measurements.
+- Reorder the motivation:
+  1. practitioners often manage multiple heterogeneous corpora;
+  2. generic leaderboards or one previous local result cannot determine every corpus's suitable model;
+  3. evaluating candidates independently on each corpus is costly and inconsistent when done manually;
+  4. the completed pipeline automates the shared-protocol comparison and reporting process.
+- Replace the current component-list emphasis with the decision problem solved by those components.
+- State that language, domain vocabulary, document structure, and operational priorities motivate separate corpus runs.
+- Present the four contributions as:
+  1. a repeatable per-corpus benchmark-construction workflow;
+  2. shared-protocol candidate comparison on each corpus;
+  3. dataset-level and secondary aggregate reporting of retrieval quality and measured operational behavior;
+  4. preserved benchmark artifacts for inspection and report regeneration.
+- Apply only the selective RQ edits above.
+- Redefine pipeline utility as producing comparable corpus-specific evidence, not proving that the software improves human decisions.
 
-- [ ] **`experiments.tex`: demonstrate how a practitioner configures the pipeline**
-  - Explain why the three corpora and final model/baseline roster are useful demonstrations.
-  - Report dataset provenance, licenses, structural differences, generated/scored query counts, qrels counts, and audit design.
-  - Report model eligibility attributes: language coverage, license, size, dimension, parameters, device compatibility, and memory.
-  - Report the final retrieval geometry, baselines, sensitivity settings, repeated timing protocol, and hardware.
-  - Avoid claiming that fixed settings isolate language or domain.
+### [ ] Related Work and Positioning — `related.tex`
 
-- [ ] **`results.tex`: organize results around shortlist decisions**
-  - Replace “Cross-Dataset Headline Findings” with a practitioner-shortlist overview.
-  - Present per-corpus quality, operational/resource evidence, eligible models, and Pareto shortlist.
-  - Rename “Language Effect” and “Domain Effect Within Turkish” as descriptive corpus-comparison subsections.
-  - Remove invalid all-metric consistency results and unsupported significance language.
-  - Add human-audit, sensitivity, pool-coverage, and repeated-timing findings.
-  - End each RQ subsection with a direct, bounded answer.
+- Identify the contribution as integration and automation for local per-corpus selection, not a new IR metric, embedding model, or ranking algorithm.
+- Compare the paper conceptually with BEIR/MTEB-style benchmarks, TREC pooling, RAG evaluation frameworks, and ad hoc local scripts.
+- Emphasize the gap the completed pipeline addresses: turning a practitioner's own corpus into reusable queries, pooled judgments, comparable model results, timing summaries, and a dataset-level report under one workflow.
+- Reduce application-paper lists that do not support this positioning.
+- State that the evaluation roster and fixed protocol demonstrate the method rather than exhaust current retrieval alternatives.
 
-- [ ] **new `discussion.tex`: explain implications without repeating Results**
-  - Add a top-level Discussion after Results.
-  - Discuss why local corpus evidence changes—or sometimes preserves—the shortlist.
-  - Explain how language and domain should influence corpus partitioning and candidate selection without causal overreach.
-  - Compare the pipeline with existing benchmark approaches.
-  - Separate practitioner implications, methodological contribution, validity threats, and transfer limits.
+### [ ] Method — `method.tex`
 
-- [ ] **`conclusion.tex`: answer the four RQs conditionally**
-  - Lead with the practitioner selection pipeline, not M5's aggregate performance.
-  - Give one bounded answer for each RQ.
-  - Remove bootstrap p-value claims, “language dominates,” “actionable” without validation, and universal model recommendations.
-  - State that the three datasets demonstrate how the pipeline is used; they do not estimate population language/domain effects.
+- Preserve the implemented stage sequence exactly.
+- Strengthen the explanation that every corpus is processed in isolation and receives separate queries, qrels, indexes, results, and reports.
+- State that a practitioner with multiple corpora repeats the same completed workflow for each corpus.
+- Explain that the per-corpus report supports corpus-specific selection; the aggregate report is optional comparative context.
+- Do not add eligibility filtering, Pareto selection, memory profiling, or any unimplemented decision stage.
+- Keep language/domain partitioning as a practitioner choice when a larger collection is heterogeneous.
+
+### [ ] Experiments — `experiments.tex`
+
+- Present the three datasets as demonstrations selected to create meaningful corpus variation, not as a design that isolates language or domain effects.
+- Explain that the same five-model roster and fixed protocol were applied independently to all three corpora to demonstrate comparable per-corpus selection.
+- Preserve the completed setup and results without requesting reruns.
+- Correct the query-accounting prose: 150 queries were generated, while the statistical scoring uses 148 positive-bearing queries (48/50/50).
+- Explicitly scope the operational measurements as combined, single-run, same-machine evidence:
+  - embedding throughput includes corpus embedding plus index insertion;
+  - query latency includes query embedding plus vector search.
+- State that runtime memory was not measured.
+- Present model popularity as one pragmatic roster-construction choice, not evidence that the roster is comprehensive.
+
+### [ ] Results — `results.tex`
+
+- Replace “Cross-Dataset Headline Findings” with “Corpus-Specific Selection Outcomes.”
+- Lead with a compact corpus-to-recommendation interpretation:
+  - `education_eng`: `M1` for both highest `MAP@10` and lowest latency;
+  - `education_tr`: `M5` quality-first, `M3` lower-latency compromise;
+  - `law_tr`: `M5` quality-first, `M3` lower-latency compromise.
+- Explain that the different English/Turkish selections demonstrate why one model should not be assumed for all corpora.
+- Explain that the same Turkish shortlist demonstrates that local evaluation can also confirm transfer or stability.
+- Move aggregate mean ranking after the per-corpus outcomes and label it secondary.
+- Rename:
+  - “Language Effect” → “Language-Associated Comparison of the Education Corpora”
+  - “Domain Effect Within Turkish” → “Domain-Associated Comparison of the Turkish Corpora”
+- Remove all-metric CV, worst-drop, score-range, and “consistency penalty” columns and claims; retain only existing interpretable aggregate columns such as average rank, mean `MAP@10`, and wins.
+- Remove bootstrap p-values, “significant,” “separated,” and equivalent inferential claims; retain confidence intervals as descriptive, snapshot-conditional uncertainty.
+- Correct every “150 queries” statistical caption to “148 scored queries,” while separately retaining “150 generated queries.”
+- Narrow candidate-pool language from “not an artifact” and “decisively confirmed” to “the ordering was stable across the two tested pool constructions.”
+- Keep timing interpretations conditional on the compound, single-machine measurements.
+- Add a prose-only worked practitioner scenario using the existing results; do not invent a new algorithm or output.
+
+### [ ] Discussion — new `discussion.tex`
+
+- Add a top-level Discussion after Results with four subsections:
+  1. **Practitioner implications:** different corpora under one organization may justify different embedding models.
+  2. **Language- and domain-aware corpus partitioning:** these characteristics motivate separate evaluation but are not isolated causes in the current design.
+  3. **Contribution relative to prior workflows:** value lies in automated local benchmark construction, shared-protocol execution, and reporting.
+  4. **Validity and transfer limits:** synthetic evidence, no human validation, raw L2, bounded roster, fixed parameters, incomplete pool, and single-machine timing.
+- Explain that `M1`/`M5`/`M3` recommendations illustrate how to read the reports, not permanent deployment prescriptions.
+- State explicitly that aggregate `M5` performance does not override corpus-specific choices.
+
+### [ ] Conclusion and Limitations — `conclusion.tex`
+
+- Lead with the completed pipeline's per-corpus selection purpose.
+- Answer RQ1 using the separate corpus reports.
+- Answer RQ2 with the observed English/Turkish ranking difference, bounded to the two education corpora.
+- Answer RQ3 with the observed Turkish-domain stability, bounded to the two Turkish corpora.
+- Answer RQ4 using only retrieval quality, embedding/insertion throughput, query latency, and descriptive uncertainty.
+- Remove universal-winner, significance, “language dominates,” and deployment-guarantee wording.
+- Conclude that practitioners should benchmark each materially distinct corpus rather than transfer one generic or aggregate winner automatically.
+- Keep unavailable validation, alternative geometry, stronger baselines, parameter sensitivity, repeated timing, immutable archiving, and memory measurement as explicit limitations or future work—not completed capabilities.
+
+## Reviewer Comment Mapping
+
+Every entry below is a manuscript response using the frozen evidence. “Residual risk” means wording can reduce overclaiming but cannot fully satisfy a reviewer who requires new experiments.
 
 ## Reject-Level Comments
 
 ### [ ] R1 — Language/domain conclusions are confounded
 
-- **Resolution type:** Manuscript reframing; no deletion of language/domain or RQ2/RQ3.
-- **Paper locations:** Abstract; `intro.tex`; dataset design in `experiments.tex`; language/domain subsections in `results.tex`; `discussion.tex`; `conclusion.tex`.
-- **Actions:**
-  - Remove “language effect,” “domain effect,” “language dominates difficulty,” and causal variants from headings and claims.
-  - Rename the subsections to “Language-Associated Comparison of the Education Corpora” and “Domain-Associated Comparison of the Turkish Corpora.”
-  - Preserve the observed ranking differences across the education corpora and the observed stability across the Turkish corpora.
-  - Explain that corpus identity also includes source selection, structure, scale, queries, and qrels, so language/domain are plausible selection factors but not isolated causes.
-  - Make the practitioner implication explicit: represent important language/domain subsets in the local benchmark instead of assuming either difference or transfer.
-- **Done when:** Language and domain remain prominent in model selection, but no sentence claims that this three-corpus design identifies their independent effects.
+- **Paper locations:** Abstract, Introduction, Experiments, Results comparison subsections, Discussion, Conclusion.
+- **Content action:** Reposition language/domain as reasons for separate corpus evaluation; report the observed difference and stability without causal attribution.
+- **Evidence boundary:** One corpus per condition cannot isolate language or domain.
+- **Completion criterion:** Language and domain remain prominent, but “effect,” “dominates,” and causal explanations are absent.
+- **Residual risk:** Reduced substantially through correct framing.
 
-### [ ] R2 — Synthetic queries and LLM judgments lack human validation
+### [ ] R2 — Synthetic queries and LLM qrels lack human validation
 
-- **Resolution type:** New evidence plus manuscript revision; wording alone is insufficient.
-- **Paper locations:** query/qrels method in `method.tex`; audit protocol in `experiments.tex`; audit results and errors in `results.tex`; validity discussion in `discussion.tex` and `conclusion.tex`.
-- **Actions:**
-  - Audit 15 generated queries per dataset for naturalness, answerability, specificity, and seed-copying.
-  - Have two language-qualified annotators independently assess at least 50 query–chunk pairs per dataset, balanced across LLM-positive and LLM-negative labels and including difficult negatives.
-  - Include zero-positive queries and a residual sample of unpooled chunks.
-  - Report raw agreement, Cohen's kappa, adjudicated agreement with the LLM, language-specific results, and representative errors.
-  - Until this evidence exists, call the output “automated preliminary screening,” not decision-grade or reliable model selection.
-- **Done when:** The paper distinguishes generator quality from judgment quality and calibrates its selection claims to measured human agreement.
+- **Paper locations:** Abstract, Method, Experiments, Results, Discussion, Limitations.
+- **Content action:** Describe the completed output as automated preliminary screening and decision support; clearly separate query generation from relevance judging; remove “validated,” “reliable,” “actionable,” and “sufficient.”
+- **Evidence boundary:** No human audit or human–LLM agreement is available.
+- **Completion criterion:** Every quality/ranking claim is explicitly conditional on synthetic queries and LLM judgments.
+- **Residual risk:** High; wording cannot replace independent validation.
 
-### [ ] R3 — Novelty and practitioner utility are not demonstrated
+### [ ] R3 — Novelty and utility are not demonstrated
 
-- **Resolution type:** Contribution reframing plus comparative evidence.
-- **Paper locations:** `intro.tex`, `related.tex`, `method.tex`, `experiments.tex`, `results.tex`, and `discussion.tex`.
-- **Actions:**
-  - State that novelty lies in the integrated local decision method and artifact contract, not in individual IR components or a new retrieval algorithm.
-  - Add a comparison table against BEIR/MTEB-style tooling, TREC pooling, RAG evaluation frameworks, and a simple local benchmark workflow.
-  - Compare local-corpus setup, language/domain partitioning, pooled qrels, human-audit support, operational/resource profiling, hard-constraint filtering, Pareto shortlisting, and reproducible outputs.
-  - Add one worked practitioner scenario: corpus characteristics and constraints → eligible candidates → benchmark evidence → Pareto set → quality-first, latency-first, and memory-first choices.
-  - Add a deterministic rerun result showing whether fixed inputs reproduce the reported scores and shortlist.
-  - If no practitioner/user study is conducted, do not claim that the workflow improves practitioner decision quality; claim only demonstrated decision support.
-- **Done when:** A reviewer can identify the method/tool contribution, its difference from credible alternatives, and a concrete decision produced by it.
+- **Paper locations:** Introduction, Related Work, Method, Results worked scenario, Discussion.
+- **Content action:** Define the contribution as integrated automation for per-corpus selection; add a conceptual capability comparison and demonstrate use through the existing three report outcomes.
+- **Evidence boundary:** No user study, setup-effort comparison, or independent-practitioner evaluation exists.
+- **Completion criterion:** The paper claims demonstrated workflow capability, not improved human decision quality or algorithmic novelty.
+- **Residual risk:** Moderate; repositioning strengthens identity but does not create comparative user evidence.
 
 ## Major Revision Comments
 
-### [ ] M1 — Retrieval geometry may distort comparisons
+### [ ] M1 — Raw non-normalized L2 retrieval geometry
 
-- **Resolution type:** Reanalysis before rewriting.
-- **Paper locations:** retrieval method in `method.tex`; configuration in `experiments.tex`; all affected tables/figures in `results.tex`; interpretation in `discussion.tex` and `conclusion.tex`.
-- **Actions:**
-  - Make normalized cosine the primary common protocol unless model documentation justifies another primary setting.
-  - Compare raw L2, normalized L2, cosine, and model-recommended similarity where feasible.
-  - Report score changes, per-corpus rank correlations, shortlist/Pareto changes, and any model whose recommendation changes.
-  - Remove the claim that L2 and cosine “typically” preserve ordering for non-normalized embeddings.
-- **Done when:** Every selection conclusion is based on a defensible primary geometry and its sensitivity is visible.
+- **Paper locations:** Experiments, Results, Discussion, Conclusion.
+- **Content action:** State the exact geometry prominently; remove any cosine-equivalence claim; qualify all rankings as conditional on raw L2.
+- **Evidence boundary:** No cosine/model-recommended-similarity rerun will be added.
+- **Completion criterion:** No conclusion generalizes the ordering beyond the completed retrieval configuration.
+- **Residual risk:** High; wording cannot establish geometry robustness.
 
-### [ ] M2 — The paper says 150 queries although 148 are scored
+### [ ] M2 — 150 generated versus 148 scored queries
 
-- **Resolution type:** Factual correction and sensitivity clarification.
-- **Paper locations:** query-accounting table in `experiments.tex`; statistical prose/captions in `results.tex`; summaries in Abstract and `conclusion.tex`.
-- **Actions:**
-  - Report per dataset: generated queries, judged queries, positive-bearing queries, zero-positive queries, excluded queries, and scored queries.
-  - State the evaluator's zero-positive policy and the estimand it produces.
-  - Use 148 only if the final qrels still yield 48/50/50 scored queries; otherwise propagate the final counts everywhere.
-  - Add a sensitivity result for a clearly defined alternative zero-positive policy.
-- **Done when:** Prose, tables, figures, and captions use one correct denominator and explain exclusions.
+- **Paper locations:** Experiments query-accounting table; statistical Results prose/tables/figures; Conclusion.
+- **Content action:** Distinguish generated, positive-bearing, excluded, and scored counts; state 48/50/50 scored queries and explain zero-positive exclusion.
+- **Evidence boundary:** Use the existing frozen query-level artifact.
+- **Completion criterion:** All statistical denominators say 148; corpus workload descriptions may correctly say 150 generated.
+- **Residual risk:** Low after correction.
 
-### [ ] M3 — Bootstrap p-values and dependence are not defensible
+### [ ] M3 — Bootstrap p-values, multiplicity, and clustering
 
-- **Resolution type:** Statistical reanalysis and claim calibration.
-- **Paper locations:** statistical protocol in `experiments.tex`; intervals/tests in `results.tex`; statistical claims in Abstract and `conclusion.tex`.
-- **Actions:**
-  - Make paired confidence intervals the primary uncertainty evidence.
-  - Remove the current bootstrap “p-values” and “significant/separated” wording.
-  - If p-values are retained, use a valid paired randomization/permutation test and Holm correction.
-  - Report dataset-specific effects before any aggregate.
-  - Use document-aware resampling where query provenance permits; describe the limits of only three datasets instead of implying population inference.
-  - Label aggregate intervals as conditional on the demonstration corpora and qrels.
-- **Done when:** The paper distinguishes descriptive uncertainty from population-level inference and respects query/document/dataset structure.
+- **Paper locations:** Statistical Results subsection, Abstract, Discussion, Conclusion.
+- **Content action:** Remove p-values and significance language; retain confidence intervals as descriptive snapshot uncertainty; discuss query/document/dataset dependence.
+- **Evidence boundary:** No new randomization, multiplicity-adjusted, hierarchical, or cluster-aware analysis.
+- **Completion criterion:** The paper makes no population-inference or formal-significance claim.
+- **Residual risk:** Moderate because the remaining intervals still reflect the completed analysis design.
 
-### [ ] M4 — All-metric consistency diagnostics are invalid
+### [ ] M4 — Invalid all-metric consistency diagnostics
 
-- **Resolution type:** Remove and redesign.
-- **Paper locations:** definitions in `intro.tex`; aggregate table and prose in `results.tex`; claims in `conclusion.tex`.
-- **Actions:**
-  - Delete the raw cross-metric CV, worst-drop, score-range, and “smallest consistency penalty” claims.
-  - Do not combine MAP, recall, precision, NDCG, MRR, and success as commensurate observations.
-  - Report stability separately for the primary metric, or use within-condition ranks with a justified aggregation rule.
-  - Replace the consistency table with a decision table covering quality, throughput, latency, memory, model size, eligibility, and Pareto status.
-- **Done when:** No headline statistic is driven by mixing incompatible metric scales.
+- **Paper locations:** Introduction definitions, aggregate Results table/prose, Conclusion.
+- **Content action:** Remove cross-metric CV, worst drop, score range, and consistency-penalty interpretation.
+- **Evidence boundary:** Do not introduce a replacement composite statistic.
+- **Completion criterion:** Only directly interpretable existing metrics/ranks remain.
+- **Residual risk:** Low after removal.
 
-### [ ] M5 — RQ3 does not match the observed domain result
+### [ ] M5 — RQ3 conflicts with domain stability
 
-- **Resolution type:** RQ-preserving reinterpretation.
-- **Paper locations:** RQ3 in `intro.tex`; Turkish-domain subsection in `results.tex`; `discussion.tex`; `conclusion.tex`.
-- **Actions:**
-  - Keep RQ3 and revise it to ask whether rankings differ or remain stable.
-  - Answer RQ3 directly: the two Turkish demonstrations preserve the leading order and show small/mixed score changes.
-  - Explain that stability is a useful pipeline output but is not evidence that domain never matters.
-  - Remove the statement that behavior “changes materially” for the domain comparison.
-- **Done when:** RQ3 remains domain-focused and its answer agrees with the actual table.
+- **Paper locations:** RQ3, domain comparison, Discussion, Conclusion.
+- **Content action:** Ask about differences or stability and answer with the preserved Turkish ranking.
+- **Evidence boundary:** Stability is case-specific and does not show that domain is irrelevant.
+- **Completion criterion:** RQ3 and its answer agree without changing the RQ's domain-sensitivity theme.
+- **Residual risk:** Low after reframing.
 
-### [ ] M6 — Baselines and model roster are too weak
+### [ ] M6 — Weak baselines and bounded model roster
 
-- **Resolution type:** Evidence expansion plus roster rationale.
-- **Paper locations:** roster selection in `experiments.tex`; baseline and shortlist results in `results.tex`; implications in `discussion.tex`.
-- **Actions:**
-  - Add BM25 as a lexical baseline.
-  - Add one reproducible hybrid BM25+dense configuration.
-  - Add at least one competitive contemporary multilingual embedding model, such as BGE-M3 if licensing and CPU feasibility are acceptable.
-  - Explain why reranking or a domain-adapted model is included or explicitly outside the embedding-selection scope.
-  - Define roster inclusion using language coverage, license, model size, memory, hardware compatibility, and deployment relevance—not download count alone.
-  - Keep lexical/hybrid baselines contextually separate from the embedding-model shortlist.
-- **Done when:** The paper can show whether dense embedding selection improves on lexical retrieval and how a stronger candidate affects the shortlist.
+- **Paper locations:** Related Work, Experiments roster rationale, Discussion, Limitations.
+- **Content action:** Present the five models as a practical demonstration roster; remove “sufficient” and comprehensive-baseline wording; explain that selections are only among the evaluated candidates.
+- **Evidence boundary:** No lexical, hybrid, reranking, domain-adapted, or newer multilingual baseline will be added.
+- **Completion criterion:** The paper never implies that the roster represents all available embedding/retrieval options.
+- **Residual risk:** High; roster expansion is not replaceable by prose.
 
-### [ ] M7 — Fixed protocol choices lack sensitivity analysis
+### [ ] M7 — No protocol sensitivity analysis
 
-- **Resolution type:** Reanalysis plus bounded interpretation.
-- **Paper locations:** sensitivity design in `experiments.tex`; stability results in `results.tex`; implications/limits in `discussion.tex`.
-- **Actions:**
-  - Compare similarity configurations from M1.
-  - Report `k={5,10,20}`.
-  - Report query-count stability at 20, 30, 40, and all scored queries using fixed-seed repeated subsampling.
-  - Report candidate-pool depths 5, 10, and 20.
-  - Add a limited chunking sensitivity analysis using at least two plausible size/overlap alternatives.
-  - Report top-model, rank-correlation, eligibility, and Pareto-set stability—not only score changes.
-- **Done when:** The paper shows which pipeline defaults preserve or alter the practitioner recommendation.
+- **Paper locations:** Experiments, Results, Discussion, Limitations, Future Work.
+- **Content action:** Call the study a fixed-protocol demonstration; condition recommendations on chunking, query count, pool depth, raw L2, and `k=10`; remove robustness-to-defaults implications.
+- **Evidence boundary:** No sensitivity reruns will be added.
+- **Completion criterion:** Fixed parameters are never described as optimal or recommendation-invariant.
+- **Residual risk:** High for a benchmark-method paper.
 
-### [ ] M8 — Candidate-pool robustness remains incomplete
+### [ ] M8 — Candidate-pool completeness
 
-- **Resolution type:** Pool-coverage analysis and claim restriction.
-- **Paper locations:** pooling method in `method.tex`; pool design in `experiments.tex`; saturation/residual results in `results.tex`; limits in `discussion.tex`.
-- **Actions:**
-  - Build the final pool using all evaluated dense models plus lexical/hybrid systems where methodologically appropriate.
-  - Report unique pool size, system overlap, cumulative positive yield, and saturation as systems/depth are added.
-  - Human-judge a random residual sample of unpooled chunks for audited queries.
-  - Replace “not an artifact of pool construction” with the narrower claim that rankings were stable across the tested pool variants.
-  - State that qrels support the evaluated roster and may need expansion for future retrievers.
-- **Done when:** Pool coverage is measured and the qrels reuse boundary is explicit.
+- **Paper locations:** Method, Experiments, pool-robustness Results, Discussion.
+- **Content action:** Retain the observed positive-yield increase and tested ordering stability; remove completeness, unbiasedness, and general reusability claims.
+- **Evidence boundary:** Relevant chunks missed by every evaluated model remain unjudged; qrels are roster-conditional.
+- **Completion criterion:** The paper says only that the ordering survived the two tested constructions.
+- **Residual risk:** Moderate to high without residual judging or external retrievers.
 
-### [ ] M9 — Timing and operational evidence are not reproducible
+### [ ] M9 — Timing reproducibility
 
-- **Resolution type:** Repeated measurement and clearer decomposition.
-- **Paper locations:** measurement protocol/hardware table in `experiments.tex`; operational tables in `results.tex`; transfer limits in `discussion.tex`.
-- **Actions:**
-  - Use one discarded warm-up followed by at least five measured runs per model/dataset.
-  - Report median and IQR.
-  - Separate model load, corpus embedding, index insertion, query embedding, vector search, and combined warm-query latency.
-  - Measure peak CPU RSS for loading, indexing, and querying.
-  - Record CPU, RAM, cores/threads, storage, OS, device, and thread settings.
-  - Define any cross-dataset weighting formula.
-- **Done when:** Every operational recommendation has repetitions, dispersion, measurement scope, and hardware context.
+- **Paper locations:** Experiments timing scope, Results timing tables, Discussion, Limitations.
+- **Content action:** Describe timing as compound, single-run, single-machine, relative evidence; remove hardware-independent or statistically stable implications.
+- **Evidence boundary:** No repetitions, dispersion, detailed component timing, or additional hardware data.
+- **Completion criterion:** Timing supports illustrative quality–speed trade-offs only.
+- **Residual risk:** High for operational recommendations.
 
-### [ ] M10 — Reproducibility evidence is mutable or incomplete
+### [ ] M10 — Mutable reproducibility package
 
-- **Resolution type:** Manuscript reproducibility contract backed by an immutable artifact.
-- **Paper locations:** reproducibility method in `method.tex`; exact conditions in `experiments.tex`; data/code-availability statement in `manuscript.tex`.
-- **Actions:**
-  - State the exact commit/release/DOI that corresponds to the reported paper.
-  - List the included environment lockfile, prompts, fixed queries/qrels, pool provenance, raw rankings/results, seeds, checksums, and table/figure generation path.
-  - Record exact model revisions and the exact Gemini identifier and service date.
-  - Distinguish deterministic reproduction from stages requiring new LLM calls.
-  - Give one concise command or command sequence for reproducing the paper's deterministic results.
-- **Done when:** The paper points to an immutable, independently executable evidence snapshot rather than a mutable repository URL.
+- **Paper locations:** Method reproducibility paragraph, Experiments reproducibility table, data/code-availability statement, Discussion.
+- **Content action:** Describe exactly what is currently available and distinguish implementation availability from immutable experimental archiving.
+- **Evidence boundary:** Do not claim DOI-backed or independently durable reproduction unless such an identifier already exists.
+- **Completion criterion:** The paper does not overstate a live repository as a permanent experimental record.
+- **Residual risk:** Moderate to high if no immutable release exists.
 
-### [ ] M11 — Benchmark positioning is weak and Discussion is missing
+### [ ] M11 — Benchmark positioning and missing Discussion
 
-- **Resolution type:** Literature/argument revision and new paper section.
-- **Paper locations:** `related.tex`, `refs.bib`, new `discussion.tex`, and `manuscript.tex` section inclusion.
-- **Actions:**
-  - Add primary BEIR, original MTEB, TREC pooling, benchmark-governance, and relevant RAG evaluation citations.
-  - Replace the list of application papers with a capability/gap comparison centered on local selection.
-  - Create a Discussion with four parts: practitioner implications; relation to prior benchmark methods; validity threats; transferability.
-  - Move cross-study interpretation out of Results and repeated findings out of Conclusion.
-- **Done when:** The journal contribution and its limits are explicit relative to established evaluation practice.
+- **Paper locations:** Related Work, new Discussion, Conclusion.
+- **Content action:** Add foundational benchmark/pooling positioning, a concise capability comparison, and the four-part Discussion specified above.
+- **Evidence boundary:** Compare documented capabilities without implying an empirical head-to-head evaluation.
+- **Completion criterion:** Methodological contribution, empirical demonstration, practitioner implication, and validity limits are clearly separated.
+- **Residual risk:** Low to moderate after a strong rewrite.
 
 ## Minor Revision Comments
 
 ### [ ] MIN1 — Recalibrate Abstract and highlights
 
-- **Paper locations:** `manuscript.tex`.
-- **Action:** Lead with corpus- and constraint-specific shortlisting; describe three demonstrations; replace “language dominates” with the observed conditional patterns; use “preliminary screening” until human validation is reported; mention memory only after measurement.
+- **Action:** Center per-corpus selection, report conditional outcomes, remove “language dominates,” and describe automated preliminary screening.
+- **Completion criterion:** Aggregate `M5` is secondary and no decision-grade claim remains.
 
-### [ ] MIN2 — Use “English-oriented” consistently
+### [ ] MIN2 — Standardize “English-oriented”
 
-- **Paper locations:** all reader-facing TeX sections.
-- **Action:** Remove “monolingual” unless verified by primary model documentation; use “English-oriented” and “multilingual” consistently.
+- **Action:** Replace reader-facing “monolingual” with “English-oriented.”
+- **Completion criterion:** Terminology is consistent across every TeX section and caption.
 
-### [ ] MIN3 — Define every retrieval metric
+### [ ] MIN3 — Define retrieval metrics
 
-- **Paper locations:** `method.tex` or `experiments.tex`, with concise reminders in `results.tex`.
-- **Action:** Define MAP@k, recall@k, precision@k, NDCG@k, MRR@k, and Success@k; specify AP denominator, binary relevance, cutoff behavior, positives beyond `k`, zero-positive handling, and whether Success@k equals evaluator Accuracy@k.
+- **Action:** Add concise definitions for MAP@10, Recall@10, Precision@10, NDCG@10, MRR@10, and Success@10, including zero-positive handling.
+- **Completion criterion:** A reader can interpret each reported value without inspecting code.
 
-### [ ] MIN4 — Define aggregation and ranking
+### [ ] MIN4 — Clarify aggregation rules
 
-- **Paper locations:** `method.tex`, `experiments.tex`, and Results captions.
-- **Action:** Define per-query and per-dataset macro means, any equal-dataset aggregate, average rank, weighted latency, constraint eligibility, and Pareto directions.
+- **Action:** Define dataset macro means, average rank, aggregate mean `MAP@10`, and weighted query latency using the existing calculation.
+- **Completion criterion:** Every aggregate column has an explicit interpretation.
 
-### [ ] MIN5 — Distinguish positive qrels from all judgments
+### [ ] MIN5 — Relabel qrels counts
 
-- **Paper locations:** dataset statistics in `experiments.tex`.
-- **Action:** Rename “Qrels” to “Positive qrels” and add total judged pairs, negative labels, zero-positive queries, and mean positives per scored query.
+- **Action:** Rename “Qrels” to “Positive qrels” and state total judged positive/negative pairs in prose or a note.
+- **Completion criterion:** Positive labels are not confused with all judgments.
 
 ### [ ] MIN6 — Expose model identities
 
-- **Paper locations:** roster table in `experiments.tex`; figures/tables in `results.tex`.
-- **Action:** Keep compact IDs but show short model names in every standalone decision table/figure; identify lexical and hybrid baselines clearly.
+- **Action:** Add short model names alongside `M1`–`M5` in standalone tables, figures, or captions.
+- **Completion criterion:** A reader can understand each central result without searching backward.
 
-### [ ] MIN7 — Remove redundant visuals
+### [ ] MIN7 — Reduce redundant visuals
 
-- **Paper locations:** `method.tex`, `experiments.tex`, and `results.tex`.
-- **Action:** Keep one primary pipeline diagram; keep tables for exact values and figures only for uncertainty, sensitivity, or Pareto patterns; move repetitive auto-generated profiles out of the main paper.
+- **Action:** Retain visuals that support per-corpus decisions or cross-corpus patterns; remove or relocate repetitive auto-generated metric profiles.
+- **Completion criterion:** Each retained figure adds information not already clear from an adjacent table.
 
-### [ ] MIN8 — Deepen qualitative error analysis
+### [ ] MIN8 — Calibrate qualitative examples
 
-- **Paper locations:** `results.tex` and `discussion.tex`.
-- **Action:** For every corpus, show one success, one model-specific semantic near-miss, one difficult negative or judge disagreement, and which systems retrieved it; connect these examples to language/domain characteristics without treating them as causal proof.
+- **Action:** Use existing examples to illustrate corpus-grounded queries and near misses; do not claim unreported model-specific error frequencies or human judge disagreement.
+- **Completion criterion:** Qualitative prose stays within the available artifacts.
 
-### [ ] MIN9 — Use ISO dates
+### [ ] MIN9 — Use ISO provenance dates
 
-- **Paper locations:** provenance subsection/table in `experiments.tex`.
-- **Action:** Replace `01/01/2026` with `2026-01-01` and use ISO dates consistently.
+- **Action:** Replace `01/01/2026` with `2026-01-01`.
+- **Completion criterion:** No ambiguous numeric date remains.
 
-### [ ] MIN10 — Document licenses and redistribution
+### [ ] MIN10 — State dataset redistribution limits
 
-- **Paper locations:** provenance subsection in `experiments.tex`; data-availability statement in `manuscript.tex`.
-- **Action:** State source owner, URL/citation, retrieval date, license/terms, redistribution status, transformations, and reconstruction procedure where source documents cannot be redistributed.
+- **Action:** Report known source ownership, retrieval provenance, and any verified redistribution limitations; do not invent licenses or permissions.
+- **Completion criterion:** Data availability is accurate about what can and cannot be redistributed.
 
-### [ ] MIN11 — Correct and strengthen references
+### [ ] MIN11 — Audit bibliography
 
-- **Paper locations:** `refs.bib`, `intro.tex`, and `related.tex`.
-- **Action:** Correct foundational RAG metadata; verify DOI/venue/status; remove weakly related citations; add primary BEIR, MTEB, and pooling sources; ensure every cited claim is supported.
+- **Action:** Correct foundational RAG metadata, verify cited entries, add primary BEIR/MTEB/pooling sources where used, and remove references that do not support the revised positioning.
+- **Completion criterion:** Every citation supports the nearby claim and resolves in `refs.bib`.
 
 ### [ ] MIN12 — Remove promotional wording
 
-- **Paper locations:** all reader-facing TeX sections.
-- **Action:** Replace “decisively,” “straightforward,” “actionable,” “sufficient,” “reliable,” “dominant,” and similar terms with measured, conditional wording.
+- **Action:** Replace “decisively,” “straightforward,” “actionable,” “sufficient,” “reliable,” “dominant,” and similar terms with neutral conditional descriptions.
+- **Completion criterion:** Conclusions describe only measured behavior.
 
-### [ ] MIN13 — State article type and audience
+### [ ] MIN13 — State article identity
 
-- **Paper locations:** title/Abstract, `intro.tex`, `related.tex`, and `discussion.tex`.
-- **Action:** Identify the paper consistently as a practitioner-facing benchmark-method/tool contribution with a demonstration study; disavow algorithmic novelty and universal rankings.
+- **Action:** Consistently identify the work as a practitioner-facing benchmark-method/tool paper demonstrated on three corpora.
+- **Completion criterion:** The paper does not alternate among algorithm, universal benchmark, software report, and causal language/domain study identities.
 
-### [ ] MIN14 — Check journal front-matter limits
+### [ ] MIN14 — Check target-journal front matter
 
-- **Paper locations:** Abstract, highlights, and keywords in `manuscript.tex`.
-- **Action:** After journal selection, check abstract length, highlight count/length, keyword count, declarations, data/code statement, and section-order requirements.
+- **Action:** After journal selection, check abstract length, highlights, keywords, declarations, and data/code-statement requirements.
+- **Completion criterion:** The final front matter satisfies both CAS and the selected journal's guide.
 
-## Priority Order
+## Revision Order
 
-### P0 — Correct claims and analysis foundations
+### P0 — Lock the paper's argument and claim boundaries
 
-- [ ] Lock the paper identity and four RQs.
-- [ ] Complete M1–M5.
-- [ ] Remove unsupported memory, causal language/domain, universal-winner, significance, and all-metric-consistency claims.
+- [ ] Apply the central research position and language/domain role.
+- [ ] Preserve the four RQs with only the specified selective edits.
+- [ ] Remove unsupported causal, universal-winner, memory, Pareto, and decision-grade claims.
+- [ ] Correct the 150-generated/148-scored distinction.
+- [ ] Remove bootstrap p-values/significance and invalid all-metric consistency claims.
 
-### P1 — Generate evidence required by the paper's main goal
+### P1 — Reorganize the paper around existing per-corpus evidence
 
-- [ ] Complete R2, R3 evidence, M6–M10, and A5.
-- [ ] Finalize the candidate roster and primary retrieval configuration before rebuilding pooled judgments.
-- [ ] Complete human audit, sensitivity analysis, pool analysis, repeated timing, memory profiling, and model-size collection.
-- [ ] Freeze one internally consistent evidence snapshot for all paper tables and figures.
+- [ ] Revise in this order: Method → Experiments → Results → Discussion → Related Work → Introduction → Abstract/highlights → Conclusion.
+- [ ] Make dataset-level outcomes primary and aggregate results secondary.
+- [ ] Add the existing-results practitioner scenario without introducing new calculations.
+- [ ] Add explicit evidence boundaries and residual risks.
 
-### P2 — Rewrite the paper around practitioner selection
+### P2 — Presentation and submission checks
 
-- [ ] Revise in this order: `method.tex` → `experiments.tex` → `results.tex` → `discussion.tex` → `related.tex` → `intro.tex` → Abstract/highlights → `conclusion.tex`.
-- [ ] Apply R1, M5, M11, MIN1, MIN8, MIN12, and MIN13 during the rewrite.
-- [ ] Give each RQ a direct, bounded answer.
+- [ ] Complete MIN2–MIN14.
+- [ ] Check all table/figure captions, labels, prose references, citation keys, and terminology.
+- [ ] Verify that no revised text implies a pipeline or experiment that was not actually implemented.
 
-### P3 — Presentation and submission checks
+## Final Acceptance Gates
 
-- [ ] Complete MIN2–MIN7, MIN9–MIN11, and MIN14.
-- [ ] Verify that every table/figure has a caption, label, and explicit role in the surrounding argument.
-- [ ] Verify numerical consistency, terminology, citations, and claim scope.
-
-## Final Manuscript Acceptance Gates
-
-- [ ] All 3 reject, 11 major, and 14 minor reviewer comments are mapped above.
-- [ ] The practitioner selection pipeline is the unmistakable central contribution from title through Conclusion.
-- [ ] RQ1–RQ4 remain distinct; RQ2 and RQ3 retain language and domain as important selection dimensions.
-- [ ] The three datasets are presented as demonstrations, not causal language/domain experiments.
-- [ ] The paper shows how corpus properties and project constraints produce an eligible/Pareto shortlist.
-- [ ] Memory-aware claims are supported by measured peak CPU RSS and model-size evidence, or removed.
-- [ ] Human validation is reported, or claims are explicitly limited to preliminary automated screening.
-- [ ] Primary retrieval results use a defensible similarity configuration with sensitivity evidence.
-- [ ] Query counts, qrels counts, statistical denominators, operational measurements, tables, and prose agree.
-- [ ] No invalid all-metric consistency statistic or unsupported bootstrap p-value remains.
-- [ ] The Discussion distinguishes methodological contribution, empirical observations, practitioner implications, and validity limits.
-- [ ] The data/code-availability statement identifies an immutable evidence snapshot.
-- [ ] Run the full CAS check only after the TeX revision is complete:
+- [ ] `todo.md` contains exactly 3 reject, 11 major, and 14 minor reviewer mappings.
+- [ ] No task requests code, configuration, pipeline, candidate-roster, qrels, annotation, rerun, timing-instrumentation, memory, or new-output changes.
+- [ ] RQ1–RQ4 remain numbered and recognizable; only RQ1 and RQ3 receive the specified minimal edits.
+- [ ] The primary narrative supports separate model choices for separate corpora controlled by one practitioner.
+- [ ] The worked interpretation uses only existing evidence: `M1` for `education_eng`; `M5` quality-first and `M3` lower-latency for the Turkish corpora.
+- [ ] Aggregate `M5` is presented as secondary cross-corpus context, not a universal deployment choice.
+- [ ] Language and domain remain important benchmark-partitioning and interpretation dimensions without causal claims.
+- [ ] No current-capability claim mentions runtime memory, Pareto analysis, hard constraints, or unimplemented selection stages.
+- [ ] Every unresolved methodological objection is explicitly labeled as a residual risk rather than falsely “resolved” through wording.
+- [ ] Only after the later TeX revision is complete, run:
 
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf
   ```
 
-- [ ] Confirm 0 CAS lint errors, successful PDF compilation, resolved citations/references, and readable tables/figures.
+- [ ] Confirm 0 CAS lint errors, successful PDF compilation, resolved references, and readable tables/figures.
