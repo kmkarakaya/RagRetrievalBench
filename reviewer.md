@@ -191,37 +191,40 @@ comparators in §2 (BEIR, MTEB, RAGBench, ReproRAG, RAGOps) are discussed as *st
 `ir_measures`/`ir_datasets`, and the LangChain/LlamaIndex retrieval evaluators — the tools a practitioner would
 actually reach for — are not mentioned at all.
 
-**Fix.** Add a capability-comparison table to §2.5 and one paragraph interpreting it. Compare on the dimensions that
-define *your* contribution, and be honest where a competitor also has the capability — a table in which your tool wins
-every row is not credible and will be read as such.
+**Fix — RESOLVED IN REVISION (prose, not a table).** A capability-comparison table was considered and rejected in
+favour of prose: a table in which the new tool wins every row is not credible, and the distinction here is about what
+each tool *presupposes*, which is an argument rather than a checklist. Implemented as a new
+`\subsection{Relation to General-Purpose Evaluation Tooling}\label{rw-tooling}` in
+[related.tex](journal_paper/related.tex), placed after §2.4 and before the Gap Statement, in two paragraphs:
 
-Suggested dimensions: builds a benchmark *from the practitioner's own corpus* (vs. consuming a fixed testbed);
-generates synthetic queries in the corpus language; constructs qrels with model-independent pooling across the
-evaluated roster; stores negative as well as positive judgments; evaluates a multi-model roster under one frozen
-protocol; reports retrieval quality *and* operational cost in one artifact; produces a per-corpus report as the primary
-output with cross-corpus reporting as secondary; preserves regenerable machine-readable artifacts; single
-configuration file as the whole experimental surface.
+- **Paragraph 1** groups the landscape into four families and states what each presupposes. Shared testbeds (BEIR,
+  MTEB, MMTEB) supply corpus, queries and judgments together, and their harnesses accept a local collection only once
+  it is already accompanied by a query file and a qrels file — with unjudged pairs then treated as non-relevant by
+  convention, which ties back to the paper's own pooling argument in §2.2. Evaluation and dataset libraries
+  (`ir_datasets`, `ir_measures`, the Sentence-Transformers `InformationRetrievalEvaluator`) and reproducible retrieval
+  toolkits (Pyserini) *consume* a labeled benchmark rather than producing one. UMBRELA supplies a judge component but
+  not the corpus-to-report workflow. RAG frameworks (RAGAS, ARES, RAGBench) score an assembled generation pipeline on
+  context relevance, faithfulness and answer relevance.
+- **Paragraph 2** states the contribution as a composition, says plainly that no individual stage is new and that the
+  metric layer is delegated to an existing implementation, then names the four choices the pipeline fixes which the
+  generic tools leave open (model-independent pooling across the roster; negatives retained; one frozen protocol over
+  isolated per-model indexes; quality reported together with measured operational cost). It closes by positioning the
+  pipeline *upstream of* the answer-quality frameworks rather than in competition with them.
 
-**Proposed replacement text** — new subsection at the end of §2, before the closing paragraph:
+Two accuracy constraints were enforced while drafting, because the argument fails if either is overstated. **RAGAS does
+generate evaluation data from supplied documents** (`TestsetGenerator`), so the revision does not claim otherwise; the
+stated difference is that its items pair a question with the contexts that produced it — a seed-as-positive convention
+serving answer-quality measurement — rather than pooled, judged relevance over the full chunk set. And the revision
+notes that the pipeline's artifacts are written in a BEIR-style corpus/queries/qrels layout, so a benchmark built here
+can be re-scored with external tooling; that is a checkable interoperability claim rather than a competitive one.
 
-```latex
-\subsection{Capability Positioning Against Existing Evaluation Tooling}\label{rw-tooling}
-
-The threads above motivate the design; this subsection states what the proposed pipeline adds relative to tools a
-practitioner could otherwise assemble. Table~\ref{tbl:tooling_comparison} compares documented capabilities, not
-measured performance: no head-to-head empirical evaluation against these tools is reported here, and several of
-them target a different layer of the RAG stack. Shared testbeds such as BEIR and MTEB supply corpora, queries and
-judgments, so they answer a different question than a practitioner asking about their own documents
-\citep{Thakur_BEIR_2021,Muennighoff_MTEB_2023}. Answer-oriented frameworks such as RAGAS and ARES evaluate
-generation faithfulness and relevance given a retriever, rather than selecting a retriever
-\citep{es2024ragas,saadfalcon2024ares}. UMBRELA supplies LLM relevance assessment as a component but not a
-corpus-to-report workflow \citep{upadhyay2024umbrela}. The gap this paper addresses is the composition: turning a
-local document collection into a frozen query/qrels resource, comparing a candidate embedding roster over it under
-one protocol, and emitting a per-corpus report that pairs retrieval quality with measured operational cost.
-```
-
-Then a table with one row per tool (BEIR/MTEB harness, `ir_datasets` + `ir_measures`, RAGAS, ARES, RAGBench, UMBRELA,
-LangChain/LlamaIndex evaluators, this work) and one column per dimension above, with ✓ / partial / — entries.
+Supporting edits made in the same pass: the §2 opening sentence now announces the tooling discussion; the Gap Statement
+goes from four gaps to five with the tooling gap added; [discussion.tex](journal_paper/discussion.tex) §6.3 gains one
+sentence pointing to `rw-tooling`; and the first contribution in [intro.tex](journal_paper/intro.tex) now says the
+workflow takes an unlabeled collection as input rather than presupposing a labeled benchmark. Ten verified bibliography
+entries were added (`es2024ragas`, `saadfalcon2024ares`, `reimers2019sentencebert`, `macavaney2021irdatasets`,
+`macavaney2022irmeasures`, `lin2021pyserini`, `upadhyay2024umbrela`, `enevoldsen2025mmteb`, `langchain2026`,
+`llamaindex2026`), and `Thakur_BEIR_2021` was corrected to the NeurIPS Datasets and Benchmarks Track form.
 
 ---
 
@@ -1036,7 +1039,7 @@ different authorship. Please resolve the provenance before submission — cite t
 | ID | Sev. | Manuscript location | Repository evidence | Ask | Effort | New compute |
 |---|---|---|---|---|---|---|
 | RR1 | Reject-risk | `experiments.tex` §4.5 Table 10, :137; `method.tex` :115 | `.gitignore:96`; `git ls-files datasets/` = 0; JSON mtime 20:16 vs report 17:52 | Publish artifacts; regenerate under final names; Zenodo DOI | 1 day | No |
-| RR2 | Reject-risk | `related.tex` §2.5; `intro.tex` :12; `discussion.tex` §6.3 | No comparison table in any section file | Add capability-comparison table + positioning subsection | 1 day | No |
+| RR2 | Reject-risk | `related.tex` §2.5; `intro.tex` :12; `discussion.tex` §6.3 | No positioning against evaluation tooling in any section file | **Resolved:** new prose subsection `rw-tooling` + 10 verified bib entries + gap/intro/discussion echoes | Done | No |
 | RR3 | Reject-risk | `results.tex` §5.8 Table 15, :295–313 | `backup_frozen_2026-07-23/`; 0/50 shared query IDs; `forced_source_positives: 50` | Controlled M5-only subset ablation; add leave-one-out | 0.5 day | Rescore only |
 | MJ1 | Major | `results.tex` §5.7; RQ1/RQ4; `conclusion.tex` :5,:9 | `results_reanalysis/bootstrap_frozen.json`; `analysis/bootstrap_ci.py:43-49` | Per-corpus CIs in the dataset report; rewrite corpus readings; stratify or disclose | 1 day | Rescore only |
 | MJ2 | Major | `experiments.tex` :59, Table 10; `discussion.tex` :27 | `config.py:117-121`; `normalize_embeddings:false` in all 15 collections | Fix comment; change default; rerun under cosine | 0.5 day | **Yes** (~1 h CPU) |
@@ -1061,8 +1064,9 @@ sample. Nothing here requires a GPU or new API budget beyond the judge-agreement
 In priority order. The first four are the ones I would treat as non-negotiable at the next round.
 
 1. **Publish the artifacts and mint a DOI** (RR1). Without this the tool contribution cannot be assessed at all.
-2. **Add the capability-comparison table** (RR2). One table and one paragraph; it is the difference between "here is a
-   pipeline I built" and "here is what this pipeline adds".
+2. ~~**Position the pipeline against existing evaluation tooling** (RR2).~~ **Done** — implemented as the prose
+   subsection `rw-tooling` in `related.tex` rather than as a table. This was the difference between "here is a pipeline
+   I built" and "here is what this pipeline adds".
 3. **Replace §5.8 with the controlled pool ablation** (RR3). A subset operation over data you already hold, with no new
    LLM calls, that turns the paper's weakest section into direct support for its novelty claim.
 4. **Move the uncertainty layer into the per-corpus report and rewrite the corpus readings accordingly** (MJ1). The

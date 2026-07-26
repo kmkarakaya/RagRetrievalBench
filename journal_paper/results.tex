@@ -1,6 +1,6 @@
 \section{Results}\label{results}
 
-This section reports the evidence produced by the proposed benchmarking pipeline under the selected experimental instantiation described in Section~\ref{experiments}. The primary reading is corpus-specific rather than global: for \texttt{education\_eng}, \texttt{M1} is both the highest-\texttt{MAP@10} and lowest-latency candidate; for \texttt{education\_tr}, \texttt{M5} is the quality-first candidate and \texttt{M3} is the lower-latency compromise; and for \texttt{law\_tr}, \texttt{M5} is again quality-first while \texttt{M3} provides the lower-latency Turkish alternative. These recommendations are conditional on the frozen five-model roster, synthetic queries, LLM judgments, raw-L2 retrieval configuration, and compound single-machine timing measurements described in Section~\ref{experiments}. They demonstrate how to interpret one configured benchmark run; they are not default recommendations supplied by the pipeline for other corpora or parameter settings. Because the pipeline generates full benchmark reports automatically, only a selected subset of the most decision-relevant tables and figures is included here; the complete generated reports and supporting files are available through the public repository for interested readers. \citep{GitHub_RagRetrievalBench}
+This section reports the evidence produced by the proposed benchmarking pipeline under the selected experimental instantiation described in Section~\ref{experiments}. The primary reading is corpus-specific rather than global: for \texttt{education\_eng}, \texttt{M1} is both the highest-\texttt{MAP@10} and lowest-latency candidate; for \texttt{education\_tr}, \texttt{M5} is the quality-first candidate and \texttt{M3} is the lower-latency compromise; and for \texttt{law\_tr}, \texttt{M5} is again quality-first while \texttt{M3} provides the lower-latency Turkish alternative. These recommendations are conditional on the frozen five-model roster, synthetic queries, LLM judgments, raw-L2 retrieval configuration, and compound single-machine timing measurements described in Section~\ref{experiments}. They demonstrate how to interpret one configured benchmark run; they are not default recommendations supplied by the pipeline for other corpora or parameter settings. Because the pipeline generates full benchmark reports automatically, only a selected subset of the most decision-relevant tables and figures is included here; the complete generated reports and supporting files are available through the public repository for interested readers \citep{GitHub_RagRetrievalBench}.
 
 \subsection{Corpus-Specific Selection Outcomes}\label{cross-dataset-headline-findings}
 
@@ -12,7 +12,7 @@ The reported three-dataset snapshot first supports separate dataset-level readin
 \small
 \begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.38\linewidth}rr@{}}
 \toprule
-Dataset & Corpus-specific interpretation & Top MAP@10 & Mean MAP@10 \\
+Dataset & Corpus-specific interpretation & Top MAP@10 & Mean MAP@10 (across models) \\
 \midrule
 education\_eng & \texttt{M1} (MiniLM-L6) leads quality and latency & 0.5260 & 0.4534 \\
 education\_tr & \texttt{M5} (multi-MPNet) quality-first; \texttt{M3} (multi-MiniLM) lower-latency compromise & 0.3606 & 0.2121 \\
@@ -29,7 +29,7 @@ Secondary aggregate context is still useful, but it should not override the data
 \small
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-Model & Avg Rank & Mean MAP@10 & Wins \\
+Model & Avg Rank & Mean MAP@10 (across corpora) & Wins \\
 \midrule
 M5 (multi-MPNet) & 2.00 & 0.3810 & 2 \\
 M3 (multi-MiniLM) & 3.00 & 0.3051 & 0 \\
@@ -58,7 +58,7 @@ Table~\ref{tbl:education_eng_timing} shows that \texttt{M1} is the strongest can
 \small
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
-Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10 \\
+Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10\textsuperscript{a} \\
 \midrule
 M1 & 0.5260 & 0.6529 & 0.369 & 0.6626 & 0.8325 & 0.96 \\
 M2 & 0.5022 & 0.6180 & 0.354 & 0.6405 & 0.8398 & 0.96 \\
@@ -67,6 +67,7 @@ M4 & 0.4587 & 0.6065 & 0.338 & 0.6150 & 0.8392 & 0.96 \\
 M5 & 0.4246 & 0.5384 & 0.304 & 0.5595 & 0.7757 & 0.96 \\
 \bottomrule
 \end{tabular}
+\par\smallskip\footnotesize\textsuperscript{a}The identical values round from 0.9583 (46/48 scored queries); the same two queries fail for all five candidates.
 \end{table}
 
 \begin{table}[t]
