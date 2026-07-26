@@ -91,9 +91,17 @@ utils/chromadb_collections/*
 !utils/chromadb_collections/.gitkeep
 aggregated_reports/
 graphify-out/
+backup_frozen_2026-07-23/
 
 # Data files (if not needed in repo)
-datasets/
 *.csv
-*.jsonl
-*.tsv
+
+# Benchmark datasets (RR1 fix): corpus, queries, qrels, per-model ranking files, raw-result JSON,
+# source PDFs, and generated reports are published artifacts and must stay tracked. Vector indexes
+# and other regenerable run-internal files (batch logs, timing scratch data) are excluded.
+datasets/*/chromadb_collections/
+datasets/*/analysis/*
+!datasets/*/analysis/rankings_M*.jsonl
+datasets/*/reports/batches/
+datasets/*/reports/timing_data_*.json
+batch_history.jsonl

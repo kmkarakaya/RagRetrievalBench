@@ -1,0 +1,225 @@
+{
+  "dataset": "law_tr",
+  "timestamp": "2026-07-23_18-04-23",
+  "config": {
+    "k": 10,
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "llm_model": "models/gemini-2.5-flash-lite",
+    "candidate_pool_size": 20,
+    "document_batch_size": 32,
+    "reinitialize_collections": true,
+    "hnsw_space": "l2",
+    "random_seed": 42,
+    "qrels_pooling": true,
+    "qrels_store_negatives": true,
+    "force_source_chunk_relevant": false,
+    "qrels_embedding_model_index": 4,
+    "embedding_models": [
+      {
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "collection_name": "law_tr_coll_v1"
+      },
+      {
+        "model_name": "sentence-transformers/all-mpnet-base-v2",
+        "collection_name": "law_tr_coll_v2"
+      },
+      {
+        "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        "collection_name": "law_tr_coll_v3"
+      },
+      {
+        "model_name": "sentence-transformers/all-MiniLM-L12-v2",
+        "collection_name": "law_tr_coll_v4"
+      },
+      {
+        "model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+        "collection_name": "law_tr_coll_v5"
+      }
+    ],
+    "metric_flags": {
+      "compute_map": true,
+      "compute_recall": true,
+      "compute_precision": true,
+      "compute_ndcg": true,
+      "compute_mrr": true,
+      "compute_hit_rate": true
+    }
+  },
+  "environment": {
+    "python_version": "3.10.16",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "chromadb_version": "1.0.7",
+    "sentence_transformers_version": "4.1.0",
+    "torch_version": "2.7.0+cpu",
+    "numpy_version": "2.2.5",
+    "cuda_available": false,
+    "device": "cpu"
+  },
+  "models": {
+    "sentence-transformers/all-MiniLM-L6-v2": {
+      "metrics": {
+        "map": 0.11174305555555555,
+        "recall": 0.2125021645021645,
+        "precision": 0.1,
+        "ndcg": 0.1914959437814347,
+        "mrr": 0.318547619047619,
+        "hit_rate": 0.6
+      },
+      "timing": {
+        "embedding_time": 17.10397434234619,
+        "chunks_processed": 723,
+        "chunks_per_second": 42.270877255117796,
+        "avg_time_per_chunk": 0.023656949297850886,
+        "queries_timed": 50,
+        "total_query_retrieval_time_s": 0.9370401999913156,
+        "avg_query_latency_s": 0.018740803999826312,
+        "avg_query_latency_ms": 18.740803999826312,
+        "docs_processed": 723
+      }
+    },
+    "sentence-transformers/all-mpnet-base-v2": {
+      "metrics": {
+        "map": 0.12630437137818087,
+        "recall": 0.22349567099567097,
+        "precision": 0.11199999999999999,
+        "ndcg": 0.20651170561201126,
+        "mrr": 0.3457380952380953,
+        "hit_rate": 0.58
+      },
+      "timing": {
+        "embedding_time": 206.6358780860901,
+        "chunks_processed": 723,
+        "chunks_per_second": 3.4989083536537575,
+        "avg_time_per_chunk": 0.28580342750496557,
+        "queries_timed": 50,
+        "total_query_retrieval_time_s": 3.1067952000303194,
+        "avg_query_latency_s": 0.06213590400060639,
+        "avg_query_latency_ms": 62.13590400060639,
+        "docs_processed": 723
+      }
+    },
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": {
+      "metrics": {
+        "map": 0.2623557319223986,
+        "recall": 0.38358658008658003,
+        "precision": 0.198,
+        "ndcg": 0.3825014149116943,
+        "mrr": 0.5706666666666667,
+        "hit_rate": 0.8
+      },
+      "timing": {
+        "embedding_time": 17.45838475227356,
+        "chunks_processed": 723,
+        "chunks_per_second": 41.41276585772608,
+        "avg_time_per_chunk": 0.024147143502453058,
+        "queries_timed": 50,
+        "total_query_retrieval_time_s": 1.2352832000760827,
+        "avg_query_latency_s": 0.024705664001521653,
+        "avg_query_latency_ms": 24.705664001521654,
+        "docs_processed": 723
+      }
+    },
+    "sentence-transformers/all-MiniLM-L12-v2": {
+      "metrics": {
+        "map": 0.19556931216931214,
+        "recall": 0.3277748917748918,
+        "precision": 0.126,
+        "ndcg": 0.28598622382198163,
+        "mrr": 0.39799206349206345,
+        "hit_rate": 0.76
+      },
+      "timing": {
+        "embedding_time": 17.157442808151245,
+        "chunks_processed": 723,
+        "chunks_per_second": 42.13914672975121,
+        "avg_time_per_chunk": 0.023730902915838514,
+        "queries_timed": 50,
+        "total_query_retrieval_time_s": 1.3891720998799428,
+        "avg_query_latency_s": 0.027783441997598857,
+        "avg_query_latency_ms": 27.783441997598857,
+        "docs_processed": 723
+      }
+    },
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2": {
+      "metrics": {
+        "map": 0.35774241622574954,
+        "recall": 0.4903174603174603,
+        "precision": 0.22399999999999998,
+        "ndcg": 0.4814719164166846,
+        "mrr": 0.6659365079365078,
+        "hit_rate": 0.9
+      },
+      "timing": {
+        "embedding_time": 53.67868781089783,
+        "chunks_processed": 723,
+        "chunks_per_second": 13.469032673582173,
+        "avg_time_per_chunk": 0.07424438148118648,
+        "queries_timed": 50,
+        "total_query_retrieval_time_s": 2.2473454999853857,
+        "avg_query_latency_s": 0.04494690999970771,
+        "avg_query_latency_ms": 44.946909999707714,
+        "docs_processed": 723
+      }
+    }
+  },
+  "corpus_stats": {
+    "total_pdfs": 2,
+    "total_chunks": 723,
+    "avg_chunks_per_pdf": 361.5,
+    "total_queries": 50,
+    "total_qrels": 286,
+    "avg_qrels_per_query": 5.72
+  },
+  "corpus_characteristics": {
+    "avg_chunk_length": 121.18257261410788,
+    "median_chunk_length": 121.0,
+    "min_chunk_length": 56.0,
+    "max_chunk_length": 214.0,
+    "std_chunk_length": 11.148432734744873
+  },
+  "query_characteristics": {
+    "total_queries": 50,
+    "avg_query_length": 9.98,
+    "median_query_length": 9.0,
+    "min_query_length": 5.0,
+    "max_query_length": 20.0,
+    "std_query_length": 2.80349781523011
+  },
+  "relevance_characteristics": {
+    "total_relevance_judgments": 286,
+    "avg_relevant_docs_per_query": 5.72,
+    "median_relevant_docs_per_query": 4.5,
+    "min_relevant_docs_per_query": 1.0,
+    "max_relevant_docs_per_query": 20.0,
+    "coverage_ratio": 39.55739972337483
+  },
+  "representative_queries": [
+    {
+      "query_id": "q1_for_Sermaye_chunk238",
+      "query_text": "Sermaye piyasası kurumlarında daire başkanlıklarının oluşturulması, kapatılması ve birleştirilmesi ile yurt içi ve yurt dışı temsilciliklerin açılmasına ilişkin düzenlemeler nelerdir?",
+      "relevant_docs": 1
+    },
+    {
+      "query_id": "q2_for_Bankacılık_chunk115",
+      "query_text": "Müşteri sırlarının korunması ve paylaşımına ilişkin yasal düzenlemeler nelerdir?",
+      "relevant_docs": 8
+    },
+    {
+      "query_id": "q3_for_Bankacılık_chunk26",
+      "query_text": "Faaliyet izninin iptali veya sınırlandırılmasına ilişkin durumlar nelerdir?",
+      "relevant_docs": 11
+    },
+    {
+      "query_id": "q4_for_Bankacılık_chunk282",
+      "query_text": "Ticarî ve iktisadî bütünlük oluşturan mal varlıklarının satış usulleri ve ihale bedelinin dağıtımı.",
+      "relevant_docs": 9
+    },
+    {
+      "query_id": "q5_for_Bankacılık_chunk251",
+      "query_text": "703 sayılı KHK ile yapılan değişiklikler nelerdir?",
+      "relevant_docs": 18
+    }
+  ]
+}

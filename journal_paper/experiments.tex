@@ -134,7 +134,7 @@ Candidate pool & Model-independent union of the top-20 chunks retrieved by all f
 Seed policy & Fixed random seed (42) for seed-chunk sampling, so generated queries can be reconstructed under the recorded workflow \\
 Timing scope & Single-run CPU-only local timing; query latency $=$ query embedding $+$ vector search; embedding throughput/time $=$ batched corpus embedding $+$ index insertion; runtime memory not measured \\
 Hardware / OS / device & Environment snapshot (Python and library versions, device) recorded in each raw-result JSON; no additional CPU, RAM, thread, or storage matrix is reported \\
-Available artifacts & Corpus-derived benchmark artifacts, queries, qrels, raw-result JSON, and reports in the public repository \citep{GitHub_RagRetrievalBench}; repository availability is not an immutable archival guarantee \\
+Available artifacts & Source PDFs, chunked corpora, generated queries, LLM-judged qrels, per-model ranking files, raw-result JSON, and generated dataset reports are tracked in the public repository \citep{GitHub_RagRetrievalBench}; persisted ChromaDB vector indexes are excluded and can be rebuilt from the chunked corpora. Repository availability is not an immutable archival guarantee. \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -1,0 +1,225 @@
+{
+  "dataset": "education_eng",
+  "timestamp": "2026-07-23_17-51-50",
+  "config": {
+    "k": 10,
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "llm_model": "models/gemini-2.5-flash-lite",
+    "candidate_pool_size": 20,
+    "document_batch_size": 32,
+    "reinitialize_collections": true,
+    "hnsw_space": "l2",
+    "random_seed": 42,
+    "qrels_pooling": true,
+    "qrels_store_negatives": true,
+    "force_source_chunk_relevant": false,
+    "qrels_embedding_model_index": 4,
+    "embedding_models": [
+      {
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "collection_name": "education_eng_coll_v1"
+      },
+      {
+        "model_name": "sentence-transformers/all-mpnet-base-v2",
+        "collection_name": "education_eng_coll_v2"
+      },
+      {
+        "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        "collection_name": "education_eng_coll_v3"
+      },
+      {
+        "model_name": "sentence-transformers/all-MiniLM-L12-v2",
+        "collection_name": "education_eng_coll_v4"
+      },
+      {
+        "model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+        "collection_name": "education_eng_coll_v5"
+      }
+    ],
+    "metric_flags": {
+      "compute_map": true,
+      "compute_recall": true,
+      "compute_precision": true,
+      "compute_ndcg": true,
+      "compute_mrr": true,
+      "compute_hit_rate": true
+    }
+  },
+  "environment": {
+    "python_version": "3.10.16",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "chromadb_version": "1.0.7",
+    "sentence_transformers_version": "4.1.0",
+    "torch_version": "2.7.0+cpu",
+    "numpy_version": "2.2.5",
+    "cuda_available": false,
+    "device": "cpu"
+  },
+  "models": {
+    "sentence-transformers/all-MiniLM-L6-v2": {
+      "metrics": {
+        "map": 0.5259868276014109,
+        "recall": 0.6529319060569061,
+        "precision": 0.3687500000000001,
+        "ndcg": 0.6625612697778875,
+        "mrr": 0.8324652777777778,
+        "hit_rate": 0.9583333333333334
+      },
+      "timing": {
+        "embedding_time": 11.146894216537476,
+        "chunks_processed": 572,
+        "chunks_per_second": 51.31474192617561,
+        "avg_time_per_chunk": 0.019487577301638942,
+        "queries_timed": 48,
+        "total_query_retrieval_time_s": 0.6289879999239929,
+        "avg_query_latency_s": 0.013103916665083185,
+        "avg_query_latency_ms": 13.103916665083185,
+        "docs_processed": 572
+      }
+    },
+    "sentence-transformers/all-mpnet-base-v2": {
+      "metrics": {
+        "map": 0.5021915942302847,
+        "recall": 0.6180340492840494,
+        "precision": 0.3541666666666667,
+        "ndcg": 0.6404667735007283,
+        "mrr": 0.839781746031746,
+        "hit_rate": 0.9583333333333334
+      },
+      "timing": {
+        "embedding_time": 74.1650459766388,
+        "chunks_processed": 572,
+        "chunks_per_second": 7.712528084728404,
+        "avg_time_per_chunk": 0.12965917128783006,
+        "queries_timed": 48,
+        "total_query_retrieval_time_s": 2.045964199991431,
+        "avg_query_latency_s": 0.04262425416648815,
+        "avg_query_latency_ms": 42.62425416648815,
+        "docs_processed": 572
+      }
+    },
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": {
+      "metrics": {
+        "map": 0.35566282242063485,
+        "recall": 0.5087136821511822,
+        "precision": 0.27708333333333335,
+        "ndcg": 0.49899607404020196,
+        "mrr": 0.6866815476190476,
+        "hit_rate": 0.9583333333333334
+      },
+      "timing": {
+        "embedding_time": 12.97426700592041,
+        "chunks_processed": 572,
+        "chunks_per_second": 44.087269033309184,
+        "avg_time_per_chunk": 0.022682284975385332,
+        "queries_timed": 48,
+        "total_query_retrieval_time_s": 1.19105160003528,
+        "avg_query_latency_s": 0.024813575000735,
+        "avg_query_latency_ms": 24.813575000735,
+        "docs_processed": 572
+      }
+    },
+    "sentence-transformers/all-MiniLM-L12-v2": {
+      "metrics": {
+        "map": 0.4587194802689594,
+        "recall": 0.6064761338198839,
+        "precision": 0.3375000000000001,
+        "ndcg": 0.6149763310604234,
+        "mrr": 0.8392361111111111,
+        "hit_rate": 0.9583333333333334
+      },
+      "timing": {
+        "embedding_time": 13.243577003479004,
+        "chunks_processed": 572,
+        "chunks_per_second": 43.190748228347914,
+        "avg_time_per_chunk": 0.02315310664943882,
+        "queries_timed": 48,
+        "total_query_retrieval_time_s": 1.1666616000293288,
+        "avg_query_latency_s": 0.024305450000611017,
+        "avg_query_latency_ms": 24.305450000611017,
+        "docs_processed": 572
+      }
+    },
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2": {
+      "metrics": {
+        "map": 0.42459402163643234,
+        "recall": 0.5383643555518556,
+        "precision": 0.3041666666666667,
+        "ndcg": 0.5594648359580482,
+        "mrr": 0.7756944444444445,
+        "hit_rate": 0.9583333333333334
+      },
+      "timing": {
+        "embedding_time": 41.27273368835449,
+        "chunks_processed": 572,
+        "chunks_per_second": 13.859028682691678,
+        "avg_time_per_chunk": 0.07215512882579457,
+        "queries_timed": 48,
+        "total_query_retrieval_time_s": 1.9714819000218995,
+        "avg_query_latency_s": 0.04107253958378957,
+        "avg_query_latency_ms": 41.07253958378957,
+        "docs_processed": 572
+      }
+    }
+  },
+  "corpus_stats": {
+    "total_pdfs": 29,
+    "total_chunks": 572,
+    "avg_chunks_per_pdf": 19.7,
+    "total_queries": 50,
+    "total_qrels": 312,
+    "avg_qrels_per_query": 6.24
+  },
+  "corpus_characteristics": {
+    "avg_chunk_length": 143.01223776223776,
+    "median_chunk_length": 145.0,
+    "min_chunk_length": 18.0,
+    "max_chunk_length": 173.0,
+    "std_chunk_length": 17.408648398091227
+  },
+  "query_characteristics": {
+    "total_queries": 50,
+    "avg_query_length": 13.46,
+    "median_query_length": 13.5,
+    "min_query_length": 7.0,
+    "max_query_length": 24.0,
+    "std_query_length": 3.106187373614155
+  },
+  "relevance_characteristics": {
+    "total_relevance_judgments": 312,
+    "avg_relevant_docs_per_query": 6.5,
+    "median_relevant_docs_per_query": 5.0,
+    "min_relevant_docs_per_query": 1.0,
+    "max_relevant_docs_per_query": 22.0,
+    "coverage_ratio": 54.54545454545454
+  },
+  "representative_queries": [
+    {
+      "query_id": "q1_for_English_chunk24",
+      "query_text": "What are the requirements for students to pass each level and advance in the ELS program?",
+      "relevant_docs": 6
+    },
+    {
+      "query_id": "q2_for_Barriers_chunk8",
+      "query_text": "What are the responsibilities of instructors regarding disabled students and coordination with the \"TEDU Without Barriers\" Unit?",
+      "relevant_docs": 3
+    },
+    {
+      "query_id": "q3_for_PartTime_chunk6",
+      "query_text": "What are the procedures and requirements for part-time student employment at TED University?",
+      "relevant_docs": 5
+    },
+    {
+      "query_id": "q4_for_mobility_chunk24",
+      "query_text": "What constitutes a force majeure event in contractual agreements?",
+      "relevant_docs": 7
+    },
+    {
+      "query_id": "q5_for_mobility_chunk2",
+      "query_text": "Erasmus+ program details for student mobility and application timeline.",
+      "relevant_docs": 22
+    }
+  ]
+}
