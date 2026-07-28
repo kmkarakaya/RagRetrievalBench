@@ -18,7 +18,6 @@ dataset-level aggregate (verified by the consistency gate in query_level_eval).
 import os
 import sys
 import json
-import math
 import re
 
 # Ensure repo root is importable so `import config` and `from utils...` resolve
@@ -27,6 +26,18 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 import config as cfg  # noqa: E402
+
+# The metric, label and IO helpers below now live in the pipeline, in
+# utils/bootstrap_utils.py, and are re-exported here so the snapshot scripts in this
+# folder keep working without duplicating the implementations.
+from utils.bootstrap_utils import (  # noqa: E402,F401
+    METRICS,
+    analysis_dir,
+    label_for,
+    per_query_metrics,
+    read_jsonl,
+    write_jsonl,
+)
 
 SEED = 42
 
@@ -37,25 +48,10 @@ DATASETS = ["education_eng", "education_tr", "law_tr"]
 # configure_for_dataset() only prefixes collection_name; model_name/order are stable.
 MODEL_NAMES = [m["model_name"] for m in cfg.embedding_models]
 
-# Metric keys in the same stable order the pipeline reports them.
-METRICS = ["map", "recall", "precision", "ndcg", "mrr", "hit_rate"]
-
-
-def label_for(model_name):
-    """Return the M1..M5 label for a full sentence-transformers model name."""
-    return f"M{MODEL_NAMES.index(model_name) + 1}"
-
 
 def rng(seed=SEED):
     import numpy as np
     return np.random.default_rng(seed)
-
-
-def analysis_dir(dataset):
-    """datasets/<dataset>/analysis/ (created if missing). Never reports/."""
-    d = os.path.join(REPO_ROOT, "datasets", dataset, "analysis")
-    os.makedirs(d, exist_ok=True)
-    return d
 
 
 def open_collection(client, name):
@@ -74,76 +70,6 @@ def load_expected_means(dataset):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return path, {name: blob["metrics"] for name, blob in data["models"].items()}
-
-
-def per_query_metrics(ranked_ids, relevant_set, k):
-    """Binary-relevance IR metrics for ONE query at cutoff k.
-
-    ranked_ids : list of doc_id ordered best-first (score descending).
-    relevant_set : set of relevant doc_ids for this query.
-    Returns dict over METRICS, or None if the query has no relevant docs
-    (matching InformationRetrievalEvaluator, which drops such queries).
-    """
-    R = len(relevant_set)
-    if R == 0:
-        return None
-
-    topk = ranked_ids[:k]
-    rel_flags = [1 if d in relevant_set else 0 for d in topk]
-    num_in_topk = sum(rel_flags)
-
-    # Success@k / accuracy@k: 1 if any relevant retrieved in top-k
-    hit_rate = 1.0 if num_in_topk > 0 else 0.0
-
-    # Precision@k (denominator = k) and Recall@k (denominator = |R|)
-    precision = num_in_topk / k
-    recall = num_in_topk / R
-
-    # MRR@k: reciprocal rank of first relevant hit within top-k
-    mrr = 0.0
-    for rank, flag in enumerate(rel_flags):
-        if flag:
-            mrr = 1.0 / (rank + 1)
-            break
-
-    # NDCG@k: binary gains, ideal DCG over min(|R|, k) relevant docs
-    dcg = sum(rel_flags[i] / math.log2(i + 2) for i in range(len(rel_flags)))
-    idcg = sum(1.0 / math.log2(i + 2) for i in range(min(R, k)))
-    ndcg = (dcg / idcg) if idcg > 0 else 0.0
-
-    # MAP@k (average precision at k): sum of precision-at-hit / min(k, |R|)
-    num_correct = 0
-    ap = 0.0
-    for rank, flag in enumerate(rel_flags):
-        if flag:
-            num_correct += 1
-            ap += num_correct / (rank + 1)
-    ap = ap / min(k, R)
-
-    return {
-        "map": ap,
-        "recall": recall,
-        "precision": precision,
-        "ndcg": ndcg,
-        "mrr": mrr,
-        "hit_rate": hit_rate,
-    }
-
-
-def read_jsonl(path):
-    rows = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
-
-
-def write_jsonl(path, rows):
-    with open(path, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 _ST_CACHE = {}

@@ -8,7 +8,7 @@ The pipeline operates at the dataset level and begins with explicit dataset rout
 
 Before a benchmark run, the practitioner selects the document collection and configures the candidate models and evaluation settings according to the intended comparison. Those choices define that experimental instantiation. Once the comparison begins, the selected values are held constant across candidate models and, when cross-corpus comparison is intended, across corpus runs. Thus, a \emph{fixed protocol} in this method denotes within-comparison experimental control rather than hard-coded pipeline parameters; a different configuration can be evaluated through a separate controlled run.
 
-Once these corpus-level artifacts have been created, the pipeline branches into model-specific indexing and evaluation. Separate vector collections are built for each candidate embedding model, and each model from the shared roster is evaluated against the same query and qrels resources for that corpus rather than against model-specific or manually curated evidence. Holding the selected configuration constant makes the resulting dataset-level reports comparable while preserving corpus-specific model selection as the primary objective. The final stage consolidates the resulting outputs into dataset-level reports and, when multiple corpora are available, an optional aggregate comparison report. The sequence of stages and their intermediate products are summarized in Table~\ref{tbl:method_pipeline_stages} and illustrated conceptually in Figure~\ref{fig:method_pipeline_workflow}.
+Once these corpus-level artifacts have been created, the pipeline branches into model-specific indexing and evaluation. Separate vector collections are built for each candidate embedding model, and each model from the shared roster is evaluated against the same query and qrels resources for that corpus rather than against model-specific or manually curated evidence. Holding the selected configuration constant makes the resulting dataset-level reports comparable while preserving corpus-specific model selection as the primary objective. Retrieval evaluation is followed by an uncertainty stage that resamples the per-query metric values, so that each dataset report states not only how the candidates rank but which parts of that ranking the corpus actually resolves. The final stage consolidates the resulting outputs into dataset-level reports and, when multiple corpora are available, an optional aggregate comparison report. The sequence of stages and their intermediate products are summarized in Table~\ref{tbl:method_pipeline_stages} and illustrated conceptually in Figure~\ref{fig:method_pipeline_workflow}.
 
 \begin{table}[t]
 \caption{Stage sequence and intermediate artifacts of the proposed embedding benchmarking workflow.}\label{tbl:method_pipeline_stages}
@@ -25,6 +25,7 @@ Query generation & Chunked corpus & Sample seed chunks and generate natural-lang
 Relevance construction & Query set and chunked corpus & Retrieve a bounded candidate pool for each query and assign binary relevance labels through LLM-assisted judgment & Qrels resource \\
 Multi-model indexing & Chunked corpus and selected embedding models & Build a separate vector collection for each embedding model so retrieval runs remain isolated and reproducible & Per-model vector collections \\
 Retrieval evaluation & Query set, qrels, and per-model collections & Execute the same fixed-depth retrieval workflow for every model over the same benchmark artifacts & Ranking artifacts and timing traces \\
+Uncertainty estimation & Per-query ranking artifacts and qrels & Resample the per-query metric values to obtain marginal intervals per model and paired intervals against the corpus's leading candidate, with each cell drawn from an independently seeded stream & Per-corpus confidence intervals \\
 Reporting & Dataset-level evaluation artifacts & Produce a dataset-level report for corpus-specific selection and, when multiple reports exist, secondary aggregate comparison artifacts & Benchmark reports and visual summaries \\
 \bottomrule
 \end{tabular}
@@ -33,7 +34,7 @@ Reporting & Dataset-level evaluation artifacts & Produce a dataset-level report 
 \begin{figure}
 \centering
 \includegraphics[width=0.95\linewidth]{conceptual_overview.jpg}
-\caption{Conceptual overview of the proposed embedding benchmarking pipeline.}\label{fig:method_pipeline_workflow}
+\caption{Conceptual overview of the proposed embedding benchmarking pipeline. The figure summarizes the flow from a local document collection to corpus-specific reporting; Table~\ref{tbl:method_pipeline_stages} gives the authoritative stage sequence, including the uncertainty-estimation stage of Section~\ref{query-level-uncertainty}.}\label{fig:method_pipeline_workflow}
 \end{figure}
 
 \subsection{Corpus Preparation}\label{corpus-preparation}
@@ -56,7 +57,7 @@ For each dataset, construction proceeds in five steps:
 \item \textbf{Qrels assembly.} Store the judgments as a qrels artifact that records \emph{both} positive and negative labels, so that non-relevant decisions remain auditable rather than discarded, and freeze the query set and qrels before any embedding model is scored so that every model is evaluated against the same relevance resource.
 \end{enumerate}
 
-The concrete candidate-pool size, query count, and seed policy used in this paper are reported in Section~\ref{shared-evaluation-setup}. Model-independent pooling is a deliberate benchmark-design choice: as discussed in Section~\ref{related-work}, constructing qrels from a single retriever's candidate list can bias the evaluation toward that retriever, and Section~\ref{results} reports how the model comparison behaves under this pooled construction. This pooling step bounds single-model bias within the evaluated roster, but it does not guarantee complete ground truth; relevant chunks missed by all pooled retrievers can remain unjudged.
+The concrete candidate-pool size, query count, and seed policy used in this paper are reported in Section~\ref{shared-evaluation-setup}. Model-independent pooling is a deliberate benchmark-design choice: as discussed in Section~\ref{related-work}, constructing qrels from a single retriever's candidate list can bias the evaluation toward that retriever. This pooling step bounds single-model bias within the evaluated roster, but it does not guarantee complete ground truth; relevant chunks missed by all pooled retrievers can remain unjudged.
 
 The query-generation and LLM-assisted relevance-construction stages build on the preliminary workflow in \citet{Karakaya_Conference_2025}, but they are used here inside a broader per-corpus selection pipeline with model-independent pooling and dataset-level reporting.
 
@@ -78,13 +79,23 @@ Once the vector collections are initialized, the pipeline executes the retrieval
 
 The ranked results are subsequently aligned with the previously constructed qrels so that each query is interpreted against the same binary relevance resource, regardless of which embedding model produced the ranking. This ordering is methodologically important because corpus segmentation, query construction, and relevance judgments are all fixed before comparative retrieval begins. In combination with collection reinitialization, this design isolates representation quality from changes in benchmark artifacts or index state, allowing observed differences to be attributed more directly to the interaction between the candidate embedding model and the corpus.
 
-The retrieval stage produces two classes of outputs. First, it emits evaluation-ready ranking artifacts that are scored into retrieval metrics under the fixed cutoff. Second, it records the implemented timing traces: combined corpus embedding and index-insertion timing for corpus construction, and combined query-embedding and vector-search latency for query execution. These timing by-products do not alter the retrieval protocol itself, but they allow the benchmark to preserve measured operational evidence alongside effectiveness-oriented outputs under a single controlled workflow.
+The retrieval stage produces two classes of outputs. First, it emits evaluation-ready ranking artifacts that are scored into retrieval metrics under the fixed cutoff; these per-query ranked lists are persisted for every model, which is what allows the uncertainty stage of Section~\ref{query-level-uncertainty} to resample the per-query metric values without repeating retrieval. Second, it records the implemented timing traces: combined corpus embedding and index-insertion timing for corpus construction, and combined query-embedding and vector-search latency for query execution. These timing by-products do not alter the retrieval protocol itself, but they allow the benchmark to preserve measured operational evidence alongside effectiveness-oriented outputs under a single controlled workflow.
 
 \begin{figure}
 \centering
 \includegraphics[width=0.95\linewidth]{evaluation_workflow.png}
 \caption{Retrieval evaluation workflow from model-specific vector search to evaluation-ready ranking artifacts.}\label{fig:method_retrieval_workflow}
 \end{figure}
+
+\subsection{Query-Level Uncertainty Estimation}\label{query-level-uncertainty}
+
+A ranking of point estimates does not by itself say whether a corpus is able to separate two candidate models, and a practitioner who acts on an unresolved difference has been given a false signal. The pipeline therefore treats uncertainty as an evaluation stage rather than as an optional post-hoc analysis. During retrieval evaluation, each model's per-query ranked list is persisted alongside the aggregate metrics, so the per-query metric values that the aggregate is built from remain available. This stage resamples those values and reports the result as part of the dataset-level artifact, which is the level at which the selection decision is made.
+
+Two kinds of interval are produced, and they answer different questions. A \emph{marginal} interval describes how far a single model's score would move under resampling of the query set. These intervals are wide and overlap heavily, because every model evaluated on a corpus is exposed to the same queries and therefore shares that corpus's difficulty variation. A \emph{paired} interval instead resamples the per-query differences between a model and the corpus's own leading candidate, which cancels the shared component. The paired interval is the one that discriminates, and overlap between two marginal intervals is consequently not evidence that two models perform alike. Both are reported so that the distinction remains visible to the reader rather than being resolved silently.
+
+Resampling uses the percentile bootstrap with $B$ resamples at a configured coverage level, and the pipeline draws each (corpus, model, metric) cell from its own independently derived random stream. This makes the reported interval for a corpus independent of how many datasets were evaluated in the same invocation, of the order in which they were processed, and of which metrics were enabled: evaluating one corpus alone reproduces exactly the numbers obtained when evaluating all of them together. The alternative, a single stream consumed in traversal order, would make every reported interval depend on unrelated parts of the run and would not be reproducible from a partial re-execution.
+
+The same estimator is applied at the secondary aggregate level, with two properties that must be stated because they change interpretation. It is a pooled mean over all scored queries rather than the unweighted macro mean of the per-corpus means used elsewhere in the reports, so the two aggregate figures differ slightly. It is also unstratified: resampling draws uniformly from the concatenated per-query vector and does not preserve each corpus's share of the queries, so variation in corpus composition is folded into the aggregate interval widths. These intervals are descriptive and conditional on the snapshot; because queries are generated from corpus chunks, documents contribute related chunks, and relevance labels are model-assigned, they should not be read as population-level inference.
 
 \subsection{Automated Reporting and Reproducibility}\label{automated-reporting-and-reproducibility}
 
@@ -100,8 +111,8 @@ The second layer begins only after one or more dataset-level reports have been c
 \toprule
 Output level & Artifacts & Purpose \\
 \midrule
-Dataset level & Benchmark report, ranking summaries, timing summaries, and dataset-specific visualizations & Support a corpus-specific shortlist for one corpus, one subset, or one representative sample under the shared model set \\
-Aggregate level & Cross-dataset comparison report and comparative visual summaries & Consolidate heterogeneous dataset-level outputs into optional secondary context for cross-corpus or cross-subset inspection \\
+Dataset level & Benchmark report, ranking summaries, timing summaries, per-query ranking files, per-corpus confidence intervals, and dataset-specific visualizations & Support a corpus-specific shortlist for one corpus, one subset, or one representative sample under the shared model set, and record which parts of that shortlist the corpus actually resolves \\
+Aggregate level & Cross-dataset comparison report, pooled confidence intervals, and comparative visual summaries & Consolidate heterogeneous dataset-level outputs into optional secondary context for cross-corpus or cross-subset inspection \\
 \bottomrule
 \end{tabular}
 \end{table}

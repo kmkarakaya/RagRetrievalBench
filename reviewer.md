@@ -43,11 +43,11 @@ one uncontrolled comparison with the controlled one that the repository is alrea
 
 Three severity sections, in the order you requested.
 
-| Section | Meaning | Count |
-|---|---|---|
-| **§3 Reject-risk** | Not a rejection in this round. These are the points on which a second reviewer could reasonably vote reject if they are not fully resolved. Treat as mandatory. | 3 |
-| **§4 Major revision** | Required for acceptance. Each changes what the paper is entitled to claim, or what the tool actually does. | 11 |
-| **§5 Minor revision** | Correctness, presentation, and bibliography hygiene. Required, but none affects the contribution. | 22 |
+| Section                      | Meaning                                                                                                                                                         | Count |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **§3 Reject-risk**    | Not a rejection in this round. These are the points on which a second reviewer could reasonably vote reject if they are not fully resolved. Treat as mandatory. | 3     |
+| **§4 Major revision** | Required for acceptance. Each changes what the paper is entitled to claim, or what the tool actually does.                                                      | 11    |
+| **§5 Minor revision** | Correctness, presentation, and bibliography hygiene. Required, but none affects the contribution.                                                               | 22    |
 
 Every point has the same four parts:
 
@@ -100,16 +100,16 @@ reporting similarities rather than distances introduces no distortion by itself.
 
 ### Scoring the stated contributions
 
-| | Contribution / RQ | Verdict |
-|---|---|---|
-| C1 | Repeatable per-corpus benchmark-construction workflow producing reusable artifacts | **Partially met.** The workflow exists and runs; the artifacts are not published (RR1) and the pipeline diverges from the Method description in three places (MJ3, MJ4, MJ9). |
-| C2 | Shared-protocol candidate comparison across one roster | **Met.** Verified: same corpus, same queries, same qrels, per-model isolated collections. |
-| C3 | Dataset-level + secondary aggregate reports combining quality and operational cost | **Partially met.** The reports exist, but the generated report misstates the configuration and mislabels its own conclusions (MJ9), and the decision-support layer the paper promises (uncertainty) is absent from the dataset report (MJ1). |
-| C4 | Preserved artifacts for inspection and report regeneration | **Not met as submitted.** See RR1. |
-| RQ1 | Pipeline utility | **Partially answered.** The tool produces the evidence; utility relative to existing tooling is never established (RR2). |
-| RQ2 | Language sensitivity | **Answerable only as an illustration.** The two education corpora share no documents and no subject matter (MJ8). |
-| RQ3 | Domain sensitivity | Same limitation; the paper's own hedging is correct but insufficiently specific (MJ8). |
-| RQ4 | Operational decision support | **Weakly answered.** Latency is a stated decision criterion but is measured without warm-up, once, at the wrong cutoff (MJ7). |
+|     | Contribution / RQ                                                                  | Verdict                                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | Repeatable per-corpus benchmark-construction workflow producing reusable artifacts | **Partially met.** The workflow exists and runs; the artifacts are not published (RR1) and the pipeline diverges from the Method description in three places (MJ3, MJ4, MJ9).                                                                |
+| C2  | Shared-protocol candidate comparison across one roster                             | **Met.** Verified: same corpus, same queries, same qrels, per-model isolated collections.                                                                                                                                                    |
+| C3  | Dataset-level + secondary aggregate reports combining quality and operational cost | **Partially met.** The reports exist, but the generated report misstates the configuration and mislabels its own conclusions (MJ9), and the decision-support layer the paper promises (uncertainty) is absent from the dataset report (MJ1). |
+| C4  | Preserved artifacts for inspection and report regeneration                         | **Not met as submitted.** See RR1.                                                                                                                                                                                                           |
+| RQ1 | Pipeline utility                                                                   | **Partially answered.** The tool produces the evidence; utility relative to existing tooling is never established (RR2).                                                                                                                     |
+| RQ2 | Language sensitivity                                                               | **Answerable only as an illustration.** The two education corpora share no documents and no subject matter (MJ8).                                                                                                                            |
+| RQ3 | Domain sensitivity                                                                 | Same limitation; the paper's own hedging is correct but insufficiently specific (MJ8).                                                                                                                                                             |
+| RQ4 | Operational decision support                                                       | **Weakly answered.** Latency is a stated decision criterion but is measured without warm-up, once, at the wrong cutoff (MJ7).                                                                                                                |
 
 ---
 
@@ -254,11 +254,11 @@ in three ways at once:
    `"forced_source_positives": 50` for each corpus. The July run judges the seed like any other candidate.
 3. **A completely different query set.** Comparing `queries.jsonl` between the backup and the current snapshot:
 
-   | dataset | old n | new n | shared `query_id` | identical query text |
-   |---|---|---|---|---|
-   | education_eng | 50 | 50 | **0** | 3 |
-   | education_tr | 50 | 50 | **0** | 4 |
-   | law_tr | 50 | 50 | **0** | 2 |
+   | dataset       | old n | new n | shared`query_id` | identical query text |
+   | ------------- | ----- | ----- | ------------------ | -------------------- |
+   | education_eng | 50    | 50    | **0**        | 3                    |
+   | education_tr  | 50    | 50    | **0**        | 4                    |
+   | law_tr        | 50    | 50    | **0**        | 2                    |
 
    The `corpus.jsonl` doc-id sets are identical across both runs (572 / 619 / 723), so it is the same corpus with an
    entirely disjoint seed sample. The cause is visible in the configs: the March run has no `random_seed` key at all
@@ -331,11 +331,11 @@ per-corpus reports should be read.
 **Evidence.** `results_reanalysis/bootstrap_frozen.json` already contains per-dataset percentile bootstrap intervals
 for every model and metric, at *B* = 10,000. For MAP@10, the top two candidates on each corpus:
 
-| corpus | leader | runner-up |
-|---|---|---|
+| corpus        | leader                  | runner-up               |
+| ------------- | ----------------------- | ----------------------- |
 | education_eng | M1 0.526 [0.458, 0.592] | M2 0.502 [0.431, 0.573] |
-| education_tr | M5 0.361 [0.294, 0.430] | M3 0.297 [0.232, 0.364] |
-| law_tr | M5 0.358 [0.278, 0.445] | M3 0.262 [0.198, 0.331] |
+| education_tr  | M5 0.361 [0.294, 0.430] | M3 0.297 [0.232, 0.364] |
+| law_tr        | M5 0.358 [0.278, 0.445] | M3 0.262 [0.198, 0.331] |
 
 On all three corpora the leader's interval overlaps the runner-up's. That is not a defect in the result — it is exactly
 the kind of information a decision-support tool exists to surface, and withholding it from the per-corpus report while
@@ -573,12 +573,12 @@ unjudged"; [discussion.tex:25](journal_paper/discussion.tex#L25); [related.tex:1
 
 **Evidence.** Measured against the frozen `qrels.tsv` and `queries.jsonl`:
 
-| corpus | seed chunk never entered the pool | seed judged non-relevant | zero-positive queries |
-|---|---|---|---|
-| education_eng | 0 | 3 | 2 |
-| education_tr | 4 | 2 | 0 |
-| law_tr | 5 | 1 | 0 |
-| **total** | **9 / 150** | **6 / 150** | **2 / 150** |
+| corpus          | seed chunk never entered the pool | seed judged non-relevant | zero-positive queries |
+| --------------- | --------------------------------- | ------------------------ | --------------------- |
+| education_eng   | 0                                 | 3                        | 2                     |
+| education_tr    | 4                                 | 2                        | 0                     |
+| law_tr          | 5                                 | 1                        | 0                     |
+| **total** | **9 / 150**                 | **6 / 150**        | **2 / 150**     |
 
 For 9 of 150 queries, no model retrieved the query's own source chunk in its top-20, so that chunk was never presented
 to the judge at all. This is a much sharper statement about pool coverage than the current prose, and it is favourable
@@ -664,13 +664,13 @@ the *Timing scope* row of Table 7 (`tbl:reproducibility`); Tables 11, 13, 15, 18
   also to be 32. So [experiments.tex:128](journal_paper/experiments.tex#L128) is true only by coincidence.
 - **The frozen numbers do not scale coherently for M2.** Throughput across corpora of 572 / 619 / 723 chunks:
 
-  | model | education_eng | education_tr | law_tr | change |
-  |---|---|---|---|---|
-  | M1 | 51.3 | 43.5 | 42.3 | −18% |
-  | M2 | **7.7** | **3.6** | **3.5** | **−55%** |
-  | M3 | 44.1 | 41.3 | 41.4 | −6% |
-  | M4 | 43.2 | 41.9 | 42.1 | −3% |
-  | M5 | 13.9 | 13.3 | 13.5 | −3% |
+  | model | education_eng | education_tr  | law_tr        | change          |
+  | ----- | ------------- | ------------- | ------------- | --------------- |
+  | M1    | 51.3          | 43.5          | 42.3          | −18%           |
+  | M2    | **7.7** | **3.6** | **3.5** | **−55%** |
+  | M3    | 44.1          | 41.3          | 41.4          | −6%            |
+  | M4    | 43.2          | 41.9          | 42.1          | −3%            |
+  | M5    | 13.9          | 13.3          | 13.5          | −3%            |
 
   Query latency shows the same signature: M2 goes 42.62 → 49.86 → 62.14 ms while M5, the other 768-dimensional model,
   goes 41.07 → 42.72 → 44.95 ms. Two explanations are plausible and the paper distinguishes neither. Either the M2 runs
@@ -826,11 +826,11 @@ matching, for which a lexical baseline is the natural reference point.
 **Evidence.** Mean fraction of a query's content words (length > 3) that appear verbatim in its own seed chunk, against
 the same fraction for a randomly chosen chunk from the same corpus:
 
-| corpus | overlap with seed chunk | overlap with random chunk | mean content words per query |
-|---|---|---|---|
-| education_eng | 0.593 (median 0.613) | 0.171 | 8.4 |
-| education_tr | 0.506 (median 0.500) | 0.100 | 8.1 |
-| law_tr | 0.446 (median 0.500) | 0.065 | 8.4 |
+| corpus        | overlap with seed chunk | overlap with random chunk | mean content words per query |
+| ------------- | ----------------------- | ------------------------- | ---------------------------- |
+| education_eng | 0.593 (median 0.613)    | 0.171                     | 8.4                          |
+| education_tr  | 0.506 (median 0.500)    | 0.100                     | 8.1                          |
+| law_tr        | 0.446 (median 0.500)    | 0.065                     | 8.4                          |
 
 On `education_eng`, 22% of queries have ≥ 80% of their content words present verbatim in the seed chunk. Combined with
 MJ5 (the seed is a positive ~90% of the time), the task has a strong lexical-matching component.
@@ -1036,23 +1036,23 @@ different authorship. Please resolve the provenance before submission — cite t
 
 ## 6. Point-to-section index
 
-| ID | Sev. | Manuscript location | Repository evidence | Ask | Effort | New compute |
-|---|---|---|---|---|---|---|
-| RR1 | Reject-risk | `experiments.tex` §4.5 Table 10, :137; `method.tex` :115 | `.gitignore:96`; `git ls-files datasets/` = 0; JSON mtime 20:16 vs report 17:52 | Publish artifacts; regenerate under final names; Zenodo DOI | 1 day | No |
-| RR2 | Reject-risk | `related.tex` §2.5; `intro.tex` :12; `discussion.tex` §6.3 | No positioning against evaluation tooling in any section file | **Resolved:** new prose subsection `rw-tooling` + 10 verified bib entries + gap/intro/discussion echoes | Done | No |
-| RR3 | Reject-risk | `results.tex` §5.8 Table 15, :295–313 | `backup_frozen_2026-07-23/`; 0/50 shared query IDs; `forced_source_positives: 50` | Controlled M5-only subset ablation; add leave-one-out | 0.5 day | Rescore only |
-| MJ1 | Major | `results.tex` §5.7; RQ1/RQ4; `conclusion.tex` :5,:9 | `results_reanalysis/bootstrap_frozen.json`; `analysis/bootstrap_ci.py:43-49` | Per-corpus CIs in the dataset report; rewrite corpus readings; stratify or disclose | 1 day | Rescore only |
-| MJ2 | Major | `experiments.tex` :59, Table 10; `discussion.tex` :27 | `config.py:117-121`; `normalize_embeddings:false` in all 15 collections | Fix comment; change default; rerun under cosine | 0.5 day | **Yes** (~1 h CPU) |
-| MJ3 | Major | `experiments.tex` :83 | `rag_benchmark.py:259` vs `:270`; frozen batch files | Unify prompts; correct the equivalence claim | 1 hour | No |
-| MJ4 | Major | `method.tex` :53,:55; `results.tex` :319 | `config.py:192-215`; `rag_benchmark.py:98-114`; `utils/llm.py:43-66` | Prompts appendix; fix contradictory criterion; log parse failures; human audit + κ | 1–2 days | Judge sample |
-| MJ5 | Major | `method.tex` :59; `results.tex` §5.9; `discussion.tex` :25 | qrels vs queries: 9/150 seeds never pooled; seed positive 47/44/44 | Report both numbers; add pool diagnostics; consider bpref | 0.5 day | Rescore only |
-| MJ6 | Major | `intro.tex` :32; `experiments.tex` :61 Table 3 | No varied parameter in any frozen run | One 2×2×2 sweep on one corpus; Kendall's τ stability table | 0.5 day | Partial |
-| MJ7 | Major | `method.tex` :81; `experiments.tex` :116 Table 10; Tables 8/10/12/16 | No warm-up in repo; `chromadb_utils.py:191,208,268`; M2 7.7→3.6→3.5 chunks/s | Warm-up + ≥5 repeats; measure at k=10; split timers; token stats; hardware in body | 0.5 day | **Yes** (~1 h CPU) |
-| MJ8 | Major | `results.tex` §5.5, §5.6; RQ2/RQ3; Table 4 | Document lists: zero overlap in subject matter | Disclose corpus content; split Table 4; rephrase RQs; optionally build a parallel subset | 0.5 day (2 days with parallel corpus) | Optional |
-| MJ9 | Major | `experiments.tex` §4.6; `method.tex` §3.5 | `aggregated_reports/2026-07-23_20-23-04/aggregate_report.md`; `rag_benchmark.py:186,191` | Fix generator; regenerate reports; hide dead config key; document destructive re-init | 0.5 day | Regenerate |
-| MJ10 | Major | `experiments.tex` :89; `discussion.tex` :27 | Overlap 0.593/0.506/0.446 vs 0.171/0.100/0.065 | Add BM25 to the roster; report overlap diagnostics | 0.5 day | Rescore only |
-| MJ11 | Major | `related.tex` :13,:15,:19,:23; `method.tex` :59; `discussion.tex` :25 | `refs.bib` entries as listed | Remove 3 mismatched citations; add Zobel/Buckley & Voorhees + 6 canonical works; fix 3 metadata errors | 0.5 day | No |
-| m1–m22 | Minor | see each item | see each item | presentation, tables, figures, declarations, bibliography hygiene | 1–2 days total | No |
+| ID      | Sev.        | Manuscript location                                                         | Repository evidence                                                                          | Ask                                                                                                             | Effort                                | New compute              |
+| ------- | ----------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------ |
+| RR1     | Reject-risk | `experiments.tex` §4.5 Table 10, :137; `method.tex` :115               | `.gitignore:96`; `git ls-files datasets/` = 0; JSON mtime 20:16 vs report 17:52          | Publish artifacts; regenerate under final names; Zenodo DOI                                                     | 1 day                                 | No                       |
+| RR2     | Reject-risk | `related.tex` §2.5; `intro.tex` :12; `discussion.tex` §6.3          | No positioning against evaluation tooling in any section file                                | **Resolved:** new prose subsection `rw-tooling` + 10 verified bib entries + gap/intro/discussion echoes | Done                                  | No                       |
+| RR3     | Reject-risk | `results.tex` §5.8 Table 15, :295–313                                   | `backup_frozen_2026-07-23/`; 0/50 shared query IDs; `forced_source_positives: 50`        | Controlled M5-only subset ablation; add leave-one-out                                                           | 0.5 day                               | Rescore only             |
+| MJ1     | Major       | `results.tex` §5.7; RQ1/RQ4; `conclusion.tex` :5,:9                    | `results_reanalysis/bootstrap_frozen.json`; `analysis/bootstrap_ci.py:43-49`             | Per-corpus CIs in the dataset report; rewrite corpus readings; stratify or disclose                             | 1 day                                 | Rescore only             |
+| MJ2     | Major       | `experiments.tex` :59, Table 10; `discussion.tex` :27                   | `config.py:117-121`; `normalize_embeddings:false` in all 15 collections                  | Fix comment; change default; rerun under cosine                                                                 | 0.5 day                               | **Yes** (~1 h CPU) |
+| MJ3     | Major       | `experiments.tex` :83                                                     | `rag_benchmark.py:259` vs `:270`; frozen batch files                                     | Unify prompts; correct the equivalence claim                                                                    | 1 hour                                | No                       |
+| MJ4     | Major       | `method.tex` :53,:55; `results.tex` :319                                | `config.py:192-215`; `rag_benchmark.py:98-114`; `utils/llm.py:43-66`                   | Prompts appendix; fix contradictory criterion; log parse failures; human audit + κ                             | 1–2 days                             | Judge sample             |
+| MJ5     | Major       | `method.tex` :59; `results.tex` §5.9; `discussion.tex` :25           | qrels vs queries: 9/150 seeds never pooled; seed positive 47/44/44                           | Report both numbers; add pool diagnostics; consider bpref                                                       | 0.5 day                               | Rescore only             |
+| MJ6     | Major       | `intro.tex` :32; `experiments.tex` :61 Table 3                          | No varied parameter in any frozen run                                                        | One 2×2×2 sweep on one corpus; Kendall's τ stability table                                                   | 0.5 day                               | Partial                  |
+| MJ7     | Major       | `method.tex` :81; `experiments.tex` :116 Table 10; Tables 8/10/12/16    | No warm-up in repo;`chromadb_utils.py:191,208,268`; M2 7.7→3.6→3.5 chunks/s              | Warm-up + ≥5 repeats; measure at k=10; split timers; token stats; hardware in body                             | 0.5 day                               | **Yes** (~1 h CPU) |
+| MJ8     | Major       | `results.tex` §5.5, §5.6; RQ2/RQ3; Table 4                              | Document lists: zero overlap in subject matter                                               | Disclose corpus content; split Table 4; rephrase RQs; optionally build a parallel subset                        | 0.5 day (2 days with parallel corpus) | Optional                 |
+| MJ9     | Major       | `experiments.tex` §4.6; `method.tex` §3.5                             | `aggregated_reports/2026-07-23_20-23-04/aggregate_report.md`; `rag_benchmark.py:186,191` | Fix generator; regenerate reports; hide dead config key; document destructive re-init                           | 0.5 day                               | Regenerate               |
+| MJ10    | Major       | `experiments.tex` :89; `discussion.tex` :27                             | Overlap 0.593/0.506/0.446 vs 0.171/0.100/0.065                                               | Add BM25 to the roster; report overlap diagnostics                                                              | 0.5 day                               | Rescore only             |
+| MJ11    | Major       | `related.tex` :13,:15,:19,:23; `method.tex` :59; `discussion.tex` :25 | `refs.bib` entries as listed                                                               | Remove 3 mismatched citations; add Zobel/Buckley & Voorhees + 6 canonical works; fix 3 metadata errors          | 0.5 day                               | No                       |
+| m1–m22 | Minor       | see each item                                                               | see each item                                                                                | presentation, tables, figures, declarations, bibliography hygiene                                               | 1–2 days total                       | No                       |
 
 Rough total: **8–11 working days**, of which roughly two hours are CPU time and one optional day is the human-audit
 sample. Nothing here requires a GPU or new API budget beyond the judge-agreement sample.

@@ -88,6 +88,65 @@ def get_primary_metric_key():
     return None
 
 
+def _discover_existing_visuals(output_dir, dataset_name, timestamp):
+    """Map viz keys -> already-rendered PNG paths for a given report timestamp.
+
+    Used by the in-place regeneration path so the frozen figures are referenced,
+    never redrawn. Mirrors the filenames produced by generate_visualizations and
+    generate_corpus_statistics_viz.
+    """
+    found = {}
+    prefix = f"{dataset_name}_"
+    suffix = f"_{timestamp}.png"
+    if not os.path.isdir(output_dir):
+        return found
+    discovered = {}
+    for fname in os.listdir(output_dir):
+        if not (fname.startswith(prefix) and fname.endswith(suffix)):
+            continue
+        middle = fname[len(prefix):-len(suffix)]
+        if middle == "model_comparison":
+            discovered["overview"] = os.path.join(output_dir, fname)
+        elif middle == "corpus_statistics":
+            discovered["corpus_stats"] = os.path.join(output_dir, fname)
+        elif middle.endswith("_comparison"):
+            key = middle[: -len("_comparison")]
+            if key != "timing":  # timing figure is referenced separately
+                discovered[key] = os.path.join(output_dir, fname)
+
+    # Insert in the same order generate_visualizations would, so a regenerated report
+    # lists the per-metric figures identically instead of in filesystem order.
+    for key in ["overview"] + get_enabled_metric_names() + ["corpus_stats"]:
+        if key in discovered:
+            found[key] = discovered.pop(key)
+    found.update(discovered)
+    return found
+
+
+def _model_label_map():
+    """Full sentence-transformers model name -> M1..M5, matching analysis/common.label_for."""
+    base_names = [m["model_name"] for m in cfg.embedding_models]
+    return {name: f"M{idx + 1}" for idx, name in enumerate(base_names)}
+
+
+def load_bootstrap_summary(output_dir, variant="frozen"):
+    """Load datasets/<ds>/analysis/bootstrap_<variant>.json for a reports dir.
+
+    Returns None when the bootstrap pass has not been run for this dataset, so the
+    uncertainty section is simply omitted rather than failing the report.
+    """
+    dataset_root = os.path.dirname(os.path.abspath(output_dir))
+    path = os.path.join(dataset_root, "analysis", f"bootstrap_{variant}.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception as e:  # noqa: BLE001
+        print(f"Warning: could not read {path}: {e}")
+        return None
+
+
 def _capture_environment() -> dict:
     """Best-effort environment snapshot for reproducibility (see config.log_environment)."""
     import platform
@@ -165,6 +224,9 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
             "qrels_store_negatives": getattr(cfg, "qrels_store_negatives", True),
             "force_source_chunk_relevant": getattr(cfg, "force_source_chunk_relevant", False),
             "qrels_embedding_model_index": cfg.qrels_embedding_model_index,
+            "compute_bootstrap": getattr(cfg, "compute_bootstrap", True),
+            "bootstrap_resamples": getattr(cfg, "bootstrap_resamples", 10000),
+            "bootstrap_confidence": getattr(cfg, "bootstrap_confidence", 0.95),
             "embedding_models": [
                 {
                     "model_name": model_cfg["model_name"],
@@ -252,8 +314,17 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
     
     print(f"\n[Raw Results] Saved to: {output_path}")
 
-def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports", dataset_name=None, save_raw_results=True):
-    """Generate a comprehensive benchmark report suitable for a conference paper."""
+def generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results=None, output_dir="reports", dataset_name=None, save_raw_results=True,
+                              timestamp=None, reuse_visuals=False, chunk_count=None):
+    """Generate a comprehensive benchmark report suitable for a conference paper.
+
+    timestamp / reuse_visuals / chunk_count support regenerating an existing report
+    in place (see rag_benchmark.py --regenerate-report) without re-running anything:
+      timestamp    - reuse the original report's timestamp so filenames are unchanged
+      reuse_visuals- reference the PNGs already on disk instead of redrawing them
+      chunk_count  - supply the corpus chunk count instead of probing ChromaDB, whose
+                     persisted segments crash on cross-process reload (see analysis/README.md)
+    """
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
@@ -281,8 +352,9 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     #     for model_name, timing_data in timing_results:
     #         print(f"DEBUG: {model_name} - {timing_data}")
 
-    # Generate timestamp for the report
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # Generate timestamp for the report (or reuse the caller's for in-place regeneration)
+    if timestamp is None:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_file = os.path.join(output_dir, f"{dataset_name}_benchmark_report_{timestamp}.md")
     
     # Sort models by primary metric for easier comparison (if any results exist)
@@ -331,26 +403,32 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
     if os.path.exists(cfg.pdf_dir):
         pdf_count = len([f for f in os.listdir(cfg.pdf_dir) if f.lower().endswith('.pdf')])
     
-    # Count chunks from ChromaDB
-    chunk_count = 0
-    try:
-        client = chromadb.PersistentClient(path=cfg.chroma_db_path)
-        collection_name = cfg.embedding_models[0]["collection_name"]
-        collection = client.get_collection(collection_name)
-        chunk_count = collection.count()
-    except Exception as e:
-        print(f"Warning: Could not get chunk count from ChromaDB: {e}. Using corpus length.")
-        chunk_count = len(corpus)
-    
+    # Count chunks from ChromaDB (skipped when the caller already knows the count;
+    # probing a persisted collection can hard-crash on cross-process reload)
+    if chunk_count is None:
+        chunk_count = 0
+        try:
+            client = chromadb.PersistentClient(path=cfg.chroma_db_path)
+            collection_name = cfg.embedding_models[0]["collection_name"]
+            collection = client.get_collection(collection_name)
+            chunk_count = collection.count()
+        except Exception as e:
+            print(f"Warning: Could not get chunk count from ChromaDB: {e}. Using corpus length.")
+            chunk_count = len(corpus)
+
     # Generate visualizations first so we can reference them in the report
     viz_files = {}
-    try:
-        viz_files = generate_visualizations(sorted_results, output_dir, timestamp, dataset_name)
-        # Generate additional statistics visualizations
-        viz_files.update(generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp, dataset_name))
-        print(f"Generated {len(viz_files)} visualizations")
-    except Exception as e:
-        print(f"Warning: Could not generate visualizations: {e}")
+    if reuse_visuals:
+        viz_files = _discover_existing_visuals(output_dir, dataset_name, timestamp)
+        print(f"Reusing {len(viz_files)} existing visualizations for {timestamp}")
+    else:
+        try:
+            viz_files = generate_visualizations(sorted_results, output_dir, timestamp, dataset_name)
+            # Generate additional statistics visualizations
+            viz_files.update(generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distribution, chunk_count, output_dir, timestamp, dataset_name))
+            print(f"Generated {len(viz_files)} visualizations")
+        except Exception as e:
+            print(f"Warning: Could not generate visualizations: {e}")
     
     # Start writing the report
     with open(report_file, "w", encoding="utf-8") as f:
@@ -809,24 +887,66 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                         f.write("**Interpretation**: Higher values indicate more queries are successfully served. ")
                         f.write("Useful when any relevant hit is sufficient for a good user experience.\n\n")
         
-        # Statistical significance analysis
+        # Query-level uncertainty for THIS corpus (the primary decision-support layer)
+        bootstrap = load_bootstrap_summary(output_dir)
+        if bootstrap and primary_metric:
+            label_map = _model_label_map()
+            ci_block = bootstrap.get("ci", {})
+            paired_block = bootstrap.get("paired_map_vs_leader", {})
+            leader = bootstrap.get("leader")
+            n_scored = bootstrap.get("n_queries")
+            metric_title = f"{METRIC_HEADERS[primary_metric]}@{cfg.k}"
+
+            f.write("### Query-Level Uncertainty (Descriptive)\n\n")
+            f.write(f"Point estimates alone do not show whether this corpus actually separates the candidate models. ")
+            f.write(f"The table below reports a percentile bootstrap 95% confidence interval for each model's ")
+            f.write(f"{metric_title} over the {n_scored} scored queries of this corpus, together with the ")
+            f.write(f"**paired** difference against `{leader}`, the {metric_title}-leading candidate here.\n\n")
+
+            ci_headers = ["Model", f"{metric_title} [95% CI]",
+                          f"`{leader}` - model diff [95% CI]", "Separated?"]
+            ci_rows = []
+            for result in sorted_results:
+                full_name = result[0]
+                lab = label_map.get(full_name)
+                entry = ci_block.get(lab, {}).get(primary_metric) if lab else None
+                if not entry:
+                    continue
+                marginal = f"{entry['mean']:.4f} [{entry['lo']:.4f}, {entry['hi']:.4f}]"
+                if lab == leader:
+                    ci_rows.append([f"{full_name.split('/')[-1]} (`{lab}`)", marginal, "-", "-"])
+                    continue
+                pr = paired_block.get(lab)
+                if pr:
+                    delta = f"{pr['delta']:+.4f} [{pr['lo']:+.4f}, {pr['hi']:+.4f}]"
+                    separated = "yes" if (pr["lo"] > 0 or pr["hi"] < 0) else "**no**"
+                else:
+                    delta, separated = "N/A", "N/A"
+                ci_rows.append([f"{full_name.split('/')[-1]} (`{lab}`)", marginal, delta, separated])
+
+            f.write(tabulate(ci_rows, headers=ci_headers, tablefmt="pipe"))
+            f.write("\n\n")
+            f.write(f"**Table: Per-corpus bootstrap intervals for {metric_title} ")
+            f.write(f"(B={bootstrap.get('B', 10000):,} resamples over the {n_scored} scored queries)**\n\n")
+
+            f.write("**How to read this:**\n")
+            f.write("- The **paired** column is the column that decides. It resamples the per-query differences, ")
+            f.write("so it cancels the shared query-difficulty variation that inflates each model's own interval.\n")
+            f.write("- Two marginal intervals can overlap heavily while the paired difference still excludes zero. ")
+            f.write("Do **not** read overlap in the middle column as evidence of no difference.\n")
+            f.write("- **Separated? = no** means this corpus does not distinguish that model from the leader on ")
+            f.write(f"{metric_title}. When that happens, the choice should be made on operational cost ")
+            f.write("(see the timing section) rather than on retrieval quality.\n")
+            f.write("- Intervals are descriptive and conditional on this snapshot: queries are generated from corpus ")
+            f.write("chunks, documents contribute related chunks, and relevance labels are LLM-judged. They are ")
+            f.write("computed within this corpus only and are not population-level inference.\n\n")
+
+        # Raw pairwise differences (secondary, descriptive context only)
         if len(model_results) >= 2:
             f.write("### Pairwise Difference Analysis (Descriptive)\n\n")
-            f.write("This section helps determine whether observed performance differences between models ")
-            f.write("are meaningful in practice. These tables are descriptive and use simple thresholds; ")
-            f.write("they are not formal hypothesis tests.\n\n")
-            
-            f.write("**Understanding the Results:**\n")
-            f.write("- **Difference > 0.05**: Potentially meaningful improvement for real applications\n")
-            f.write("- **Difference > 0.10**: Large practical performance gap\n")
-            f.write("- **Difference < 0.02**: Likely negligible for most use cases\n")
-            f.write("- **Values marked with *** indicate differences above the 0.05 heuristic threshold\n\n")
-            
-            f.write("**Important Caveats:**\n")
-            f.write("- These are absolute differences, not p-values\n")
-            f.write("- Statistical significance requires query-level paired testing (e.g., bootstrap/permutation)\n")
-            f.write("- Consider practical importance alongside statistical significance\n\n")
-            
+            f.write("Absolute differences between model point estimates, for reference. These are raw gaps, not ")
+            f.write("tests; where a bootstrap interval is available above, that is the evidence to use.\n\n")
+
             # Create significance tables for each metric - using dynamic indices
             idx_map = {METRIC_LABELS[k]: v for k, v in metric_indices.items()}
             
@@ -845,12 +965,11 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
                             row.append("-")
                         else:
                             diff = abs(model1[metric_idx] - model2[metric_idx])
-                            is_significant = diff > 0.05
-                            row.append(f"{diff:.4f}{'*' if is_significant else ''}")
+                            row.append(f"{diff:.4f}")
                     diff_matrix.append(row)
-                
+
                 f.write(tabulate(diff_matrix, headers=["Model"] + model_names, tablefmt="pipe"))
-                f.write("\n\n*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*\n\n")
+                f.write("\n\n")
         # Add timing analysis section if timing data is provided
         if timing_results:
             f.write("## Compute And Retrieval Performance Metrics\n\n")
@@ -991,9 +1110,13 @@ def generate_benchmark_report(model_results, queries, corpus, relevant_docs, tim
             # Add timing visualization reference (with caption)
             timing_viz_file = f"{dataset_name}_timing_comparison_{timestamp}.png"
             
-            # Generate timing visualization if timing data exists
+            # Generate timing visualization if timing data exists (reuse the existing
+            # PNG untouched when regenerating a report in place)
             try:
-                generate_timing_visualization(timing_results, output_dir, timestamp, dataset_name)
+                if not reuse_visuals:
+                    generate_timing_visualization(timing_results, output_dir, timestamp, dataset_name)
+                elif not os.path.exists(os.path.join(output_dir, timing_viz_file)):
+                    raise FileNotFoundError(timing_viz_file)
                 f.write(f"![Figure: Compute and Retrieval Timing Comparison]({timing_viz_file})\n\n")
                 f.write("*Figure: Embedding speed and query retrieval latency comparison across models.*\n\n")
             except Exception as e:
@@ -1402,16 +1525,28 @@ def generate_corpus_statistics_viz(chunk_lengths, query_lengths, relevance_distr
 
 
 
+# LaTeX preamble injected into every pandoc run. It patches longtable's output
+# routine (the `\vss` that makes a split page box infinitely shrinkable and kills
+# the run under pandoc's `-halt-on-error`) and declares the non-T1 Unicode
+# characters the reports use. See utils/pandoc_header.tex for the full rationale.
+PANDOC_HEADER_TEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pandoc_header.tex")
+
+
 def convert_md_to_pdf(md_file_path, output_dir="reports"):
-    """Convert markdown report to PDF using pandoc with MiKTeX/pdflatex"""
+    """Convert markdown report to PDF using pandoc with MiKTeX/pdflatex.
+
+    Shared by both report types: the per-dataset benchmark report
+    (generate_benchmark_report) and the cross-dataset aggregate report
+    (utils.aggregate_report_utils.generate_aggregate_report).
+    """
     import subprocess
     import os
-    
+
     # Get absolute paths to avoid path issues
     md_file_path = os.path.abspath(md_file_path)
     base_name = os.path.splitext(os.path.basename(md_file_path))[0]
     md_dir = os.path.dirname(md_file_path)
-    
+
     # Calculate output path
     if os.path.isabs(output_dir):
         pdf_file_path = os.path.join(output_dir, f"{base_name}.pdf")
@@ -1422,10 +1557,18 @@ def convert_md_to_pdf(md_file_path, output_dir="reports"):
     # Ensure the PDF path is also absolute
     pdf_file_path = os.path.abspath(pdf_file_path)
     
+    # Preamble that makes longtables splittable and Unicode safe. Without it every
+    # multi-row table that crosses a page break aborts the LaTeX run.
+    header_args = []
+    if os.path.exists(PANDOC_HEADER_TEX):
+        header_args = ["--include-in-header", PANDOC_HEADER_TEX]
+    else:
+        print(f"⚠️  Missing pandoc header include: {PANDOC_HEADER_TEX}")
+
     try:
         # Enhanced pandoc command with absolute paths
         cmd = [
-            "pandoc", 
+            "pandoc",
             md_file_path,  # Now using absolute path
             "-o", pdf_file_path,  # Also absolute path
             "--pdf-engine=pdflatex",
@@ -1435,9 +1578,10 @@ def convert_md_to_pdf(md_file_path, output_dir="reports"):
             "--variable=geometry:margin=1in",
             "--variable=fontsize:11pt",
             "--toc",
-            "--number-sections"
+            "--number-sections",
+            *header_args,
         ]
-        
+
         print(f"Converting {md_file_path} to PDF using pandoc + MiKTeX...")
         print(f"Command: {' '.join(cmd)}")
         print(f"Working directory: {md_dir}")
@@ -1477,15 +1621,20 @@ def convert_md_to_pdf(md_file_path, output_dir="reports"):
         # Try a simpler command without advanced options
         try:
             simple_cmd = [
-                "pandoc", 
+                "pandoc",
                 md_file_path,  # Absolute path
                 "-o", pdf_file_path,  # Absolute path
                 "--pdf-engine=pdflatex",
-                "--standalone"
+                "--standalone",
+                *header_args,
             ]
             print("\nTrying simplified pandoc command...")
             subprocess.run(simple_cmd, check=True, capture_output=True, text=True, cwd=md_dir)
-            print(f"✓ PDF generated with simplified options: {pdf_file_path}")
+            if not os.path.exists(pdf_file_path):
+                print("✗ PDF file was not created despite success message")
+                return None
+            print(f"✓ PDF generated with simplified options: {pdf_file_path} "
+                  f"({os.path.getsize(pdf_file_path):,} bytes)")
             return pdf_file_path
         except subprocess.CalledProcessError as e2:
             print(f"✗ Simplified pandoc also failed: {e2.stderr}")

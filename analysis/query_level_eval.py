@@ -67,34 +67,10 @@ def retrieve_dataset(dataset):
         print(f"[retrieve] {dataset} {label} ({m['model_name']}): {len(rows)} queries -> {out}")
 
 
-def load_rankings(dataset, label):
-    return C.read_jsonl(os.path.join(C.analysis_dir(dataset), f"rankings_{label}.jsonl"))
-
-
-def score_dataset(dataset, qrels_path):
-    """Per-query + aggregate metrics for each model under one qrels file.
-
-    Returns {label: {"per_query": {metric: [..]}, "qids": [..], "aggregate": {metric: mean}}}.
-    """
-    cfg.configure_for_dataset(dataset)
-    _, _, relevant = load_ground_truth(cfg.corpus_file, cfg.queries_file, qrels_path)
-    out = {}
-    for m in cfg.embedding_models:
-        label = C.label_for(m["model_name"])
-        rankings = load_rankings(dataset, label)
-        per_q = {metric: [] for metric in C.METRICS}
-        qids = []
-        for row in rankings:
-            rel = relevant.get(row["query_id"])
-            if not rel:
-                continue  # evaluator drops queries with no relevant docs
-            pm = C.per_query_metrics(row["ranked_ids"], rel, cfg.k)
-            for metric in C.METRICS:
-                per_q[metric].append(pm[metric])
-            qids.append(row["query_id"])
-        agg = {metric: (sum(v) / len(v) if v else 0.0) for metric, v in per_q.items()}
-        out[label] = {"per_query": per_q, "qids": qids, "aggregate": agg}
-    return out
+# Scoring stored rankings is a pipeline concern, not a snapshot concern, so both
+# helpers now live in utils/bootstrap_utils.py. Re-exported here because --gate and
+# --probe below (and bootstrap_ci.py) still call them by these names.
+from utils.bootstrap_utils import load_rankings, score_dataset  # noqa: E402,F401
 
 
 def run_gate(dataset, tol=1e-2):

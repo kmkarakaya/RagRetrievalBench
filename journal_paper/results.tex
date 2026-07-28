@@ -27,17 +27,7 @@ Secondary aggregate context is still useful, but it should not override the data
 \caption{Secondary cross-dataset aggregate ranking summary for the benchmarked embedding models.}\label{tbl:cross_dataset_consistency_summary}
 \centering
 \small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-Model & Avg Rank & Mean MAP@10 (across corpora) & Wins \\
-\midrule
-M5 (multi-MPNet) & 2.00 & 0.3810 & 2 \\
-M3 (multi-MiniLM) & 3.00 & 0.3051 & 0 \\
-M4 (MiniLM-L12) & 3.00 & 0.2799 & 0 \\
-M1 (MiniLM-L6) & 3.33 & 0.2536 & 1 \\
-M2 (MPNet) & 3.67 & 0.2408 & 0 \\
-\bottomrule
-\end{tabular}
+\input{tbl_cross_dataset_consistency_summary.tex}
 \end{table}
 
 \begin{figure}
@@ -50,23 +40,13 @@ M2 (MPNet) & 3.67 & 0.2408 & 0 \\
 
 The English education subset produces the strongest retrieval scores in the present paper. Table~\ref{tbl:education_eng_metrics} shows that the three English-oriented models (\texttt{M1}, \texttt{M2}, and \texttt{M4}) lead, with \texttt{M1} reaching the highest \texttt{MAP@10} at 0.5260, \texttt{M2} close behind at 0.5022, and \texttt{M4} a little lower at 0.4587; the multilingual models \texttt{M5} (0.4246) and \texttt{M3} (0.3557) trail. Figure~\ref{fig:results_education_eng_model_comparison} illustrates this English-oriented ranking pattern across the full metric profile.
 
-Table~\ref{tbl:education_eng_timing} shows that \texttt{M1} is the strongest candidate for this corpus and priority set: it combines the highest \texttt{MAP@10} with the lowest query latency at 13.10 ms/query. \texttt{M2} matches its quality closely (0.5022) but at roughly three times the latency (42.62 ms/query), while \texttt{M4} is a slightly lower-quality, low-latency alternative (0.4587 at 24.31 ms/query). For this English education corpus, the benchmark therefore points to \texttt{M1} as both the quality-first and latency-first candidate under the completed raw-L2 protocol, with \texttt{M4} as a lightweight alternative and \texttt{M2} relevant only when its marginally higher \texttt{MRR@10} matters more than its higher compound latency.
+Table~\ref{tbl:education_eng_timing} completes the practical reading, and the query-level evidence in Table~\ref{tbl:per_corpus_ci} determines how much of it rests on retrieval quality. On quality, this corpus does not separate the two leading candidates: the paired bootstrap interval for \texttt{M1}$-$\texttt{M2} over the 48 scored queries is $+0.024$ [$-0.044$, $+0.093$] and includes zero, so the 0.5260 versus 0.5022 gap is not a difference this benchmark can resolve. What does separate them is operational cost: \texttt{M1} answers a query in 13.10 ms against 42.62 ms for \texttt{M2}, and indexes the corpus at 51.3 against 7.7 chunks/s. \texttt{M1} is separated from the remaining candidates on quality as well, with paired intervals excluding zero against \texttt{M4}, \texttt{M5} and \texttt{M3}. For this English education corpus the benchmark therefore points to \texttt{M1} under the completed raw-L2 protocol---not because it is measurably more effective than \texttt{M2}, but because it is statistically indistinguishable from it at roughly one third of the latency---with \texttt{M4} as a lightweight alternative at measurably lower quality (0.4587 at 24.31 ms/query). This is the pattern the pipeline is designed to expose: where the quality evidence does not discriminate, the operational evidence decides.
 
 \begin{table}[t]
 \caption{Retrieval metrics for the \texttt{education\_eng} dataset. Model IDs follow Table~\ref{tbl:experiment_embedding_models}; \texttt{M1} denotes MiniLM-L6.}\label{tbl:education_eng_metrics}
 \centering
 \small
-\begin{tabular}{@{}lrrrrrr@{}}
-\toprule
-Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10\textsuperscript{a} \\
-\midrule
-M1 & 0.5260 & 0.6529 & 0.369 & 0.6626 & 0.8325 & 0.96 \\
-M2 & 0.5022 & 0.6180 & 0.354 & 0.6405 & 0.8398 & 0.96 \\
-M3 & 0.3557 & 0.5087 & 0.277 & 0.4990 & 0.6867 & 0.96 \\
-M4 & 0.4587 & 0.6065 & 0.338 & 0.6150 & 0.8392 & 0.96 \\
-M5 & 0.4246 & 0.5384 & 0.304 & 0.5595 & 0.7757 & 0.96 \\
-\bottomrule
-\end{tabular}
+\input{tbl_education_eng_metrics.tex}
 \par\smallskip\footnotesize\textsuperscript{a}The identical values round from 0.9583 (46/48 scored queries); the same two queries fail for all five candidates.
 \end{table}
 
@@ -74,17 +54,7 @@ M5 & 0.4246 & 0.5384 & 0.304 & 0.5595 & 0.7757 & 0.96 \\
 \caption{Compound single-machine timing summary for the \texttt{education\_eng} dataset.}\label{tbl:education_eng_timing}
 \centering
 \small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-Model & Chunks/s & Avg ms/chunk & Query latency (ms/query) \\
-\midrule
-M1 & 51.3 & 19.49 & 13.10 \\
-M2 & 7.7 & 129.66 & 42.62 \\
-M3 & 44.1 & 22.68 & 24.81 \\
-M4 & 43.2 & 23.15 & 24.31 \\
-M5 & 13.9 & 72.16 & 41.07 \\
-\bottomrule
-\end{tabular}
+\input{tbl_education_eng_timing.tex}
 \end{table}
 
 \begin{figure}
@@ -97,40 +67,20 @@ M5 & 13.9 & 72.16 & 41.07 \\
 
 The Turkish education subset reverses the preferred model family. As shown in Table~\ref{tbl:education_tr_metrics}, the multilingual models \texttt{M5} and \texttt{M3} stand above the three English-oriented alternatives across all six retrieval metrics, with \texttt{M5} reaching 0.3606 \texttt{MAP@10}, \texttt{M3} reaching 0.2972, and the next English-oriented model \texttt{M4} reaching 0.1854. Figure~\ref{fig:results_education_tr_model_comparison} shows the same multilingual-versus-English-oriented pattern across the full metric profile.
 
-Table~\ref{tbl:education_tr_timing} shows that the quality advantage is obtained at different costs: \texttt{M3} remains relatively close to the lightweight models at 25.63 ms/query, whereas the higher-capacity \texttt{M5} rises to 42.72 ms/query. For Turkish education corpora, the pipeline therefore reduces the practical candidate set to \texttt{M5} and \texttt{M3}: \texttt{M5} is preferred when retrieval effectiveness is prioritized, while \texttt{M3} is the lower-latency compromise.
+Unlike \texttt{education\_eng}, this corpus separates its leader on quality: the paired bootstrap interval for \texttt{M5}$-$\texttt{M3} over the 50 scored queries is $+0.063$ [$+0.017$, $+0.112$] and excludes zero, as do the intervals against the three remaining candidates (Table~\ref{tbl:per_corpus_ci}). The \texttt{M5} advantage is therefore load-bearing rather than a point-estimate artifact. Table~\ref{tbl:education_tr_timing} shows that it is obtained at different costs: \texttt{M3} remains relatively close to the lightweight models at 25.63 ms/query, whereas the higher-capacity \texttt{M5} rises to 42.72 ms/query. For Turkish education corpora, the pipeline therefore reduces the practical candidate set to \texttt{M5} and \texttt{M3}: \texttt{M5} is preferred when retrieval effectiveness is prioritized, while \texttt{M3} is the lower-latency compromise that trades a measurable quality decrement for roughly 40\% lower query latency.
 
 \begin{table}[t]
 \caption{Retrieval metrics for the \texttt{education\_tr} dataset. Model IDs follow Table~\ref{tbl:experiment_embedding_models}; \texttt{M5} denotes multi-MPNet and \texttt{M3} denotes multi-MiniLM.}\label{tbl:education_tr_metrics}
 \centering
 \small
-\begin{tabular}{@{}lrrrrrr@{}}
-\toprule
-Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10 \\
-\midrule
-M1 & 0.1231 & 0.1897 & 0.146 & 0.1956 & 0.2788 & 0.58 \\
-M2 & 0.0940 & 0.1913 & 0.136 & 0.1766 & 0.2561 & 0.58 \\
-M3 & 0.2972 & 0.3953 & 0.256 & 0.4259 & 0.6369 & 0.88 \\
-M4 & 0.1854 & 0.2579 & 0.168 & 0.2951 & 0.5345 & 0.72 \\
-M5 & 0.3606 & 0.4876 & 0.308 & 0.5067 & 0.7590 & 0.96 \\
-\bottomrule
-\end{tabular}
+\input{tbl_education_tr_metrics.tex}
 \end{table}
 
 \begin{table}[t]
 \caption{Compound single-machine timing summary for the \texttt{education\_tr} dataset.}\label{tbl:education_tr_timing}
 \centering
 \small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-Model & Chunks/s & Avg ms/chunk & Query latency (ms/query) \\
-\midrule
-M1 & 43.5 & 23.00 & 16.87 \\
-M2 & 3.6 & 278.16 & 49.86 \\
-M3 & 41.3 & 24.19 & 25.63 \\
-M4 & 41.9 & 23.84 & 28.53 \\
-M5 & 13.3 & 75.33 & 42.72 \\
-\bottomrule
-\end{tabular}
+\input{tbl_education_tr_timing.tex}
 \end{table}
 
 \begin{figure}
@@ -143,40 +93,20 @@ M5 & 13.3 & 75.33 & 42.72 \\
 
 The Turkish law/regulation subset is of similar overall difficulty to \texttt{education\_tr} (mean \texttt{MAP@10} 0.2107 versus 0.2121) and preserves the same model-family ordering. Table~\ref{tbl:law_tr_metrics} shows that \texttt{M5} remains the \texttt{MAP@10}-leading candidate at 0.3577, followed by \texttt{M3} at 0.2624, while the remaining models trail. Compared with \texttt{education\_tr}, per-model \texttt{MAP@10} changes only modestly---\texttt{M5} and \texttt{M3} are almost flat (within 0.035), \texttt{M2} and \texttt{M4} edge slightly up, and \texttt{M1} edges slightly down---so within Turkish the shift from education to law/regulation is associated with limited ranking change in this snapshot. Figure~\ref{fig:results_law_tr_model_comparison} illustrates the same multilingual-led ordering at a similar absolute level to \texttt{education\_tr}.
 
-Table~\ref{tbl:law_tr_timing} shows that the operational ranking remains broadly similar to the other datasets. For this legal and regulatory corpus, the benchmark therefore supports the same \texttt{M5}/\texttt{M3} shortlist as Turkish education: \texttt{M5} is the quality-first candidate, and \texttt{M3} is the lower-latency compromise. The single-corpus-per-domain design means this observed stability should be confirmed on the specific target domain before any broader transfer assumption is made.
+The query-level evidence again supports the ordering: the paired interval for \texttt{M5}$-$\texttt{M3} is $+0.095$ [$+0.033$, $+0.162$] and excludes zero, as do the intervals against the other candidates (Table~\ref{tbl:per_corpus_ci}). Table~\ref{tbl:law_tr_timing} shows that the operational ranking remains broadly similar to the other datasets. For this legal and regulatory corpus, the benchmark therefore supports the same \texttt{M5}/\texttt{M3} shortlist as Turkish education, on the same footing: \texttt{M5} is the quality-first candidate with a separated advantage, and \texttt{M3} is the lower-latency compromise. The single-corpus-per-domain design means this observed stability should be confirmed on the specific target domain before any broader transfer assumption is made.
 
 \begin{table}[t]
 \caption{Retrieval metrics for the \texttt{law\_tr} dataset. Model IDs follow Table~\ref{tbl:experiment_embedding_models}; \texttt{M5} denotes multi-MPNet and \texttt{M3} denotes multi-MiniLM.}\label{tbl:law_tr_metrics}
 \centering
 \small
-\begin{tabular}{@{}lrrrrrr@{}}
-\toprule
-Model & MAP@10 & Recall@10 & Precision@10 & NDCG@10 & MRR@10 & Success@10 \\
-\midrule
-M1 & 0.1117 & 0.2125 & 0.100 & 0.1915 & 0.3185 & 0.60 \\
-M2 & 0.1263 & 0.2235 & 0.112 & 0.2065 & 0.3457 & 0.58 \\
-M3 & 0.2624 & 0.3836 & 0.198 & 0.3825 & 0.5707 & 0.80 \\
-M4 & 0.1956 & 0.3278 & 0.126 & 0.2860 & 0.3980 & 0.76 \\
-M5 & 0.3577 & 0.4903 & 0.224 & 0.4815 & 0.6659 & 0.90 \\
-\bottomrule
-\end{tabular}
+\input{tbl_law_tr_metrics.tex}
 \end{table}
 
 \begin{table}[t]
 \caption{Compound single-machine timing summary for the \texttt{law\_tr} dataset.}\label{tbl:law_tr_timing}
 \centering
 \small
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-Model & Chunks/s & Avg ms/chunk & Query latency (ms/query) \\
-\midrule
-M1 & 42.3 & 23.66 & 18.74 \\
-M2 & 3.5 & 285.80 & 62.14 \\
-M3 & 41.4 & 24.15 & 24.71 \\
-M4 & 42.1 & 23.73 & 27.78 \\
-M5 & 13.5 & 74.24 & 44.95 \\
-\bottomrule
-\end{tabular}
+\input{tbl_law_tr_timing.tex}
 \end{table}
 
 \begin{figure}
@@ -197,17 +127,7 @@ The practical implication is bounded but useful. For local retrieval deployment,
 \caption{Language-associated \texttt{MAP@10} comparison within the education-domain corpora.}\label{tbl:language_effect_comparison}
 \centering
 \small
-\begin{tabular}{@{}lccr@{}}
-\toprule
-Model & education\_eng MAP@10 & education\_tr MAP@10 & $\Delta$ (eng $\to$ tr) \\
-\midrule
-M1 & 0.5260 & 0.1231 & $-0.4029$ \\
-M2 & 0.5022 & 0.0940 & $-0.4082$ \\
-M3 & 0.3557 & 0.2972 & $-0.0585$ \\
-M4 & 0.4587 & 0.1854 & $-0.2733$ \\
-M5 & 0.4246 & 0.3606 & $-0.0640$ \\
-\bottomrule
-\end{tabular}
+\input{tbl_language_effect_comparison.tex}
 \end{table}
 
 \subsection{Domain-Associated Comparison of the Turkish Corpora}\label{domain-effect-within-turkish}
@@ -218,17 +138,7 @@ Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, Tabl
 \caption{Domain-associated \texttt{MAP@10} comparison within the Turkish corpora.}\label{tbl:turkish_domain_comparison}
 \centering
 \small
-\begin{tabular}{@{}l l r r r@{}}
-\toprule
-Model & Family & education\_tr MAP@10 & law\_tr MAP@10 & $\Delta$ (law $\!-\!$ education) \\
-\midrule
-M1 & English-oriented & 0.1231 & 0.1117 & $-0.0114$ \\
-M2 & English-oriented & 0.0940 & 0.1263 & $+0.0323$ \\
-M3 & Multilingual & 0.2972 & 0.2624 & $-0.0348$ \\
-M4 & English-oriented & 0.1854 & 0.1956 & $+0.0102$ \\
-M5 & Multilingual & 0.3606 & 0.3577 & $-0.0029$ \\
-\bottomrule
-\end{tabular}
+\input{tbl_turkish_domain_comparison.tex}
 \end{table}
 
 The comparison shows that, in this snapshot, the education-to-law/regulation difference within Turkish is small and mixed. The multilingual pair remains the strongest on both Turkish corpora, with \texttt{M5} and \texttt{M3} holding the top two positions in each dataset, and their scores are essentially flat across the comparison (\texttt{M5} $-0.0029$, \texttt{M3} $-0.0348$); the English-oriented models move only slightly and in mixed directions (\texttt{M2} $+0.0323$, \texttt{M4} $+0.0102$, \texttt{M1} $-0.0114$). The practical reading is that local evaluation can confirm stability as well as difference: these two Turkish corpora support the same leading shortlist, but the design has only one corpus per domain, so a practitioner facing a different Turkish domain should still benchmark it directly rather than assume transfer.
@@ -245,17 +155,7 @@ The middle of the plot contains \texttt{M3} and \texttt{M4}, the most plausible 
 \caption{Secondary aggregate quality-speed summary for the benchmarked embedding models. Timing columns are compound single-machine measurements.}\label{tbl:quality_speed_summary}
 \centering
 \small
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Model & Mean MAP@10 & Avg Rank & Weighted latency (ms/query) & Throughput range (chunks/s) \\
-\midrule
-M1 & 0.2536 & 3.33 & 16.28 & 42.3--51.3 \\
-M2 & 0.2408 & 3.67 & 51.66 & 3.5--7.7 \\
-M3 & 0.3051 & 3.00 & 25.05 & 41.3--44.1 \\
-M4 & 0.2799 & 3.00 & 26.91 & 41.9--43.2 \\
-M5 & 0.3810 & 2.00 & 42.94 & 13.3--13.9 \\
-\bottomrule
-\end{tabular}
+\input{tbl_quality_speed_summary.tex}
 \end{table}
 
 \begin{figure}
@@ -266,23 +166,13 @@ M5 & 0.3810 & 2.00 & 42.94 & 13.3--13.9 \\
 
 \subsection{Statistical Decision Support}\label{statistical-decision-support}
 
-The benchmark is intended not only to rank embedding models but to show how much query-level variation surrounds the observed aggregate \texttt{MAP@10} values. The experiment generated 150 queries, but the evaluator scores only positive-bearing queries; after excluding two zero-positive \texttt{education\_eng} queries, the statistical summaries use 148 scored queries, as defined in Table~\ref{tbl:dataset_statistics_summary}. We therefore report percentile bootstrap 95\% confidence intervals for each model's aggregate \texttt{MAP@10} ($B=10{,}000$ resamples) and paired bootstrap intervals for the difference between \texttt{M5} and each other model in Table~\ref{tbl:bootstrap_ci}, with the per-model intervals visualized in Figure~\ref{fig:bootstrap_forest}. These intervals are descriptive and snapshot-conditional. They should not be read as population-level inference because queries are generated from corpus chunks, queries are nested within only three datasets, documents can contribute related chunks, and the qrels are LLM-judged rather than independently human-validated.
+The benchmark is intended not only to rank embedding models but to show how much query-level variation surrounds the observed aggregate \texttt{MAP@10} values. The experiment generated 150 queries, but the evaluator scores only positive-bearing queries; after excluding two zero-positive \texttt{education\_eng} queries, the statistical summaries use 148 scored queries, as defined in Table~\ref{tbl:dataset_statistics_summary}. Following the uncertainty stage described in Section~\ref{query-level-uncertainty}, we report percentile bootstrap 95\% confidence intervals for each model's aggregate \texttt{MAP@10} ($B=10{,}000$ resamples) and paired bootstrap intervals for the difference between \texttt{M5} and each other model in Table~\ref{tbl:bootstrap_ci}, with the per-model intervals visualized in Figure~\ref{fig:bootstrap_forest}. These intervals are descriptive and snapshot-conditional. They should not be read as population-level inference because queries are generated from corpus chunks, queries are nested within only three datasets, documents can contribute related chunks, and the qrels are LLM-judged rather than independently human-validated.
 
 \begin{table}[t]
 \caption{Descriptive query-level bootstrap intervals for aggregate \texttt{MAP@10} over the 148 scored queries (model-independent pooled qrels, $B=10{,}000$ resamples). The paired column gives \texttt{M5}$-$model differences with 95\% bootstrap intervals.}\label{tbl:bootstrap_ci}
 \centering
 \small
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Model & Mean \texttt{MAP@10} [95\% CI] & \texttt{M5}$-$model $\Delta$ [95\% CI] \\
-\midrule
-M5 & 0.380 [0.336, 0.427] & --- \\
-M3 & 0.304 [0.265, 0.345] & $+0.076$ [$+0.046, +0.107$] \\
-M4 & 0.278 [0.236, 0.323] & $+0.103$ [$+0.056, +0.151$] \\
-M1 & 0.250 [0.206, 0.295] & $+0.131$ [$+0.077, +0.184$] \\
-M2 & 0.237 [0.195, 0.282] & $+0.143$ [$+0.088, +0.200$] \\
-\bottomrule
-\end{tabular}
+\input{tbl_bootstrap_ci.tex}
 \end{table}
 
 \begin{figure}
@@ -291,27 +181,18 @@ M2 & 0.237 [0.195, 0.282] & $+0.143$ [$+0.088, +0.200$] \\
 \caption{Forest plot of aggregate \texttt{MAP@10} over the 148 scored queries with 95\% percentile bootstrap confidence intervals (model-independent pooled qrels). The intervals are descriptive and conditional on the fixed snapshot.}\label{fig:bootstrap_forest}
 \end{figure}
 
-Read descriptively, \texttt{M5} has the highest aggregate \texttt{MAP@10}, and the paired intervals for \texttt{M5}$-$model differences are positive for the other four candidates. The intervals also keep the snapshot's limits visible: the per-model intervals are wide and overlap, and the ordering is not uniform across conditions. On \texttt{education\_eng}, the English-oriented models lead and \texttt{M5} trails the \texttt{MAP@10}-leading candidate \texttt{M1}, whereas on both Turkish corpora \texttt{M5} leads. The bootstrap layer is therefore advisory, snapshot-bounded decision support rather than formal evidence for population generalization.
+Read descriptively, \texttt{M5} has the highest aggregate \texttt{MAP@10}, and the paired intervals for \texttt{M5}$-$model differences are positive for the other four candidates. The intervals also keep the snapshot's limits visible: the per-model intervals are wide and overlap, and the ordering is not uniform across conditions. On \texttt{education\_eng}, the English-oriented models lead and \texttt{M5} trails the \texttt{MAP@10}-leading candidate \texttt{M1}, whereas on both Turkish corpora \texttt{M5} leads. Two properties of this aggregate estimator should be stated explicitly. It is a pooled mean over the 148 scored queries rather than the unweighted macro mean of the three corpus means defined in Section~\ref{experiments}, so it differs slightly from the aggregate values reported in Table~\ref{tbl:quality_speed_summary}. It is also \emph{unstratified}: the resampling draws uniformly from the flat 148-query vector and does not preserve the 48/50/50 split across corpora, so between-corpus composition variance is folded into the interval widths. The bootstrap layer is therefore advisory, snapshot-bounded decision support rather than formal evidence for population generalization.
 
-\subsection{Robustness to Candidate-Pool Construction}\label{robustness-pooled-qrels}
-
-The relevance judgments used throughout this paper are built from a model-independent candidate pool: for each query the top-20 candidates retrieved by all five models are unioned, deduplicated, and judged by the LLM ($9{,}296$ query--chunk pairs across the three datasets, with explicit positive and negative labels). This design reduces the privilege given to any single evaluated model when constructing qrels. To probe sensitivity to this choice within the available frozen evidence, we compare against a single-model candidate pool that uses only \texttt{M5}, an evaluated model, to retrieve the candidates, which was the construction used in the earlier version of this snapshot.
-
-Two findings follow. First, the model-independent pool surfaces substantially more relevant chunks than the single-model pool---312 versus 215 positives on \texttt{education\_eng}, 354 versus 199 on \texttt{education\_tr}, and 286 versus 210 on \texttt{law\_tr}---so restricting candidate generation to one model under-covers relevance within this evaluated roster. Second, the ranking was stable across the two tested constructions. Table~\ref{tbl:pooled_survival} shows that the aggregate ordering \texttt{M5}~$>$~\texttt{M3}~$>$~\texttt{M4}~$>$~\texttt{M1}~$>$~\texttt{M2} is identical under both the single-model and the model-independent pools, and the per-dataset leading patterns are likewise preserved (\texttt{M5} then \texttt{M3} on both Turkish corpora; English-oriented models leading on English). This comparison does not prove that the pool is complete or reusable for arbitrary future systems; it only shows that the observed ranking survived the two available qrels constructions.
+Because the paper treats the dataset-level report rather than the aggregate as the primary selection artifact, the same uncertainty layer is reported per corpus in Table~\ref{tbl:per_corpus_ci}, and the pipeline emits it as part of each dataset report. Two columns are given for each corpus, and they answer different questions. The marginal interval describes how much a single model's score would move under query resampling; these intervals are wide and overlap heavily on all three corpora, because they carry the shared query-difficulty variation of the corpus. The paired interval resamples the per-query \emph{differences} against that corpus's own \texttt{MAP@10} leader, which cancels that shared variation and is therefore the column that discriminates. Overlap in the marginal column is not evidence that two models perform alike.
 
 \begin{table}[t]
-\caption{Aggregate \texttt{MAP@10} model ranking under two qrels constructions: a single-model (\texttt{M5}-only) candidate pool and the model-independent pool used in this paper. The tested ordering is unchanged; only absolute scores differ.}\label{tbl:pooled_survival}
+\caption{Per-corpus descriptive bootstrap intervals for \texttt{MAP@10} ($B=10{,}000$ percentile resamples over each corpus's own scored queries, model-independent pooled qrels). The paired column gives leader$-$model differences; \emph{Sep.} records whether that interval excludes zero. Intervals are descriptive and snapshot-conditional.}\label{tbl:per_corpus_ci}
 \centering
 \small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.66\linewidth}@{}}
-\toprule
-Qrels construction & Aggregate ranking by mean \texttt{MAP@10} \\
-\midrule
-Single-model (\texttt{M5}-only) pool & M5 (0.486) $>$ M3 (0.428) $>$ M4 (0.330) $>$ M1 (0.279) $>$ M2 (0.263) \\
-Model-independent pool (this paper) & M5 (0.381) $>$ M3 (0.305) $>$ M4 (0.280) $>$ M1 (0.254) $>$ M2 (0.241) \\
-\bottomrule
-\end{tabular}
+\input{tbl_per_corpus_ci.tex}
 \end{table}
+
+The per-corpus layer changes how one of the three dataset reports should be read, and confirms the other two. On \texttt{education\_eng} the paired interval for \texttt{M1}$-$\texttt{M2} includes zero, so this corpus does not separate the two leading candidates on retrieval quality, although \texttt{M1} does separate from \texttt{M4}, \texttt{M5} and \texttt{M3}. On both Turkish corpora every paired interval against \texttt{M5} excludes zero, including the narrow gap to the runner-up \texttt{M3}, so the \texttt{M5}-over-\texttt{M3} quality ordering is supported at the query level and not only as a point estimate. This is the practical function of the layer: it tells the practitioner which parts of a corpus ranking are load-bearing and which are not, and where the decision must fall back to operational cost.
 
 \subsection{Qualitative Examples and Error Analysis}\label{examples-error-analysis}
 

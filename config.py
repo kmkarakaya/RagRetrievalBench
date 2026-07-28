@@ -97,6 +97,31 @@ compute_mrr = True         # Mean Reciprocal Rank (MRR)
 compute_ndcg = True        # Normalized Discounted Cumulative Gain (NDCG@K)
 compute_hit_rate = True    # Success@K / Hit Rate@K
 
+# Query-level uncertainty stage (see utils/bootstrap_utils.py).
+# Resamples the per-query metric values to report, per corpus, how much of a model
+# ranking is actually resolved by the data. Reads the ranking files the evaluation
+# stage persists; no re-embedding and no LLM calls.
+compute_bootstrap = True      # emit per-corpus confidence intervals with the report
+bootstrap_resamples = 10000   # B: number of bootstrap resamples
+bootstrap_confidence = 0.95   # interval coverage
+
+# Datasets that feed the manuscript artifacts (--journal-figures, --paper-tables).
+# Pinning them keeps a paper build deterministic: scratch or in-progress datasets
+# sitting in datasets/ cannot leak extra figures and table fragments into the paper.
+# Set to None or [] to fall back to auto-discovery of every evaluated dataset.
+paper_datasets = ["education_eng", "education_tr", "law_tr"]
+
+# Paired corpus comparisons emitted as manuscript tables by utils/paper_artifacts.py.
+# Each entry is (fragment_label, dataset_a, dataset_b, arrow_caption, include_family_column).
+# Empty by default: a pairwise comparison only means something when the author has
+# decided which two corpora isolate the factor of interest.
+paper_comparisons = [
+    ("language_effect_comparison", "education_eng", "education_tr",
+     r"eng $\to$ tr", False),
+    ("turkish_domain_comparison", "education_tr", "law_tr",
+     r"law $\!-\!$ education", True),
+]
+
 # Single cutoff value for all metrics
 k = 10  # Use the same k for all metrics
 

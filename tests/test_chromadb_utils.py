@@ -127,10 +127,18 @@ def test_evaluate_with_chromadb():
         mock_cfg.show_progress_bar = False
         
         # Call the function
-        metrics, retrieval_timing = evaluate_with_chromadb(
+        metrics, retrieval_timing, rankings_rows = evaluate_with_chromadb(
             queries, corpus, relevant_docs, "test-model", "test-collection"
         )
         map_score, recall, precision, ndcg, mrr, hit_rate = metrics
+
+        # Per-query ranked lists are returned for datasets/<name>/analysis/rankings_<Mn>.jsonl
+        assert all(
+            set(row) == {"query_id", "ranked_ids", "distances"}
+            and len(row["ranked_ids"]) == len(row["distances"])
+            and all(isinstance(d, float) for d in row["distances"])
+            for row in rankings_rows
+        )
         
         # Verify results
         assert map_score == 0.85
@@ -215,7 +223,7 @@ def test_evaluate_with_chromadb_hit_rate_only_and_missing_accuracy():
         mock_cfg.map_at_k = [10]
         mock_cfg.document_batch_size = 8
 
-        metrics, _ = evaluate_with_chromadb(
+        metrics, _, _ = evaluate_with_chromadb(
             queries, corpus, relevant_docs, "test-model", "test-collection"
         )
 

@@ -1,7 +1,7 @@
 # RAG Retrieval Benchmark: Law_Tr_Rerun Dataset Evaluation
 
 **Dataset:** Law_Tr_Rerun
-**Generated:** 2026-07-23 18:04:28
+**Generated:** 2026-07-28 10:28:13
 
 ## Abstract
 
@@ -35,7 +35,7 @@ Our evaluation framework consists of five main stages:
 
 #### PDF Extraction and Chunking
 
-- **Source documents (PDFs)**: 2 file(s) from `datasets\law_tr_rerun\pdfs` directory
+- **Source documents (PDFs)**: 2 file(s) from `datasets\law_tr\pdfs` directory
 - **Chunking strategy**: Recursive character text splitting
 - **Chunk size**: 1000 characters
 - **Chunk overlap**: 200 characters
@@ -147,13 +147,13 @@ Queries were generated using the following systematic approach:
 
 ### Evaluated Models
 
-| Model Name                                                  | Collection           |   Dimensions | Type                 |
-|:------------------------------------------------------------|:---------------------|-------------:|:---------------------|
-| sentence-transformers/all-MiniLM-L6-v2                      | law_tr_rerun_coll_v1 |          384 | Sentence Transformer |
-| sentence-transformers/all-mpnet-base-v2                     | law_tr_rerun_coll_v2 |          768 | Sentence Transformer |
-| sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 | law_tr_rerun_coll_v3 |          384 | Sentence Transformer |
-| sentence-transformers/all-MiniLM-L12-v2                     | law_tr_rerun_coll_v4 |          384 | Sentence Transformer |
-| sentence-transformers/paraphrase-multilingual-mpnet-base-v2 | law_tr_rerun_coll_v5 |          768 | Sentence Transformer |
+| Model Name                                                  | Collection     |   Dimensions | Type                 |
+|:------------------------------------------------------------|:---------------|-------------:|:---------------------|
+| sentence-transformers/all-MiniLM-L6-v2                      | law_tr_coll_v1 |          384 | Sentence Transformer |
+| sentence-transformers/all-mpnet-base-v2                     | law_tr_coll_v2 |          768 | Sentence Transformer |
+| sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 | law_tr_coll_v3 |          384 | Sentence Transformer |
+| sentence-transformers/all-MiniLM-L12-v2                     | law_tr_coll_v4 |          384 | Sentence Transformer |
+| sentence-transformers/paraphrase-multilingual-mpnet-base-v2 | law_tr_coll_v5 |          768 | Sentence Transformer |
 
 **Table: Evaluated Embedding Models**
 
@@ -358,92 +358,89 @@ The following charts provide detailed performance breakdowns for each evaluation
 
 **Interpretation**: Higher values indicate more queries are successfully served. Useful when any relevant hit is sufficient for a good user experience.
 
+### Query-Level Uncertainty (Descriptive)
+
+Point estimates alone do not show whether this corpus actually separates the candidate models. The table below reports a percentile bootstrap 95% confidence interval for each model's MAP@10 over the 50 scored queries of this corpus, together with the **paired** difference against `M5`, the MAP@10-leading candidate here.
+
+| Model                                        | MAP@10 [95% CI]         | `M5` - model diff [95% CI]   | Separated?   |
+|:---------------------------------------------|:------------------------|:-----------------------------|:-------------|
+| paraphrase-multilingual-mpnet-base-v2 (`M5`) | 0.3577 [0.2745, 0.4454] | -                            | -            |
+| paraphrase-multilingual-MiniLM-L12-v2 (`M3`) | 0.2624 [0.1987, 0.3302] | +0.0954 [+0.0334, +0.1620]   | yes          |
+| all-MiniLM-L12-v2 (`M4`)                     | 0.1956 [0.1229, 0.2796] | +0.1622 [+0.0785, +0.2490]   | yes          |
+| all-mpnet-base-v2 (`M2`)                     | 0.1263 [0.0756, 0.1878] | +0.2314 [+0.1400, +0.3229]   | yes          |
+| all-MiniLM-L6-v2 (`M1`)                      | 0.1117 [0.0706, 0.1566] | +0.2460 [+0.1673, +0.3307]   | yes          |
+
+**Table: Per-corpus bootstrap intervals for MAP@10 (B=10,000 resamples over the 50 scored queries)**
+
+**How to read this:**
+- The **paired** column is the column that decides. It resamples the per-query differences, so it cancels the shared query-difficulty variation that inflates each model's own interval.
+- Two marginal intervals can overlap heavily while the paired difference still excludes zero. Do **not** read overlap in the middle column as evidence of no difference.
+- **Separated? = no** means this corpus does not distinguish that model from the leader on MAP@10. When that happens, the choice should be made on operational cost (see the timing section) rather than on retrieval quality.
+- Intervals are descriptive and conditional on this snapshot: queries are generated from corpus chunks, documents contribute related chunks, and relevance labels are LLM-judged. They are computed within this corpus only and are not population-level inference.
+
 ### Pairwise Difference Analysis (Descriptive)
 
-This section helps determine whether observed performance differences between models are meaningful in practice. These tables are descriptive and use simple thresholds; they are not formal hypothesis tests.
-
-**Understanding the Results:**
-- **Difference > 0.05**: Potentially meaningful improvement for real applications
-- **Difference > 0.10**: Large practical performance gap
-- **Difference < 0.02**: Likely negligible for most use cases
-- **Values marked with *** indicate differences above the 0.05 heuristic threshold
-
-**Important Caveats:**
-- These are absolute differences, not p-values
-- Statistical significance requires query-level paired testing (e.g., bootstrap/permutation)
-- Consider practical importance alongside statistical significance
+Absolute differences between model point estimates, for reference. These are raw gaps, not tests; where a bootstrap interval is available above, that is the evidence to use.
 
 #### MAP@10 Pairwise Differences
 
 | Model                                 | paraphrase-multilingual-mpnet-base-v2   | paraphrase-multilingual-MiniLM-L12-v2   | all-MiniLM-L12-v2   | all-mpnet-base-v2   | all-MiniLM-L6-v2   |
 |:--------------------------------------|:----------------------------------------|:----------------------------------------|:--------------------|:--------------------|:-------------------|
-| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0954*                                 | 0.1622*             | 0.2314*             | 0.2460*            |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.0954*                                 | -                                       | 0.0668*             | 0.1361*             | 0.1506*            |
-| all-MiniLM-L12-v2                     | 0.1622*                                 | 0.0668*                                 | -                   | 0.0693*             | 0.0838*            |
-| all-mpnet-base-v2                     | 0.2314*                                 | 0.1361*                                 | 0.0693*             | -                   | 0.0146             |
-| all-MiniLM-L6-v2                      | 0.2460*                                 | 0.1506*                                 | 0.0838*             | 0.0146              | -                  |
-
-*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*
+| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0954                                  | 0.1622              | 0.2314              | 0.2460             |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.0954                                  | -                                       | 0.0668              | 0.1361              | 0.1506             |
+| all-MiniLM-L12-v2                     | 0.1622                                  | 0.0668                                  | -                   | 0.0693              | 0.0838             |
+| all-mpnet-base-v2                     | 0.2314                                  | 0.1361                                  | 0.0693              | -                   | 0.0146             |
+| all-MiniLM-L6-v2                      | 0.2460                                  | 0.1506                                  | 0.0838              | 0.0146              | -                  |
 
 #### Recall@10 Pairwise Differences
 
 | Model                                 | paraphrase-multilingual-mpnet-base-v2   | paraphrase-multilingual-MiniLM-L12-v2   | all-MiniLM-L12-v2   | all-mpnet-base-v2   | all-MiniLM-L6-v2   |
 |:--------------------------------------|:----------------------------------------|:----------------------------------------|:--------------------|:--------------------|:-------------------|
-| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.1067*                                 | 0.1625*             | 0.2668*             | 0.2778*            |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.1067*                                 | -                                       | 0.0558*             | 0.1601*             | 0.1711*            |
-| all-MiniLM-L12-v2                     | 0.1625*                                 | 0.0558*                                 | -                   | 0.1043*             | 0.1153*            |
-| all-mpnet-base-v2                     | 0.2668*                                 | 0.1601*                                 | 0.1043*             | -                   | 0.0110             |
-| all-MiniLM-L6-v2                      | 0.2778*                                 | 0.1711*                                 | 0.1153*             | 0.0110              | -                  |
-
-*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*
+| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.1067                                  | 0.1625              | 0.2668              | 0.2778             |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.1067                                  | -                                       | 0.0558              | 0.1601              | 0.1711             |
+| all-MiniLM-L12-v2                     | 0.1625                                  | 0.0558                                  | -                   | 0.1043              | 0.1153             |
+| all-mpnet-base-v2                     | 0.2668                                  | 0.1601                                  | 0.1043              | -                   | 0.0110             |
+| all-MiniLM-L6-v2                      | 0.2778                                  | 0.1711                                  | 0.1153              | 0.0110              | -                  |
 
 #### Precision@10 Pairwise Differences
 
 | Model                                 | paraphrase-multilingual-mpnet-base-v2   | paraphrase-multilingual-MiniLM-L12-v2   | all-MiniLM-L12-v2   | all-mpnet-base-v2   | all-MiniLM-L6-v2   |
 |:--------------------------------------|:----------------------------------------|:----------------------------------------|:--------------------|:--------------------|:-------------------|
-| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0260                                  | 0.0980*             | 0.1120*             | 0.1240*            |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.0260                                  | -                                       | 0.0720*             | 0.0860*             | 0.0980*            |
-| all-MiniLM-L12-v2                     | 0.0980*                                 | 0.0720*                                 | -                   | 0.0140              | 0.0260             |
-| all-mpnet-base-v2                     | 0.1120*                                 | 0.0860*                                 | 0.0140              | -                   | 0.0120             |
-| all-MiniLM-L6-v2                      | 0.1240*                                 | 0.0980*                                 | 0.0260              | 0.0120              | -                  |
-
-*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*
+| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0260                                  | 0.0980              | 0.1120              | 0.1240             |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.0260                                  | -                                       | 0.0720              | 0.0860              | 0.0980             |
+| all-MiniLM-L12-v2                     | 0.0980                                  | 0.0720                                  | -                   | 0.0140              | 0.0260             |
+| all-mpnet-base-v2                     | 0.1120                                  | 0.0860                                  | 0.0140              | -                   | 0.0120             |
+| all-MiniLM-L6-v2                      | 0.1240                                  | 0.0980                                  | 0.0260              | 0.0120              | -                  |
 
 #### NDCG@10 Pairwise Differences
 
 | Model                                 | paraphrase-multilingual-mpnet-base-v2   | paraphrase-multilingual-MiniLM-L12-v2   | all-MiniLM-L12-v2   | all-mpnet-base-v2   | all-MiniLM-L6-v2   |
 |:--------------------------------------|:----------------------------------------|:----------------------------------------|:--------------------|:--------------------|:-------------------|
-| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0990*                                 | 0.1955*             | 0.2750*             | 0.2900*            |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.0990*                                 | -                                       | 0.0965*             | 0.1760*             | 0.1910*            |
-| all-MiniLM-L12-v2                     | 0.1955*                                 | 0.0965*                                 | -                   | 0.0795*             | 0.0945*            |
-| all-mpnet-base-v2                     | 0.2750*                                 | 0.1760*                                 | 0.0795*             | -                   | 0.0150             |
-| all-MiniLM-L6-v2                      | 0.2900*                                 | 0.1910*                                 | 0.0945*             | 0.0150              | -                  |
-
-*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*
+| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0990                                  | 0.1955              | 0.2750              | 0.2900             |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.0990                                  | -                                       | 0.0965              | 0.1760              | 0.1910             |
+| all-MiniLM-L12-v2                     | 0.1955                                  | 0.0965                                  | -                   | 0.0795              | 0.0945             |
+| all-mpnet-base-v2                     | 0.2750                                  | 0.1760                                  | 0.0795              | -                   | 0.0150             |
+| all-MiniLM-L6-v2                      | 0.2900                                  | 0.1910                                  | 0.0945              | 0.0150              | -                  |
 
 #### MRR@10 Pairwise Differences
 
 | Model                                 | paraphrase-multilingual-mpnet-base-v2   | paraphrase-multilingual-MiniLM-L12-v2   | all-MiniLM-L12-v2   | all-mpnet-base-v2   | all-MiniLM-L6-v2   |
 |:--------------------------------------|:----------------------------------------|:----------------------------------------|:--------------------|:--------------------|:-------------------|
-| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0953*                                 | 0.2679*             | 0.3202*             | 0.3474*            |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.0953*                                 | -                                       | 0.1727*             | 0.2249*             | 0.2521*            |
-| all-MiniLM-L12-v2                     | 0.2679*                                 | 0.1727*                                 | -                   | 0.0523*             | 0.0794*            |
-| all-mpnet-base-v2                     | 0.3202*                                 | 0.2249*                                 | 0.0523*             | -                   | 0.0272             |
-| all-MiniLM-L6-v2                      | 0.3474*                                 | 0.2521*                                 | 0.0794*             | 0.0272              | -                  |
-
-*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*
+| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.0953                                  | 0.2679              | 0.3202              | 0.3474             |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.0953                                  | -                                       | 0.1727              | 0.2249              | 0.2521             |
+| all-MiniLM-L12-v2                     | 0.2679                                  | 0.1727                                  | -                   | 0.0523              | 0.0794             |
+| all-mpnet-base-v2                     | 0.3202                                  | 0.2249                                  | 0.0523              | -                   | 0.0272             |
+| all-MiniLM-L6-v2                      | 0.3474                                  | 0.2521                                  | 0.0794              | 0.0272              | -                  |
 
 #### Success/Hit Rate@10 Pairwise Differences
 
 | Model                                 | paraphrase-multilingual-mpnet-base-v2   | paraphrase-multilingual-MiniLM-L12-v2   | all-MiniLM-L12-v2   | all-mpnet-base-v2   | all-MiniLM-L6-v2   |
 |:--------------------------------------|:----------------------------------------|:----------------------------------------|:--------------------|:--------------------|:-------------------|
-| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.1000*                                 | 0.1400*             | 0.3200*             | 0.3000*            |
-| paraphrase-multilingual-MiniLM-L12-v2 | 0.1000*                                 | -                                       | 0.0400              | 0.2200*             | 0.2000*            |
-| all-MiniLM-L12-v2                     | 0.1400*                                 | 0.0400                                  | -                   | 0.1800*             | 0.1600*            |
-| all-mpnet-base-v2                     | 0.3200*                                 | 0.2200*                                 | 0.1800*             | -                   | 0.0200             |
-| all-MiniLM-L6-v2                      | 0.3000*                                 | 0.2000*                                 | 0.1600*             | 0.0200              | -                  |
-
-*Note: Values marked with * indicate differences above the 0.05 heuristic threshold.*
+| paraphrase-multilingual-mpnet-base-v2 | -                                       | 0.1000                                  | 0.1400              | 0.3200              | 0.3000             |
+| paraphrase-multilingual-MiniLM-L12-v2 | 0.1000                                  | -                                       | 0.0400              | 0.2200              | 0.2000             |
+| all-MiniLM-L12-v2                     | 0.1400                                  | 0.0400                                  | -                   | 0.1800              | 0.1600             |
+| all-mpnet-base-v2                     | 0.3200                                  | 0.2200                                  | 0.1800              | -                   | 0.0200             |
+| all-MiniLM-L6-v2                      | 0.3000                                  | 0.2000                                  | 0.1600              | 0.0200              | -                  |
 
 ## Compute And Retrieval Performance Metrics
 
@@ -529,35 +526,35 @@ python rag_benchmark.py --dataset law_tr_rerun --all
 
 #### sentence-transformers/all-MiniLM-L6-v2
 
-- **Collection identifier**: `law_tr_rerun_coll_v1`
+- **Collection identifier**: `law_tr_coll_v1`
 - **Embedding dimension**: 384
 - **Maximum sequence length**: 256
 - **Model architecture**: Transformer-based sentence encoder
 
 #### sentence-transformers/all-mpnet-base-v2
 
-- **Collection identifier**: `law_tr_rerun_coll_v2`
+- **Collection identifier**: `law_tr_coll_v2`
 - **Embedding dimension**: 768
 - **Maximum sequence length**: 384
 - **Model architecture**: Transformer-based sentence encoder
 
 #### sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
 
-- **Collection identifier**: `law_tr_rerun_coll_v3`
+- **Collection identifier**: `law_tr_coll_v3`
 - **Embedding dimension**: 384
 - **Maximum sequence length**: 128
 - **Model architecture**: Transformer-based sentence encoder
 
 #### sentence-transformers/all-MiniLM-L12-v2
 
-- **Collection identifier**: `law_tr_rerun_coll_v4`
+- **Collection identifier**: `law_tr_coll_v4`
 - **Embedding dimension**: 384
 - **Maximum sequence length**: 128
 - **Model architecture**: Transformer-based sentence encoder
 
 #### sentence-transformers/paraphrase-multilingual-mpnet-base-v2
 
-- **Collection identifier**: `law_tr_rerun_coll_v5`
+- **Collection identifier**: `law_tr_coll_v5`
 - **Embedding dimension**: 768
 - **Maximum sequence length**: 128
 - **Model architecture**: Transformer-based sentence encoder

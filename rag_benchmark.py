@@ -17,6 +17,7 @@ from utils.document_loader import prepare_corpus_from_pdfs
 from utils.document_loader import load_corpus as load_corpus_from_file
 from utils.document_loader import load_queries as load_queries_from_file  
 from utils.document_loader import load_ground_truth
+from utils import bootstrap_utils
 
 def configure_utf8_stdio() -> None:
     """
@@ -411,6 +412,368 @@ def load_corpus() -> dict[str,str]:
     print("Warning: Using deprecated load_corpus(). Use utils.document_loader.load_corpus() instead.")
     from utils.document_loader import load_corpus as new_load_corpus
     return new_load_corpus(cfg.corpus_file)
+def run_paper_artifact_stages(dataset_names=None, figures=True, tables=True):
+    """Regenerate the manuscript-facing artifacts from the current run outputs.
+
+    Figures land in journal_paper/results_*.png and table fragments in
+    journal_paper/tbl_*.tex, which the manuscript \\inputs. Both read only stored
+    artifacts, so neither re-embeds nor calls an LLM.
+
+    With no explicit dataset_names, both stages use cfg.paper_datasets when it is set.
+    That keeps a paper build deterministic: an unrelated dataset sitting in datasets/
+    cannot add stray figures or table fragments to the manuscript.
+    """
+    produced = []
+    if figures:
+        try:
+            from utils.generate_journal_results_figures import generate_figures
+            meta = generate_figures()
+            produced.extend(meta.get("generated_files", []))
+            print(f"Journal figures: {len(meta.get('generated_files', []))} written")
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: journal figure generation failed: {e}")
+    if tables:
+        try:
+            from utils.paper_artifacts import generate as generate_tables
+            written = generate_tables(dataset_names)
+            produced.extend(str(p) for p in written)
+            print(f"Manuscript table fragments: {len(written)} written")
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: manuscript table generation failed: {e}")
+    return produced
+
+
+def run_build_all(args, parser):
+    """Run every stage needed to take a dataset from PDFs to manuscript artifacts.
+
+    Stages already satisfied are skipped, so re-invoking is idempotent. The two LLM
+    stages submit Batch API jobs and cannot complete in one shot: each stops with the
+    resume command to run once its job finishes.
+    """
+    dataset = args.dataset
+    print("=" * 80)
+    print(f"BUILD ALL: {dataset}")
+    print("=" * 80)
+
+    resume = f"python rag_benchmark.py --build-all --dataset {dataset} --batch-fetch <JOB_ID>"
+
+    # 1. corpus
+    if os.path.exists(cfg.corpus_file):
+        print(f"[1/9] corpus ............. skipped (exists: {os.path.basename(cfg.corpus_file)})")
+    else:
+        print("[1/9] corpus ............. building")
+        result = prepare_corpus_from_pdfs_wrapper()
+        if not result or result.get("chunks_created", 0) == 0:
+            print(f"ERROR: no chunks created. Add PDFs under {cfg.pdf_dir} and retry.")
+            return
+
+    # 2. queries (LLM)
+    if os.path.exists(cfg.queries_file):
+        print("[2/9] queries ............ skipped (exists)")
+    else:
+        print("[2/9] queries ............ generating")
+        ok = generate_queries_from_corpus(batch_submit=args.batch_submit,
+                                          batch_fetch_id=args.batch_fetch)
+        if not os.path.exists(cfg.queries_file):
+            print(f"\n[2/9] queries submitted as a batch job. Resume with:\n  {resume}\n")
+            return
+        if not ok:
+            return
+
+    # 3. qrels (LLM)
+    if os.path.exists(cfg.qrels_file):
+        print("[3/9] qrels .............. skipped (exists)")
+    else:
+        print("[3/9] qrels .............. generating")
+        ok = generate_qrels(batch_submit=args.batch_submit, batch_fetch_id=args.batch_fetch)
+        if not os.path.exists(cfg.qrels_file):
+            print(f"\n[3/9] qrels submitted as a batch job. Resume with:\n  {resume}\n")
+            return
+        if not ok:
+            return
+
+    # 4-7. index, evaluate, uncertainty, dataset report
+    print("[4/9] index + [5/9] evaluate + [6/9] uncertainty + [7/9] dataset report")
+    sub = argparse.Namespace(**vars(args))
+    sub.initialize = True
+    sub.evaluate = True
+    sub.all = False
+    sub.build_all = False
+    sub.batch_submit = False
+    sub.batch_fetch = None
+    run_index_and_evaluate(sub)
+
+    # 8. aggregate report (needs >= aggregate_min_datasets evaluated datasets)
+    evaluated = [d for d in cfg.discover_available_datasets()
+                 if cfg.get_latest_raw_results(d) is not None]
+    if len(evaluated) >= cfg.aggregate_min_datasets:
+        print(f"[8/9] aggregate report ... {len(evaluated)} datasets")
+        try:
+            from utils.aggregate_report_utils import generate_aggregate_report
+            generate_aggregate_report(dataset_names=evaluated, generate_pdf=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: aggregate report failed: {e}")
+    else:
+        print(f"[8/9] aggregate report ... skipped ({len(evaluated)} of "
+              f"{cfg.aggregate_min_datasets} datasets evaluated)")
+
+    # 9. manuscript figures and table fragments. Built from cfg.paper_datasets when
+    # set, so a scratch dataset in datasets/ cannot leak into the paper.
+    print("[9/9] paper artifacts ....")
+    run_paper_artifact_stages()
+
+    print("=" * 80)
+    print(f"BUILD ALL complete for {dataset}")
+    print("=" * 80)
+
+
+def run_bootstrap_stage(dataset_name, verbose=True):
+    """Compute and persist per-corpus query-level uncertainty for one dataset.
+
+    Reads the ranking files the evaluation stage persists plus the dataset's qrels;
+    no re-embedding, no LLM calls. A failure here must never lose an otherwise
+    successful evaluation, so it is reported and swallowed.
+    """
+    try:
+        block, _ = bootstrap_utils.run_dataset_stage(dataset_name, verbose=verbose)
+        return block
+    except FileNotFoundError as e:
+        print(f"[Skip] Query-level uncertainty unavailable: {e}")
+    except Exception as e:  # noqa: BLE001
+        print(f"Warning: query-level uncertainty stage failed for {dataset_name}: {e}")
+    return None
+
+
+def regenerate_dataset_report(dataset_name):
+    """Rebuild a dataset's benchmark report in place from artifacts already on disk.
+
+    Re-runs nothing: metrics and timing come from the stored raw_results JSON, the
+    corpus/queries/qrels are re-read, and the existing figures are referenced rather
+    than redrawn. The report keeps its original filename and timestamp, and no new
+    raw_results_*.json is written, so cfg.get_latest_raw_results still resolves to the
+    same file. Used to add the query-level uncertainty section to a frozen snapshot.
+    """
+    import glob
+    from utils.report_utils import get_enabled_metric_names
+
+    cfg.configure_for_dataset(dataset_name)
+
+    raw_path = cfg.get_latest_raw_results(dataset_name)
+    if raw_path is None:
+        print(f"ERROR: no raw_results_*.json under {cfg.reports_dir}. Run --evaluate first.")
+        return None
+    with open(raw_path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+
+    # Derive the report prefix and timestamp from the file already on disk. The prefix
+    # does not always equal the dataset name (e.g. "education_eng_rerun"), so it must
+    # never be recomputed.
+    existing = sorted(glob.glob(os.path.join(cfg.reports_dir, "*_benchmark_report_*.md")))
+    if not existing:
+        print(f"ERROR: no existing *_benchmark_report_*.md under {cfg.reports_dir}.")
+        return None
+    base = os.path.basename(existing[-1])
+    marker = "_benchmark_report_"
+    prefix = base[: base.index(marker)]
+    timestamp = base[base.index(marker) + len(marker): -len(".md")]
+
+    # Restore the collection names the frozen run actually used. The live config
+    # derives them from the current directory name, which can drift if a dataset
+    # directory was renamed after the run; raw_results is the authoritative record.
+    stored_models = {m["model_name"]: m.get("collection_name")
+                     for m in raw.get("config", {}).get("embedding_models", [])}
+    for entry in cfg.embedding_models:
+        stored_collection = stored_models.get(entry["model_name"])
+        if stored_collection:
+            entry["collection_name"] = stored_collection
+
+    # Rebuild model_results tuples in the canonical enabled-metric order
+    enabled = get_enabled_metric_names()
+    model_results = []
+    timing_results = []
+    for model_name, blob in raw.get("models", {}).items():
+        metrics = blob.get("metrics", {})
+        missing = [m for m in enabled if m not in metrics]
+        if missing:
+            print(f"ERROR: {os.path.basename(raw_path)} lacks {missing} for {model_name}; "
+                  f"config metric flags do not match the stored run.")
+            return None
+        model_results.append((model_name, *[metrics[m] for m in enabled]))
+        if blob.get("timing"):
+            timing_results.append((model_name, blob["timing"]))
+
+    queries, corpus, relevant_docs = load_ground_truth(
+        cfg.corpus_file, cfg.queries_file, cfg.qrels_file
+    )
+    chunk_count = raw.get("corpus_stats", {}).get("total_chunks") or len(corpus)
+
+    print(f"Regenerating {base} from {os.path.basename(raw_path)} (no re-evaluation)")
+    report_files = generate_benchmark_report(
+        model_results, queries, corpus, relevant_docs,
+        timing_results or None,
+        output_dir=cfg.reports_dir,
+        dataset_name=prefix,
+        save_raw_results=False,
+        timestamp=timestamp,
+        reuse_visuals=True,
+        chunk_count=chunk_count,
+    )
+    return report_files
+
+
+def run_index_and_evaluate(args):
+    """Index the corpus per model, evaluate, estimate uncertainty, and report.
+
+    Extracted verbatim from main() so the --build-all orchestrator can invoke the
+    same code path rather than duplicating it.
+    """
+    
+    # --- PATH 1: Initialization Only ---
+    # If we are ONLY initializing, we just need the corpus.
+    if args.initialize and not args.evaluate and not args.all:
+        if not os.path.exists(cfg.corpus_file):
+            raise FileNotFoundError(f"Corpus file not found: {cfg.corpus_file}")
+        
+        print("Loading corpus for initialization...")
+        corpus = load_corpus_from_file(cfg.corpus_file)
+        
+        # Initialize collections and collect timing data
+        timing_results = []
+        for model_cfg in cfg.embedding_models:
+            model_name = model_cfg["model_name"]
+            collection_name = model_cfg["collection_name"]
+            timing_data = initialize_collection(corpus, model_name, collection_name)
+            if timing_data and isinstance(timing_data, dict):
+                timing_results.append((model_name, timing_data))
+        
+        # Save timing data to file for later use
+        if timing_results:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
+            
+            with open(timing_file, 'w', encoding='utf-8') as f:
+                # Convert to dict format for JSON
+                timing_dict = {model_name: timing_data for model_name, timing_data in timing_results}
+                json.dump(timing_dict, f, indent=2)
+            print(f"Timing data saved to {timing_file}")
+        
+        print("\nInitialization completed successfully.")
+        return
+
+    # --- PATH 2: Evaluation (or All) ---
+    # Requires all files (Corpus, Queries, Qrels)
+    
+    # Validate required files
+    for file_path in [cfg.corpus_file, cfg.queries_file, cfg.qrels_file]:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Required file not found: {file_path}")
+    
+    print("Starting embedding model evaluation...")
+    print(f"Configuration: k={cfg.k}, show_progress={cfg.show_progress_bar}, reinit_collections={cfg.reinitialize_collections}")
+    
+    # Load ground truth data ONCE using refactored function
+    queries, corpus, relevant_docs = load_ground_truth(cfg.corpus_file, cfg.queries_file, cfg.qrels_file)
+    
+    # Load existing timing data if available
+    timing_results = []
+    timing_by_model = {}
+    # Find the most recent timing data file
+    import glob
+    timing_files = glob.glob(os.path.join(cfg.reports_dir, "timing_data_*.json"))
+    if timing_files:
+        # Sort by modification time, get the most recent
+        latest_timing_file = max(timing_files, key=os.path.getmtime)
+        try:
+            with open(latest_timing_file, 'r', encoding='utf-8') as f:
+                timing_dict = json.load(f)
+                timing_results = [(model_name, timing_data) for model_name, timing_data in timing_dict.items()]
+                timing_by_model = {
+                    model_name: timing_data if isinstance(timing_data, dict) else {}
+                    for model_name, timing_data in timing_dict.items()
+                }
+            print(f"Loaded timing data from {latest_timing_file}")
+        except Exception as e:
+            print(f"Warning: Could not load timing data from {latest_timing_file}: {e}")
+    else:
+        print("No timing data files found.")
+    
+    # Initialize containers (timing_results may already have data)
+    model_results = []
+    
+    # Process each model ONCE
+    for model_cfg in cfg.embedding_models:
+        model_name = model_cfg["model_name"]
+        collection_name = model_cfg["collection_name"]
+        
+        # Initialize if requested (args.all or (args.initialize AND args.evaluate))
+        # Note: Pure args.initialize is handled in PATH 1 above
+        if args.initialize or args.all:
+            timing_data = initialize_collection(corpus, model_name, collection_name)
+            if timing_data and isinstance(timing_data, dict):
+                merged_timing = timing_by_model.get(model_name, {})
+                merged_timing.update(timing_data)
+                timing_by_model[model_name] = merged_timing
+        
+        # Evaluate if requested
+        if args.evaluate or args.all:
+            # Evaluate model
+            metrics, retrieval_timing, rankings_rows = evaluate_with_chromadb(
+                queries, corpus, relevant_docs, model_name, collection_name
+            )
+            model_results.append((model_name, *metrics))
+
+            # Persist the per-query ranked lists. These feed the query-level
+            # uncertainty stage below, and mean it never has to re-embed the
+            # corpus. Never abort the run on a write failure.
+            try:
+                rankings_file = bootstrap_utils.rankings_path(
+                    cfg.current_dataset, bootstrap_utils.label_for(model_name)
+                )
+                bootstrap_utils.write_jsonl(rankings_file, rankings_rows)
+                print(f"Per-query rankings saved to {rankings_file} ({len(rankings_rows)} queries)")
+            except Exception as e:
+                print(f"Warning: Could not save per-query rankings for {model_name}: {e}")
+
+            merged_timing = timing_by_model.get(model_name, {})
+            merged_timing.update(retrieval_timing)
+            merged_timing.setdefault("docs_processed", len(corpus))
+            timing_by_model[model_name] = merged_timing
+
+    timing_results = [(model_name, timing_data) for model_name, timing_data in timing_by_model.items()]
+    
+    # Save updated timing data to file (including any empty entries added during evaluation)
+    if timing_results:
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
+        
+        with open(timing_file, 'w', encoding='utf-8') as f:
+            json.dump(timing_by_model, f, indent=2)
+        print(f"Updated timing data saved to {timing_file}")
+    
+    # Query-level uncertainty stage: turns the point estimates above into
+    # per-corpus intervals that the dataset report renders. Reads the ranking
+    # files just persisted; nothing is re-embedded.
+    if model_results and getattr(cfg, "compute_bootstrap", True):
+        run_bootstrap_stage(cfg.current_dataset)
+
+    # Display and generate report ONLY ONCE
+    if model_results:
+        print_results_summary(
+            model_results=model_results,
+            queries=queries,
+            corpus=corpus,
+            relevant_docs=relevant_docs,
+            timing_results=timing_results,
+            dataset_name=cfg.current_dataset,
+            output_dir=cfg.reports_dir,
+            save_raw_results=True
+        )
+        report_files = generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results, output_dir=cfg.reports_dir)
+        print_report_info(report_files)
+
+
 def main():
     configure_utf8_stdio()
     parser = argparse.ArgumentParser(description="RAG Benchmark Pipeline")
@@ -420,6 +783,24 @@ def main():
     parser.add_argument("--initialize", action="store_true", help="Initialize collections")
     parser.add_argument("--evaluate", action="store_true", help="Evaluate models")
     parser.add_argument("--all", action="store_true", help="Run complete pipeline")
+    parser.add_argument("--build-all", action="store_true",
+                        help="Run every stage for a dataset: corpus, queries, qrels, index, "
+                             "evaluate, uncertainty, dataset report, aggregate report, and "
+                             "manuscript figures and tables. Skips stages already complete; "
+                             "pauses at each Batch API stage with a resume command")
+    parser.add_argument("--journal-figures", action="store_true",
+                        help="Regenerate the manuscript figures from stored results")
+    parser.add_argument("--paper-tables", action="store_true",
+                        help="Regenerate the manuscript data tables as LaTeX fragments")
+    parser.add_argument("--verify-paper", action="store_true",
+                        help="Check every hand-written number in the manuscript against the "
+                             "run artifacts; exits non-zero on drift")
+    parser.add_argument("--bootstrap", action="store_true",
+                        help="Compute per-corpus query-level uncertainty from stored rankings "
+                             "(no re-embedding, no LLM calls)")
+    parser.add_argument("--regenerate-report", action="store_true",
+                        help="Rebuild the dataset benchmark report in place from stored results "
+                             "(no re-embedding, no re-evaluation, no new raw_results file)")
     
     # New Batch Arguments
     parser.add_argument("--batch-submit", action="store_true", help="Submit tasks to Gemini Batch API instead of running locally")
@@ -442,6 +823,15 @@ def main():
 
     if (args.initialize or args.evaluate or args.all) and not args.dataset:
         parser.error("--dataset is required when using --initialize, --evaluate, or --all")
+
+    if args.regenerate_report and not args.dataset:
+        parser.error("--dataset is required when using --regenerate-report")
+
+    if args.bootstrap and not args.dataset:
+        parser.error("--dataset is required when using --bootstrap")
+
+    if args.build_all and not args.dataset:
+        parser.error("--dataset is required when using --build-all")
 
     if args.dataset:
         cfg.configure_for_dataset(args.dataset)
@@ -506,6 +896,32 @@ def main():
         
         return  # Exit after generation
     
+    # Manuscript artifacts only (no pipeline stages run)
+    if args.journal_figures or args.paper_tables:
+        run_paper_artifact_stages(figures=args.journal_figures, tables=args.paper_tables)
+        return
+
+    if args.verify_paper:
+        from utils.verify_paper_numbers import main as verify_main
+        sys.exit(verify_main())
+
+    # Query-level uncertainty only, over stored rankings
+    if args.bootstrap:
+        run_bootstrap_stage(args.dataset)
+        return
+
+    # Full end-to-end build for one dataset
+    if args.build_all:
+        run_build_all(args, parser)
+        return
+
+    # Rebuild an existing report in place (no pipeline stages run)
+    if args.regenerate_report:
+        report_files = regenerate_dataset_report(args.dataset)
+        if report_files:
+            print_report_info(report_files)
+        return
+
     # Handle individual pipeline steps - EXIT after each
     if args.prepare_corpus:
         prepare_corpus_from_pdfs_wrapper()
@@ -672,133 +1088,8 @@ def main():
         
     # Handle initialization and evaluation
     if args.initialize or args.evaluate or args.all:
-        
-        # --- PATH 1: Initialization Only ---
-        # If we are ONLY initializing, we just need the corpus.
-        if args.initialize and not args.evaluate and not args.all:
-            if not os.path.exists(cfg.corpus_file):
-                raise FileNotFoundError(f"Corpus file not found: {cfg.corpus_file}")
-            
-            print("Loading corpus for initialization...")
-            corpus = load_corpus_from_file(cfg.corpus_file)
-            
-            # Initialize collections and collect timing data
-            timing_results = []
-            for model_cfg in cfg.embedding_models:
-                model_name = model_cfg["model_name"]
-                collection_name = model_cfg["collection_name"]
-                timing_data = initialize_collection(corpus, model_name, collection_name)
-                if timing_data and isinstance(timing_data, dict):
-                    timing_results.append((model_name, timing_data))
-            
-            # Save timing data to file for later use
-            if timing_results:
-                import datetime
-                timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
-                
-                with open(timing_file, 'w', encoding='utf-8') as f:
-                    # Convert to dict format for JSON
-                    timing_dict = {model_name: timing_data for model_name, timing_data in timing_results}
-                    json.dump(timing_dict, f, indent=2)
-                print(f"Timing data saved to {timing_file}")
-            
-            print("\nInitialization completed successfully.")
-            return
+        run_index_and_evaluate(args)
 
-        # --- PATH 2: Evaluation (or All) ---
-        # Requires all files (Corpus, Queries, Qrels)
-        
-        # Validate required files
-        for file_path in [cfg.corpus_file, cfg.queries_file, cfg.qrels_file]:
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"Required file not found: {file_path}")
-        
-        print("Starting embedding model evaluation...")
-        print(f"Configuration: k={cfg.k}, show_progress={cfg.show_progress_bar}, reinit_collections={cfg.reinitialize_collections}")
-        
-        # Load ground truth data ONCE using refactored function
-        queries, corpus, relevant_docs = load_ground_truth(cfg.corpus_file, cfg.queries_file, cfg.qrels_file)
-        
-        # Load existing timing data if available
-        timing_results = []
-        timing_by_model = {}
-        # Find the most recent timing data file
-        import glob
-        timing_files = glob.glob(os.path.join(cfg.reports_dir, "timing_data_*.json"))
-        if timing_files:
-            # Sort by modification time, get the most recent
-            latest_timing_file = max(timing_files, key=os.path.getmtime)
-            try:
-                with open(latest_timing_file, 'r', encoding='utf-8') as f:
-                    timing_dict = json.load(f)
-                    timing_results = [(model_name, timing_data) for model_name, timing_data in timing_dict.items()]
-                    timing_by_model = {
-                        model_name: timing_data if isinstance(timing_data, dict) else {}
-                        for model_name, timing_data in timing_dict.items()
-                    }
-                print(f"Loaded timing data from {latest_timing_file}")
-            except Exception as e:
-                print(f"Warning: Could not load timing data from {latest_timing_file}: {e}")
-        else:
-            print("No timing data files found.")
-        
-        # Initialize containers (timing_results may already have data)
-        model_results = []
-        
-        # Process each model ONCE
-        for model_cfg in cfg.embedding_models:
-            model_name = model_cfg["model_name"]
-            collection_name = model_cfg["collection_name"]
-            
-            # Initialize if requested (args.all or (args.initialize AND args.evaluate))
-            # Note: Pure args.initialize is handled in PATH 1 above
-            if args.initialize or args.all:
-                timing_data = initialize_collection(corpus, model_name, collection_name)
-                if timing_data and isinstance(timing_data, dict):
-                    merged_timing = timing_by_model.get(model_name, {})
-                    merged_timing.update(timing_data)
-                    timing_by_model[model_name] = merged_timing
-            
-            # Evaluate if requested
-            if args.evaluate or args.all:
-                # Evaluate model
-                metrics, retrieval_timing = evaluate_with_chromadb(
-                    queries, corpus, relevant_docs, model_name, collection_name
-                )
-                model_results.append((model_name, *metrics))
-                merged_timing = timing_by_model.get(model_name, {})
-                merged_timing.update(retrieval_timing)
-                merged_timing.setdefault("docs_processed", len(corpus))
-                timing_by_model[model_name] = merged_timing
-
-        timing_results = [(model_name, timing_data) for model_name, timing_data in timing_by_model.items()]
-        
-        # Save updated timing data to file (including any empty entries added during evaluation)
-        if timing_results:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            timing_file = os.path.join(cfg.reports_dir, f"timing_data_{timestamp}.json")
-            
-            with open(timing_file, 'w', encoding='utf-8') as f:
-                json.dump(timing_by_model, f, indent=2)
-            print(f"Updated timing data saved to {timing_file}")
-        
-        # Display and generate report ONLY ONCE
-        if model_results:
-            print_results_summary(
-                model_results=model_results,
-                queries=queries,
-                corpus=corpus,
-                relevant_docs=relevant_docs,
-                timing_results=timing_results,
-                dataset_name=cfg.current_dataset,
-                output_dir=cfg.reports_dir,
-                save_raw_results=True
-            )
-            report_files = generate_benchmark_report(model_results, queries, corpus, relevant_docs, timing_results, output_dir=cfg.reports_dir)
-            print_report_info(report_files)
-    
     print("\nBenchmark completed!")
 
 

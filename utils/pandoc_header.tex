@@ -1,0 +1,110 @@
+% ---------------------------------------------------------------------------
+% LaTeX header injected into every pandoc Markdown -> PDF conversion
+% (see utils/report_utils.py::convert_md_to_pdf).
+%
+% 1) longtable page-split fix
+% ---------------------------
+% pandoc renders every multi-row Markdown table as a `longtable`.  When such a
+% table has to be broken across a page, longtable's own output routine
+% (`\LT@output`) builds the partial column with
+%
+%     \setbox\@cclv\vbox{\unvbox\@cclv\copy\LT@foot\vss}
+%
+% The `\vss` is glue with *infinite shrinkability*.  The current LaTeX output
+% routine subsequently \vsplit's that box, and TeX then raises
+%
+%     ! Infinite glue shrinkage found in box being split.
+%
+% TeX recovers on its own ("offensive shrinkability has been made finite"),
+% but pandoc always invokes the engine with `-halt-on-error`, so the run is
+% aborted and no PDF is ever written.  Replacing the infinite *shrink* (`\vss`)
+% with infinite *stretch* (`\vfil`) keeps longtable's intent -- push the
+% repeated foot to the bottom of the partial column -- while producing a box
+% that is legal to split.
+%
+% This is engine independent (pdflatex/xelatex/lualatex all hit it) and depends
+% on nothing in the report content, so it fixes present and future reports
+% alike.  Both occurrences of `\vss` in `\LT@output` are patched: the first
+% covers `\end{longtable}` when the last foot no longer fits, the second the
+% ordinary mid-table page break.
+% ---------------------------------------------------------------------------
+\makeatletter
+\@ifundefined{LT@output}{}{%
+  \RequirePackage{etoolbox}%
+  \patchcmd{\LT@output}{\vss}{\vfil}{}{}%
+  \patchcmd{\LT@output}{\vss}{\vfil}{}{}%
+}
+\makeatother
+
+% ---------------------------------------------------------------------------
+% 2) Unicode characters used by the generated reports
+% ---------------------------------------------------------------------------
+% pdflatex + inputenc aborts with "Unicode character ... not set up for use
+% with LaTeX" for anything outside the T1 encoding.  Declare the symbols the
+% report generators can emit (Greek used in statistics, arrows, comparison and
+% math operators, typographic punctuation) so conversion never dies on them.
+\makeatletter
+\@ifundefined{DeclareUnicodeCharacter}{}{%
+  % Greek
+  \DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}%
+  \DeclareUnicodeCharacter{03B1}{\ensuremath{\alpha}}%
+  \DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}%
+  \DeclareUnicodeCharacter{03B3}{\ensuremath{\gamma}}%
+  \DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}%
+  \DeclareUnicodeCharacter{03B5}{\ensuremath{\epsilon}}%
+  \DeclareUnicodeCharacter{03B8}{\ensuremath{\theta}}%
+  \DeclareUnicodeCharacter{03BB}{\ensuremath{\lambda}}%
+  \DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}%
+  \DeclareUnicodeCharacter{03C0}{\ensuremath{\pi}}%
+  \DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}%
+  \DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}%
+  \DeclareUnicodeCharacter{03C4}{\ensuremath{\tau}}%
+  \DeclareUnicodeCharacter{03C7}{\ensuremath{\chi}}%
+  % Arrows
+  \DeclareUnicodeCharacter{2190}{\ensuremath{\leftarrow}}%
+  \DeclareUnicodeCharacter{2191}{\ensuremath{\uparrow}}%
+  \DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}%
+  \DeclareUnicodeCharacter{2193}{\ensuremath{\downarrow}}%
+  \DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}%
+  \DeclareUnicodeCharacter{21D2}{\ensuremath{\Rightarrow}}%
+  % Math / comparison operators
+  \DeclareUnicodeCharacter{00B1}{\ensuremath{\pm}}%
+  \DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}%
+  \DeclareUnicodeCharacter{00F7}{\ensuremath{\div}}%
+  \DeclareUnicodeCharacter{2212}{\ensuremath{-}}%
+  \DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}%
+  \DeclareUnicodeCharacter{2260}{\ensuremath{\neq}}%
+  \DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}%
+  \DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}%
+  \DeclareUnicodeCharacter{221A}{\ensuremath{\surd}}%
+  \DeclareUnicodeCharacter{221E}{\ensuremath{\infty}}%
+  \DeclareUnicodeCharacter{2211}{\ensuremath{\sum}}%
+  \DeclareUnicodeCharacter{220F}{\ensuremath{\prod}}%
+  \DeclareUnicodeCharacter{00B0}{\ensuremath{^\circ}}%
+  \DeclareUnicodeCharacter{00B7}{\ensuremath{\cdot}}%
+  % Marks and punctuation
+  \DeclareUnicodeCharacter{2022}{\textbullet}%
+  \DeclareUnicodeCharacter{2026}{\ldots}%
+  \DeclareUnicodeCharacter{2713}{\ensuremath{\checkmark}}%
+  \DeclareUnicodeCharacter{2714}{\ensuremath{\checkmark}}%
+  \DeclareUnicodeCharacter{2717}{\ensuremath{\times}}%
+  \DeclareUnicodeCharacter{2718}{\ensuremath{\times}}%
+  \DeclareUnicodeCharacter{2705}{\ensuremath{\checkmark}}%
+  \DeclareUnicodeCharacter{274C}{\ensuremath{\times}}%
+  \DeclareUnicodeCharacter{26A0}{!}%
+  \DeclareUnicodeCharacter{FE0F}{}%
+}
+\makeatother
+
+% ---------------------------------------------------------------------------
+% 3) Wide-table safety net
+% ---------------------------------------------------------------------------
+% Some report tables (e.g. the pairwise-difference matrices) carry long model
+% identifiers that cannot be hyphenated.  These only produce "Overfull \hbox"
+% warnings, but shrinking the table font and allowing extra stretch keeps them
+% inside the text block.
+\setlength{\emergencystretch}{3em}
+\setlength{\tabcolsep}{4pt}
+\makeatletter
+\@ifundefined{LTleft}{}{\setlength{\LTleft}{0pt}\setlength{\LTright}{0pt}}
+\makeatother

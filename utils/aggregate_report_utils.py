@@ -1573,7 +1573,27 @@ def generate_aggregate_report(
         print(f"✓ Computed pairwise significance tests for {metric_display_name(primary_metric)}")
     
     friedman_stat, friedman_p = perform_friedman_test(datasets, primary_metric)
-    
+
+    # Query-level uncertainty pooled over every scored query of every corpus.
+    # This reads the persisted datasets/<ds>/analysis/rankings_<Mn>.jsonl files only:
+    # nothing is re-embedded and no LLM is called, so it is safe during reporting.
+    # Any failure downgrades to a report without the section - an aggregate report
+    # must never fail because uncertainty is unavailable.
+    pooled_bootstrap = None
+    if getattr(cfg, "compute_bootstrap", True):
+        print("\n🎲 Computing pooled query-level uncertainty...")
+        try:
+            from utils import bootstrap_utils
+
+            pooled_bootstrap, _ = bootstrap_utils.pooled_over_datasets(sorted(datasets.keys()))
+            pooled_bootstrap.setdefault("B", int(getattr(cfg, "bootstrap_resamples", 10000)))
+            print(f"  ✓ Pooled over {pooled_bootstrap.get('n_queries', 0)} scored queries "
+                  f"(leader: {pooled_bootstrap.get('leader')})")
+        except Exception as e:
+            pooled_bootstrap = None
+            print(f"[Skip] Pooled query-level uncertainty unavailable: {e}")
+            print("[Skip] Writing the aggregate report without the Query-Level Uncertainty section.")
+
     # Generate timestamp for files
     timestamp = __import__('datetime').datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     
@@ -1662,7 +1682,8 @@ def generate_aggregate_report(
         significance_matrix=significance_matrix,
         friedman_result=(friedman_stat, friedman_p),
         metrics=metrics,
-        viz_paths=viz_paths
+        viz_paths=viz_paths,
+        pooled_bootstrap=pooled_bootstrap
     )
     
     print(f"\n✅ Report generated: {report_path}")
@@ -1696,7 +1717,8 @@ def _write_markdown_report(
     significance_matrix,
     friedman_result: Tuple[float, float],
     metrics: List[str],
-    viz_paths: Dict[str, str]
+    viz_paths: Dict[str, str],
+    pooled_bootstrap: Optional[Dict[str, Any]] = None
 ):
     """Write the actual Markdown report content."""
     
@@ -2151,9 +2173,78 @@ def _write_markdown_report(
                 f.write("Only act on differences that are statistically significant.\n\n")
             
             f.write("**Interpretation Guide**: * p<0.05, ** p<0.01, *** p<0.001, ns = not significant\n\n")
-        
+
         f.write("---\n\n")
-        
+
+        # Query-Level Uncertainty pooled over every scored query of every corpus
+        if pooled_bootstrap:
+            from utils import bootstrap_utils
+
+            unc_metric = bootstrap_utils.PRIMARY_METRIC
+            metric_title = f"{metric_header_name(unc_metric)}@{k_val}"
+            ci_map = pooled_bootstrap.get("ci_map", {})
+            paired_block = pooled_bootstrap.get("paired_map_vs_leader", {})
+            leader = pooled_bootstrap.get("leader")
+            n_scored = pooled_bootstrap.get("n_queries", 0)
+            b_resamples = int(pooled_bootstrap.get("B", getattr(cfg, "bootstrap_resamples", 10000)))
+            short_by_label = {lab: name.split("/")[-1]
+                              for name, lab in bootstrap_utils.label_map().items()}
+
+            f.write("## Query-Level Uncertainty (Descriptive)\n\n")
+            f.write("Everything above is a point estimate. This section resamples the individual queries to show ")
+            f.write(f"how far each {metric_title} estimate moves under that resampling, and whether the pooled ")
+            f.write("query evidence actually separates the candidate models.\n\n")
+            f.write(f"The scored queries of all {len(datasets)} corpora are concatenated into a single pool of ")
+            f.write(f"{n_scored} queries, and every interval is a percentile bootstrap with B={b_resamples:,} ")
+            f.write(f"resamples. `{leader}` is the pooled {metric_title} leader and is the model the paired ")
+            f.write("column compares against.\n\n")
+
+            unc_headers = ["Model", f"{metric_title} [95% CI]",
+                           f"`{leader}` - model diff [95% CI]", "Separated?"]
+            unc_rows = []
+            for lab, entry in sorted(ci_map.items(), key=lambda kv: kv[1]["mean"], reverse=True):
+                display = f"{short_by_label.get(lab, lab)} (`{lab}`)"
+                marginal = f"{entry['mean']:.4f} [{entry['lo']:.4f}, {entry['hi']:.4f}]"
+                if lab == leader:
+                    unc_rows.append([display, marginal, "-", "-"])
+                    continue
+                pr = paired_block.get(lab)
+                if pr:
+                    delta = f"{pr['delta']:+.4f} [{pr['lo']:+.4f}, {pr['hi']:+.4f}]"
+                    separated = "yes" if bootstrap_utils.excludes_zero(pr) else "**no**"
+                else:
+                    delta, separated = "N/A", "N/A"
+                unc_rows.append([display, marginal, delta, separated])
+
+            f.write(tabulate(unc_rows, headers=unc_headers, tablefmt="pipe"))
+            f.write("\n\n")
+            f.write(f"**Table: Pooled bootstrap intervals for {metric_title} ")
+            f.write(f"(B={b_resamples:,} resamples over {n_scored} scored queries from {len(datasets)} corpora)**\n\n")
+
+            f.write("**How to interpret:**\n")
+            f.write("- **Estimator**: these means are a **pooled mean over all scored queries**, not the ")
+            f.write("unweighted macro mean of the per-dataset means reported in the *Cross-Dataset Model ")
+            f.write("Comparison* table above. Here each corpus contributes in proportion to its query count, so ")
+            f.write("the two aggregate numbers for the same model differ slightly. That is expected, not an ")
+            f.write("inconsistency.\n")
+            f.write("- **Unstratified resampling**: each resample draws uniformly from the flat concatenated ")
+            f.write("per-query vector and does **not** preserve each corpus's share of the queries. Between-corpus ")
+            f.write("composition variance is therefore folded into the interval widths, making these intervals ")
+            f.write("wider than a within-corpus interval computed on the same number of queries.\n")
+            f.write("- **The paired column is the one that discriminates.** It resamples the per-query ")
+            f.write("differences, which cancels the shared query difficulty that inflates every model's own ")
+            f.write("interval. Two marginal intervals can overlap heavily while the paired difference still ")
+            f.write("excludes zero, so overlap in the middle column is **not** evidence of no difference.\n")
+            f.write("- **Separated? = no** means the pooled query evidence does not distinguish that model from ")
+            f.write(f"`{leader}` on {metric_title}. When that happens, decide on operational cost (embedding ")
+            f.write("throughput, query latency) rather than on retrieval quality.\n")
+            f.write("- **Scope**: the per-corpus intervals live in each dataset's own benchmark report, under its ")
+            f.write("*Query-Level Uncertainty* section. Because a deployment targets one corpus at a time, the ")
+            f.write("**corpus-level report is the primary artifact for model selection**; this pooled view is a ")
+            f.write("descriptive cross-corpus summary, not population-level inference.\n\n")
+
+            f.write("---\n\n")
+
         # Dataset-Specific Insights
         f.write("## Dataset-Specific Analysis\n\n")
         

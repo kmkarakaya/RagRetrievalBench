@@ -152,15 +152,20 @@ def initialize_collection(corpus, model_name, collection_name):
 
 
 def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collection_name):
-    """Evaluate retrieval performance using ChromaDB and SentenceTransformer evaluator."""
+    """Evaluate retrieval performance using ChromaDB and SentenceTransformer evaluator.
+
+    Returns (metrics_tuple, retrieval_timing, rankings_rows) where rankings_rows is a
+    list of {"query_id": str, "ranked_ids": [str], "distances": [float]} dicts in the
+    order the queries were processed (the row shape analysis/query_level_eval.py uses).
+    """
     print(f"\nEvaluating {model_name} using ChromaDB rankings...")
-    
+
     # Use persistent client instead of chromadb.Client()
     client = get_chromadb_client()
-    
-    # Add debug info storage
-    model_rankings = {}
-    
+
+    # Per-query ranked lists, persisted by the caller for query-level analysis
+    rankings_rows = []
+
     try:
         collection = client.get_collection(collection_name)
     except Exception as e:
@@ -210,9 +215,13 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
         total_query_retrieval_time_s += (time.perf_counter() - query_start)
         queries_timed += 1
         
-        # Store rankings for debugging
-        model_rankings[qid] = results['ids'][0]
-        
+        # Persist the full ranked list (ids + raw distances) for this query
+        rankings_rows.append({
+            "query_id": qid,
+            "ranked_ids": list(results['ids'][0]),
+            "distances": [float(d) for d in results['distances'][0]],
+        })
+
         # Store results in evaluator format
         for doc_id, distance in zip(results['ids'][0], results['distances'][0]):
             # Convert distance to similarity score (higher is better)
@@ -231,12 +240,6 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
             is_relevant = doc_id in relevant_docs[qid]
             rel_marker = " (REL)" if is_relevant else ""
             print(f"  {i+1}. {doc_id} (score: {doc_score['score']:.4f}){rel_marker}")
-    
-    # Print detailed rankings for debugging
-    # print(f"\nDEBUG - Full rankings for {model_name}:")
-    # for qid, ranking in model_rankings.items():
-    #     print(f"  Query {qid}:")
-    #     print(f"    Top 5 docs: {ranking[:5]}")
     
     # Calculate metrics using ChromaDB rankings
     scores = evaluator.compute_metrics(queries_result_list)
@@ -271,6 +274,11 @@ def evaluate_with_chromadb(queries, corpus, relevant_docs, model_name, collectio
     )
 
     # Build return tuple with only enabled metrics, plus retrieval timing payload
-    return tuple(metrics[metric_name] for metric_name in enabled_metrics), retrieval_timing
+    # and the per-query ranked lists (for datasets/<name>/analysis/rankings_<Mn>.jsonl)
+    return (
+        tuple(metrics[metric_name] for metric_name in enabled_metrics),
+        retrieval_timing,
+        rankings_rows,
+    )
 
 

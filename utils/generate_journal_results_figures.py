@@ -19,10 +19,24 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "journal_paper"
 
+
+def _figure_datasets() -> list[str]:
+    """Datasets the manuscript figures are built from.
+
+    Driven by config.paper_datasets so figures and table fragments always describe the
+    same corpora, and a scratch dataset in datasets/ cannot leak into the paper.
+    """
+    import sys as _sys
+    if str(PROJECT_ROOT) not in _sys.path:
+        _sys.path.insert(0, str(PROJECT_ROOT))
+    import config as _cfg
+    pinned = getattr(_cfg, "paper_datasets", None)
+    return list(pinned) if pinned else _cfg.discover_available_datasets()
+
+
 DATASET_REPORT_DIRS = {
-    "education_eng": PROJECT_ROOT / "datasets" / "education_eng" / "reports",
-    "education_tr": PROJECT_ROOT / "datasets" / "education_tr" / "reports",
-    "law_tr": PROJECT_ROOT / "datasets" / "law_tr" / "reports",
+    name: PROJECT_ROOT / "datasets" / name / "reports"
+    for name in _figure_datasets()
 }
 
 METRICS = [
@@ -158,7 +172,7 @@ def save_dataset_metric_profile(
             linewidth=0.4,
         )
 
-    ax.set_title(f"{DATASET_LABELS[dataset_name]} metric profile")
+    ax.set_title(f"{DATASET_LABELS.get(dataset_name, dataset_name)} metric profile")
     ax.set_xlabel("Embedding model")
     ax.set_ylabel("Score")
     ax.set_xticks(x_positions)
@@ -196,7 +210,7 @@ def save_cross_dataset_heatmap(
     ax.set_xticks(np.arange(len(aliases)))
     ax.set_xticklabels([alias for _, alias in aliases])
     ax.set_yticks(np.arange(len(dataset_names)))
-    ax.set_yticklabels([DATASET_LABELS[name] for name in dataset_names])
+    ax.set_yticklabels([DATASET_LABELS.get(name, name) for name in dataset_names])
 
     for row_idx in range(values.shape[0]):
         for col_idx in range(values.shape[1]):
@@ -287,7 +301,7 @@ def build_metadata(
         },
         "figure_labels": {
             "model_labels": [alias for _, alias in aliases],
-            "dataset_labels": [DATASET_LABELS[name] for name in dataset_names],
+            "dataset_labels": [DATASET_LABELS.get(name, name) for name in dataset_names],
         },
         "aggregate_quality_speed": {},
         "generated_files": [str(path.relative_to(PROJECT_ROOT)) for path in generated_paths or []],
@@ -331,10 +345,61 @@ def validate_metadata(metadata: dict[str, Any]) -> None:
         raise ValueError(f"Full model-name fragments found in plotted labels: {found}")
 
 
+def save_bootstrap_forest(datasets: dict[str, Any], output_dir: Path) -> Path:
+    """Forest plot of the pooled aggregate MAP@10 with 95% bootstrap intervals.
+
+    Recomputes the pooled block from the stored per-query rankings via the shared
+    pipeline stage, so this figure never depends on a hand-run analysis script.
+    Wide, overlapping intervals are exactly the point the figure makes.
+    """
+    import sys
+
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    from utils import bootstrap_utils as bs
+
+    pooled, _ = bs.pooled_over_datasets(list(datasets))
+    ci = pooled["ci_map"]
+    n_queries = pooled["n_queries"]
+
+    order = sorted(ci, key=lambda k: -ci[k]["mean"])
+    y = list(range(len(order)))[::-1]  # top row = best
+    leader = pooled.get("leader")
+
+    fig, ax = plt.subplots(figsize=(6.2, 3.3))
+    for yi, m in zip(y, order):
+        mean, lo, hi = ci[m]["mean"], ci[m]["lo"], ci[m]["hi"]
+        color = "#b2182b" if m == leader else "#2166ac"
+        ax.errorbar(mean, yi, xerr=[[mean - lo], [hi - mean]], fmt="o",
+                    color=color, ecolor=color, elinewidth=1.6, capsize=4,
+                    markersize=6)
+        ax.annotate(f"{mean:.3f}  [{lo:.3f}, {hi:.3f}]", (hi, yi),
+                    xytext=(6, 0), textcoords="offset points",
+                    va="center", fontsize=8, color="#333333")
+    ax.set_yticks(y)
+    ax.set_yticklabels(order, fontsize=10)
+    ax.set_xlabel(f"Aggregate MAP@10 over {n_queries} scored queries (95% bootstrap CI)",
+                  fontsize=9)
+    lo_all = min(ci[m]["lo"] for m in order)
+    hi_all = max(ci[m]["hi"] for m in order)
+    pad = 0.06 * (hi_all - lo_all)
+    ax.set_xlim(lo_all - pad, hi_all + 5 * pad)
+    ax.grid(axis="x", linestyle=":", alpha=0.5)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_title("Query-level bootstrap confidence intervals (model-independent pooled qrels)",
+                 fontsize=10)
+    fig.tight_layout()
+    output_path = output_dir / "results_bootstrap_forest.png"
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
 def generate_figures() -> dict[str, Any]:
     configure_matplotlib()
     datasets, selected_paths = load_raw_results()
-    alias_map = build_alias_map(datasets["education_eng"])
+    alias_map = build_alias_map(datasets[next(iter(datasets))])
     validate_rosters(datasets, alias_map)
 
     generated_paths = []
@@ -342,6 +407,10 @@ def generate_figures() -> dict[str, Any]:
         generated_paths.append(save_dataset_metric_profile(dataset_name, data, alias_map, OUTPUT_DIR))
     generated_paths.append(save_cross_dataset_heatmap(datasets, alias_map, OUTPUT_DIR))
     generated_paths.append(save_quality_speed_tradeoff(datasets, alias_map, OUTPUT_DIR))
+    try:
+        generated_paths.append(save_bootstrap_forest(datasets, OUTPUT_DIR))
+    except FileNotFoundError as exc:
+        print(f"[Skip] bootstrap forest plot: {exc}")
 
     metadata = build_metadata(datasets, alias_map, selected_paths, generated_paths)
     validate_metadata(metadata)
@@ -358,7 +427,7 @@ def main() -> None:
     args = parser.parse_args()
 
     datasets, selected_paths = load_raw_results()
-    alias_map = build_alias_map(datasets["education_eng"])
+    alias_map = build_alias_map(datasets[next(iter(datasets))])
     validate_rosters(datasets, alias_map)
 
     if args.metadata_only:

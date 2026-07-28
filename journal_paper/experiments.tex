@@ -21,19 +21,10 @@ Table~\ref{tbl:dataset_statistics_summary} summarizes the same per-dataset count
 Table~\ref{tbl:dataset_statistics_summary} also shows an important structural characteristic of the benchmark: although \texttt{law\_tr} contains only two source documents, it yields more chunks than either education dataset. The present dataset collection should therefore be read as an intentionally diverse experimental snapshot for demonstrating corpus-specific model selection under a shared protocol. In the present implementation, these source documents were processed from PDF files, but the experimental logic is framed at the document-collection level rather than at one fixed file format.
 
 \begin{table}[t]
-\caption{Dataset statistics summary for the frozen experimental snapshot.}\label{tbl:dataset_statistics_summary}
+\caption{Dataset statistics summary for the frozen experimental snapshot. \emph{Judged pairs} counts every query--chunk pair drawn from the model-independent candidate pool and submitted to the LLM judge; the positive qrels are the subset of those pairs labeled relevant, and the remainder are stored as explicit negative labels.}\label{tbl:dataset_statistics_summary}
 \centering
 \small
-\begin{tabular}{@{}lrrrrr@{}}
-\toprule
-Dataset & Source documents & Chunks & Generated queries & Scored queries & Positive qrels \\
-\midrule
-education\_eng & 29 & 572 & 50 & 48 & 312 \\
-education\_tr & 29 & 619 & 50 & 50 & 354 \\
-law\_tr & 2 & 723 & 50 & 50 & 286 \\
-Total & 60 & 1914 & 150 & 148 & 952 \\
-\bottomrule
-\end{tabular}
+\input{tbl_dataset_statistics_summary.tex}
 \end{table}
 
 \subsection{Dataset Provenance}\label{dataset-provenance}
@@ -130,11 +121,12 @@ Text extraction & PyMuPDF 1.26.0 page text with NFC Unicode normalization \\
 Chunking & LangChain recursive character splitter, size 1000, overlap 200 \\
 Retrieval evaluation & Sentence-Transformers \texttt{InformationRetrievalEvaluator}, cutoff $k=10$, zero-positive queries excluded before scoring \\
 Query generation and judging & Gemini 2.5 Flash-Lite, temperature 0.1, in batch and interactive modes \\
-Candidate pool & Model-independent union of the top-20 chunks retrieved by all five models, LLM-judged with stored positive and negative labels; a single-model (\texttt{M5}-only) variant is compared in Section~\ref{results} \\
+Candidate pool & Model-independent union of the top-20 chunks retrieved by all five models, LLM-judged with stored positive and negative labels \\
 Seed policy & Fixed random seed (42) for seed-chunk sampling, so generated queries can be reconstructed under the recorded workflow \\
+Uncertainty layer & Pipeline stage (Section~\ref{query-level-uncertainty}): per-query ranked lists persisted per model; percentile and paired bootstrap intervals ($B=10{,}000$ resamples, coverage 0.95) emitted per corpus with the dataset report, and pooled without stratification for the secondary aggregate. Each (corpus, model, metric) cell draws from a stream derived independently from the run seed (42), so intervals are reproducible from a partial re-execution \\
 Timing scope & Single-run CPU-only local timing; query latency $=$ query embedding $+$ vector search; embedding throughput/time $=$ batched corpus embedding $+$ index insertion; runtime memory not measured \\
 Hardware / OS / device & Environment snapshot (Python and library versions, device) recorded in each raw-result JSON; no additional CPU, RAM, thread, or storage matrix is reported \\
-Available artifacts & Source PDFs, chunked corpora, generated queries, LLM-judged qrels, per-model ranking files, raw-result JSON, and generated dataset reports are tracked in the public repository \citep{GitHub_RagRetrievalBench}; persisted ChromaDB vector indexes are excluded and can be rebuilt from the chunked corpora. Repository availability is not an immutable archival guarantee. \\
+Available artifacts & Source PDFs, chunked corpora, generated queries, LLM-judged qrels, per-model ranking files, raw-result JSON, and generated dataset reports are tracked in the public repository \citep{GitHub_RagRetrievalBench}; persisted ChromaDB vector indexes are excluded and can be rebuilt from the chunked corpora. The data tables reported in Sections~\ref{experiments} and~\ref{results} are emitted by the pipeline from these artifacts rather than transcribed, and the figures are regenerated from the same raw-result JSON. Repository availability is not an immutable archival guarantee. \\
 \bottomrule
 \end{tabular}
 \end{table}
