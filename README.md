@@ -283,7 +283,51 @@ python rag_benchmark.py --verify-paper      # check remaining hand-written numbe
 
 `--paper-tables` writes one `tbl_<name>.tex` per data table, containing only a `tabular` environment; captions and labels stay in the hand-authored `.tex` sections. `--verify-paper` is a release gate: it exits non-zero if any number still typed by hand disagrees with the run artifacts.
 
-Which corpora feed these artifacts is pinned by `paper_datasets` in `config.py`, so a scratch or in-progress dataset sitting in `datasets/` cannot leak stray figures or table fragments into the manuscript. Set it to `None` to fall back to using every evaluated dataset.
+### Your Datasets vs. the Manuscript's Datasets
+
+There are two independent selections, and confusing them is the easiest mistake to make:
+
+| Selection | Set where | Controls |
+|---|---|---|
+| `--dataset <name>` | per command | Which corpus a pipeline stage runs on. Always explicit. |
+| `paper_datasets` | `config.py`, once | Which corpora the **manuscript** artifacts are built from. |
+
+`paper_datasets` governs **only** `--journal-figures` and `--paper-tables` — the `results_*.png` and `tbl_*.tex` files the paper `\input`s, including its per-corpus and pooled confidence-interval tables. It does **not** restrict anything else: every dataset still gets its own report, and the standalone aggregate report covers whatever you point it at with `--aggregate-datasets` (or everything evaluated).
+
+That separation is what lets you add corpora freely without disturbing a paper build.
+
+**Benchmarking your own corpora, not writing this paper.** Set `paper_datasets = None`. The manuscript stages then cover everything you have evaluated — or simply never run them; they exist only to build the paper.
+
+```python
+paper_datasets = None      # config.py
+```
+
+```bash
+python rag_benchmark.py --dataset mydata --build-all --batch-submit
+python rag_benchmark.py --generate-aggregate-report     # all your datasets
+```
+
+**Reproducing or extending the published results.** Leave `paper_datasets` at the three published corpora. Add as many of your own datasets as you like: each gets a full report, and they appear in the aggregate report, but they can never leak into the manuscript.
+
+```python
+paper_datasets = ["education_eng", "education_tr", "law_tr"]   # unchanged
+```
+
+```bash
+python rag_benchmark.py --dataset mydata --build-all --batch-submit   # safe
+python rag_benchmark.py --paper-tables                                # still exactly 13 fragments
+```
+
+**Writing a paper about your own corpora.** Point both settings at your datasets. `paper_comparisons` names the corpus pairs you want side-by-side comparison tables for; empty the list if no pair isolates a factor you care about.
+
+```python
+paper_datasets = ["legal_tr", "legal_eng"]
+paper_comparisons = [
+    ("language_effect_comparison", "legal_eng", "legal_tr", r"eng $\to$ tr", False),
+]
+```
+
+If `paper_datasets` names a dataset that has not been evaluated, the artifact stages stop with an explicit error rather than silently producing a partial paper.
 
 ### ⚡ Batch Processing (Optional)
 
