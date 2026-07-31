@@ -32,15 +32,15 @@ Table~\ref{tbl:dataset_statistics_summary} also shows an important structural ch
 Table~\ref{tbl:dataset_provenance} records the provenance boundary of the datasets used in the paper. Its columns summarize the dataset identifier used in this paper, the corresponding language-and-domain category, and the source collection from which the benchmark subset was curated. The education corpora were curated from the TED University regulations and guidelines collection \citep{TED_Regulations}, whereas the law corpus was curated from the BDDK regulations listing \citep{BDDK_Mevzuat}. All source material was retrieved on \texttt{2026-01-01}. TED University and BDDK are the originating source publishers identified for these materials; this paper does not assert additional licenses, permissions, or redistribution rights beyond the repository artifacts and the documented source provenance. Reuse of extracted source text remains subject to the terms of the originating sources. Explicit provenance is important because the benchmark is intended as a reusable local evaluation workflow: when the same procedure is applied to a different institutional collection, domain archive, or multilingual document set, the resulting evidence should be interpreted relative to that corpus boundary.
 
 \begin{table}[t]
-\caption{Provenance sources for the benchmark datasets used in this paper.}\label{tbl:dataset_provenance}
+\caption{Provenance and document composition of the benchmark datasets used in this paper. The two education corpora share four documents in translation but are not parallel collections; see Section~\ref{language-effect}.}\label{tbl:dataset_provenance}
 \centering
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.42\linewidth}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}@{}}
 \toprule
-Dataset & Language and domain & Source \\
+Dataset & Language and domain & Document type & Source \\
 \midrule
-education\_eng & English education & TED University regulations and guidelines \\
-education\_tr & Turkish education & TED University regulations and guidelines \\
-law\_tr & Turkish law/regulation & BDDK regulations listing \\
+education\_eng & English education & University regulations and guidelines, weighted toward student-facing academic rules (admission, examinations, internships, scholarships) & TED University regulations and guidelines \\
+education\_tr & Turkish education & University regulations and guidelines, weighted toward institutional administration (budgeting, procurement, fixed assets, signature authority) & TED University regulations and guidelines \\
+law\_tr & Turkish law/regulation & Banking and financial-sector regulation & BDDK regulations listing \\
 \bottomrule
 \end{tabular}
 \end{table}

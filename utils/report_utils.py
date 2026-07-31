@@ -223,7 +223,11 @@ def save_raw_results_json(dataset_name, model_results, timing_data, corpus, quer
             "qrels_pooling": getattr(cfg, "qrels_pooling", True),
             "qrels_store_negatives": getattr(cfg, "qrels_store_negatives", True),
             "force_source_chunk_relevant": getattr(cfg, "force_source_chunk_relevant", False),
-            "qrels_embedding_model_index": cfg.qrels_embedding_model_index,
+            # Only meaningful for the legacy single-model pool. Under pooling it is dead
+            # code, and serialising it unconditionally made the artifact look as though
+            # the qrels came from one model alone, contradicting the pooled construction.
+            **({} if getattr(cfg, "qrels_pooling", True)
+               else {"qrels_embedding_model_index": cfg.qrels_embedding_model_index}),
             "compute_bootstrap": getattr(cfg, "compute_bootstrap", True),
             "bootstrap_resamples": getattr(cfg, "bootstrap_resamples", 10000),
             "bootstrap_confidence": getattr(cfg, "bootstrap_confidence", 0.95),

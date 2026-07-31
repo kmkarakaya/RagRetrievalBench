@@ -97,6 +97,14 @@ compute_mrr = True         # Mean Reciprocal Rank (MRR)
 compute_ndcg = True        # Normalized Discounted Cumulative Gain (NDCG@K)
 compute_hit_rate = True    # Success@K / Hit Rate@K
 
+# Dataset-level significance tests in the aggregate report (Friedman, paired t-tests,
+# Cohen's d, coefficient-of-variation consistency). These treat each dataset mean as one
+# observation, so with a handful of corpora they have almost no power: on a three-corpus
+# snapshot the Friedman statistic is uninformative rather than evidence of equivalence.
+# The query-level bootstrap layer supersedes them by using individual queries as the unit
+# of variation. Off by default; set True to emit them with an explicit low-power caveat.
+aggregate_report_dataset_level_tests = False
+
 # Query-level uncertainty stage (see utils/bootstrap_utils.py).
 # Resamples the per-query metric values to report, per corpus, how much of a model
 # ranking is actually resolved by the data. Reads the ranking files the evaluation
@@ -223,15 +231,27 @@ The query should be in the form of a natural language question or statement that
 to search for the document in a vector database. Determine the given document's language and 
 generate the query in the same language."""
 
+# NOTE ON THE FROZEN SNAPSHOT.
+# The published qrels were judged with an earlier version of this instruction that
+# stated two different thresholds: it asked whether the excerpt "fully answers the
+# question", then defined label 1 as "complete or partial information". The observed
+# positive rate on the frozen run (952 of 9,296 judged pairs) indicates the looser
+# criterion was the one actually applied, so the wording below states that single
+# criterion explicitly. The judge user message also carried a vestigial "{i+1}."
+# enumeration index, removed in rag_benchmark.py for the same reason.
+# Consequence: re-judging a corpus with the current code will not reproduce the
+# frozen qrels byte-for-byte. The frozen labels remain the published ground truth.
 generate_qrels_system_instruction ="""
-You are an expert Information Retrieval judge. 
+You are an expert Information Retrieval judge.
 You will receive a user question and a candidate excerpt from a document.
-Your task is to determine if the excerpt fully answers the question.
+Your task is to determine whether the excerpt contains information that helps answer
+the question, either completely or partially.
 Example:
 Question: What are the key benefits of X?
 "Text excerpt from a document"
-Respond with a binary relevance label 0 or 1, where 0 means the excerpt does not relate to the question 
-and 1 means it does have the complete or partial information.
+Respond with a binary relevance label 0 or 1, where 0 means the excerpt does not relate
+to the question and 1 means it contains complete or partial information that helps
+answer it. Partial information counts as relevant.
 Return only a JSON object in this format:
 
 {

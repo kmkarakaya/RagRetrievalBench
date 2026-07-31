@@ -1763,16 +1763,30 @@ def _write_markdown_report(
             short_name = model_name.split("/")[-1]
             f.write(f"{i}. **{short_name}** (Avg Rank: {avg_rank:.2f})\n")
             
-            # Find best performances
-            best_datasets = []
+            # Datasets where this model actually leads every other model - not merely
+            # its own highest-scoring datasets, which is what this line reported before
+            # and which mislabelled every model that leads nowhere.
             primary_metric = metrics[0]
+            leads, own_best = [], []
             if primary_metric in model_results.get(model_name, {}):
                 scores = model_results[model_name][primary_metric]["scores_by_dataset"]
-                for ds_name, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)[:2]:
-                    best_datasets.append(f"{ds_name} ({metric_display_name(primary_metric)}={score:.2f})")
-            
-            if best_datasets:
-                f.write(f"   - Best on: {', '.join(best_datasets)}\n")
+                for ds_name, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):
+                    rivals = [
+                        model_results[m][primary_metric]["scores_by_dataset"][ds_name]
+                        for m in model_results
+                        if primary_metric in model_results.get(m, {})
+                        and ds_name in model_results[m][primary_metric]["scores_by_dataset"]
+                    ]
+                    label = f"{ds_name} ({metric_display_name(primary_metric)}={score:.2f})"
+                    if rivals and score >= max(rivals):
+                        leads.append(label)
+                    elif len(own_best) < 2:
+                        own_best.append(label)
+
+            if leads:
+                f.write(f"   - Best on: {', '.join(leads)}\n")
+            elif own_best:
+                f.write(f"   - Leads no dataset; strongest own results: {', '.join(own_best)}\n")
             
             # Consistency
             if model_name in consistency:
@@ -1843,17 +1857,35 @@ def _write_markdown_report(
         
         chunk_size = first_ds.get("config", {}).get("chunk_size", "N/A")
         chunk_overlap = first_ds.get("config", {}).get("chunk_overlap", "N/A")
-        f.write(f"- **Chunking**: {chunk_size} tokens with {chunk_overlap}-token overlap\n")
+        # Characters, not tokens: the pipeline uses LangChain's recursive *character*
+        # text splitter, so reporting these as tokens misdescribed the configuration.
+        f.write(f"- **Chunking**: {chunk_size} characters with {chunk_overlap}-character overlap\n")
         f.write(f"- **Metrics Computed**: {', '.join([metric_display_name(m) for m in metrics])}\n\n")
         
         f.write("### Statistical Analysis Methods\n\n")
-        f.write(f"- **Paired t-tests**: Comparing models across datasets (alpha={cfg.aggregate_significance_level})\n")
-        f.write("- **Effect Size**: Cohen's d for practical significance\n")
-        f.write("- **Consistency Metrics**: Coefficient of variation, worst-case drop\n")
-        
-        if friedman_result[0] and not np.isnan(friedman_result[0]):
-            f.write(f"- **Friedman Test**: chi-squared={friedman_result[0]:.2f}, p={friedman_result[1]:.3f}\n")
-        
+        dataset_level_tests = getattr(cfg, "aggregate_report_dataset_level_tests", False)
+        n_datasets = len(datasets)
+        if dataset_level_tests:
+            f.write(f"- **Paired t-tests**: Comparing models across datasets (alpha={cfg.aggregate_significance_level})\n")
+            f.write("- **Effect Size**: Cohen's d for practical significance\n")
+            f.write("- **Consistency Metrics**: Coefficient of variation, worst-case drop\n")
+            if friedman_result[0] and not np.isnan(friedman_result[0]):
+                f.write(f"- **Friedman Test**: chi-squared={friedman_result[0]:.2f}, p={friedman_result[1]:.3f}\n")
+            f.write(f"\n> **Low power warning.** These tests treat each of the {n_datasets} dataset means as a "
+                    "single observation. With so few observations they have very little power, so a "
+                    "non-significant result here is uninformative rather than evidence that the models "
+                    "perform equally. Prefer the query-level uncertainty section below, which uses "
+                    "individual queries as the unit of variation.\n")
+        else:
+            f.write("- **Query-level bootstrap**: Confidence intervals over individual queries "
+                    "(see *Query-Level Uncertainty* below)\n")
+            f.write("- **Consistency Metrics**: Coefficient of variation, worst-case drop\n")
+            f.write(f"\n> Dataset-level significance tests (Friedman, paired t-tests, Cohen's *d*) are not "
+                    f"reported. They treat each of the {n_datasets} dataset means as one observation and "
+                    "therefore have almost no power at this scale. The query-level bootstrap below replaces "
+                    "them. Set `aggregate_report_dataset_level_tests = True` in `config.py` to emit them anyway.\n")
+
+
         f.write("\n---\n\n")
 
         # Dataset characteristics
@@ -2149,8 +2181,11 @@ def _write_markdown_report(
             f.write("**Why it matters:** Shows model reliability across different domains and identifies ")
             f.write("specialized vs. general-purpose models.\n\n")
         
-        # Statistical Significance Section
-        if significance_matrix is not None:
+        # Statistical Significance Section. Gated with the rest of the dataset-level
+        # tests: pairwise t-tests over a handful of dataset means are underpowered, and
+        # the query-level bootstrap section below supersedes them.
+        if significance_matrix is not None and getattr(
+                cfg, "aggregate_report_dataset_level_tests", False):
             f.write("### Statistical Significance Analysis\n\n")
             f.write("This section determines whether observed performance differences between models are ")
             f.write("statistically significant (real differences) rather than random chance.\n\n")

@@ -20,21 +20,44 @@
   
 }
 
-@article{Lewis_RAG_2021,
+@inproceedings{Lewis_RAG_2021,
   author = {Lewis, Patrick and Perez, Ethan and Piktus, Aleksandra and Petroni, Fabio and Karpukhin, Vladimir and Goyal, Naman and K{\"u}ttler, Heinrich and Lewis, Mike and Yih, Wen-tau and Rockt{\"a}schel, Tim and Riedel, Sebastian and Kiela, Douwe},
-  title = {Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks},
-  year = {2021},
-  journal = {arXiv},
-  
+  title = {Retrieval-Augmented Generation for Knowledge-Intensive {NLP} Tasks},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume = {33},
+  pages = {9459--9474},
+  year = {2020}
+}
+
+@inproceedings{zobel1998reliable,
+  author = {Zobel, Justin},
+  title = {How Reliable Are the Results of Large-Scale Information Retrieval Experiments?},
+  booktitle = {Proceedings of the 21st Annual International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR '98)},
+  pages = {307--314},
+  year = {1998},
+  publisher = {ACM},
+  doi = {10.1145/290941.291014}
+}
+
+@inproceedings{buckley2004retrieval,
+  author = {Buckley, Chris and Voorhees, Ellen M.},
+  title = {Retrieval Evaluation with Incomplete Information},
+  booktitle = {Proceedings of the 27th Annual International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR '04)},
+  pages = {25--32},
+  year = {2004},
+  publisher = {ACM},
+  doi = {10.1145/1008992.1009000}
 }
 
 @article{Zhu_LLMIR_Survey_2025,
   author = {Zhu, Yutao and Yuan, Huaying and Wang, Shuting and Liu, Jiongnan and Liu, Wenhan and Deng, Chenlong and Chen, Haonan and Liu, Zheng and Dou, Zhicheng and Wen, Ji-Rong},
   title = {Large Language Models for Information Retrieval: A Survey},
-  year = {2025},
+  year = {2026},
   journal = {ACM Transactions on Information Systems},
   volume = {44},
   number = {1},
+  articleno = {12},
+  numpages = {54},
   doi = {10.1145/3748304},
 }
 
@@ -72,15 +95,7 @@
   number = {9},
   pages = {1328--1342},
   publisher = {IWA Publishing},
-}
-
-@article{Song_2024,
-  author = {Song, Ran and Gao, Shengxiang and Mao, Cunli and Yu, Zhengtao},
-  title = {Mlke: A Benchmark for Multilingual Knowledge Editing on Large Language Model},
-  year = {2024},
-  publisher = {Elsevier BV},
-  doi = {10.2139/ssrn.4882305},
-  url = {http://dx.doi.org/10.2139/ssrn.4882305},
+  doi = {10.2166/wst.2025.156},
 }
 
 @article{Abimbola_2026,
@@ -246,6 +261,8 @@
   author = {Xu, Yuan},
   year = {2025},
   school = {University of Illinois Urbana-Champaign},
+  type = {Master's thesis},
+  url = {https://hdl.handle.net/2142/132602},
 }
 
 @article{friel2024ragbench,
@@ -304,8 +321,9 @@
   volume = {14},
   number = {1},
   pages = {99},
-  year = {2025},
+  year = {2026},
   publisher = {MDPI},
+  doi = {10.3390/pr14010099},
 }
 
 @inproceedings{Iscan_2024,
@@ -322,7 +340,7 @@
 
 @inproceedings{nezhad2025cross,
   title = {CROSS: Analyzing the Trade-offs in Long-Context Cross-lingual Retrieval},
-  author = {Nezhad, Sina Bagheri and Agrawal, Ameeta},
+  author = {Bagheri Nezhad, Sina and Agrawal, Ameeta},
   year = {2025},
   booktitle = {ICLR 2025 Workshop on Foundation Models in the Wild},
 }
@@ -362,26 +380,6 @@
   url = {http://dx.doi.org/10.3390/app152212219},
 }
 
-@article{caferoglu2025sing,
-  title = {Sing-SQL: A Synthetic Data Generation Framework for In-Domain Text-to-SQL Translation},
-  author = {Cafero{\u{g}}lu, Hasan Alp and {\c{C}}elik, Mehmet Serhat and Ulusoy, {\"O}zg{\"u}r},
-  journal = {arXiv preprint arXiv:2509.25672},
-  year = {2025},
-}
-
-@inproceedings{huang-etal-2025-targa,
-  title = {TARGA: Targeted Synthetic Data Generation for Practical Reasoning over Structured Data},
-  author = {Huang, Xiang and Shen, Jiayu and Huang, Shanshan and Cheng, Sitao and Wang, Xiaxia and Qu, Yuzhong},
-  year = {2025},
-  month = jul,
-  booktitle = {Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
-  address = {Vienna, Austria},
-  publisher = {Association for Computational Linguistics},
-  pages = {2704--2726},
-  doi = {10.18653/v1/2025.acl-long.137},
-  url = {https://aclanthology.org/2025.acl-long.137/},
-}
-
 @inproceedings{Bassani_2021,
   title = {Semantic Query Labeling Through Synthetic Query Generation},
   author = {Bassani, Elias and Pasi, Gabriella},
@@ -395,11 +393,14 @@
   url = {http://dx.doi.org/10.1145/3404835.3463071},
 }
 
-@article{thakur2025support,
-  title = {Support Evaluation for the TREC 2024 RAG Track: Comparing Human versus LLM Judges},
-  author = {Thakur, Nandan and Pradeep, Ronak and Upadhyay, Shivani and Campos, Daniel and Craswell, Nick and Lin, Jimmy},
-  journal = {arXiv preprint arXiv:2504.15205},
+@inproceedings{thakur2025support,
+  title = {Assessing Support for the {TREC} 2024 {RAG} Track: A Large-Scale Comparative Study of {LLM} and Human Evaluations},
+  author = {Thakur, Nandan and Pradeep, Ronak and Upadhyay, Shivani and Campos, Daniel and Craswell, Nick and Soboroff, Ian and Dang, Hoa Trang and Lin, Jimmy},
+  booktitle = {Proceedings of the 48th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+  pages = {2759--2763},
   year = {2025},
+  publisher = {ACM},
+  doi = {10.1145/3726302.3730165},
 }
 
 @inproceedings{abdallah2025rerankarena,
@@ -419,11 +420,16 @@
   year = {2025},
 }
 
-@inproceedings{Karakaya_Conference_2025,
+@article{Karakaya_Conference_2025,
   author = {Karakaya, Murat},
   title = {Local Benchmarking of Sentence Embedding Models for Retrieval-Augmented Generation},
+  journal = {International Journal of Advances in Electronics and Computer Science (IJAECS)},
+  volume = {12},
+  number = {9},
   year = {2025},
-  booktitle = {TheIIER International Conference, Madrid, Spain},
+  month = sep,
+  issn = {2394-2835},
+  url = {https://www.iraj.in/journal/journal_file/journal_pdf/12-1119-17744404741-7.pdf},
 }
 
 @misc{SentenceTransformers_Pretrained,
@@ -484,7 +490,8 @@
   volume = {2406},
   pages = {355--370},
   publisher = {Springer},
-  year = {2002}
+  year = {2002},
+  doi = {10.1007/3-540-45691-0_34}
 }
 
 @inproceedings{es2024ragas,
@@ -572,18 +579,18 @@
   archivePrefix = {arXiv},
 }
 
-@misc{langchain2026,
-  author = {{LangChain}},
-  title = {{LangChain}: A Framework for Building Applications with Large Language Models},
-  year = {2026},
+@misc{langchain2022,
+  author = {Chase, Harrison},
+  title = {{LangChain}},
+  year = {2022},
   howpublished = {\url{https://github.com/langchain-ai/langchain}},
-  note = {Accessed: 2026-01-01},
+  note = {Software, first released 2022-10-17; accessed 2026-01-01},
 }
 
-@misc{llamaindex2026,
+@misc{llamaindex2022,
   author = {Liu, Jerry},
-  title = {{LlamaIndex}: A Data Framework for Large Language Model Applications},
-  year = {2026},
+  title = {{LlamaIndex}},
+  year = {2022},
   howpublished = {\url{https://github.com/run-llama/llama_index}},
-  note = {Accessed: 2026-01-01},
+  note = {Software, first released 2022-11-02; accessed 2026-01-01},
 }

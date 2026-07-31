@@ -357,10 +357,10 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
         requests = []
         for query_id, query_text in queries.items():
             source_chunk_id = parse_source_chunk_id(query_id)
-            for i, (doc_id, text) in enumerate(candidate_pool.get(query_id, [])):
+            for doc_id, text in candidate_pool.get(query_id, []):
                 if force and source_chunk_id and doc_id == source_chunk_id:
                     continue  # forced relevant without judging
-                prompt = f"Question: {query_text}\n{i+1}. [{doc_id}] \"{text}\"\n\n"
+                prompt = f"Question: {query_text}\n[{doc_id}] \"{text}\"\n\n"
                 key = f"{query_id}|||{doc_id}"
                 req = bm.prepare_request(key, prompt, cfg.generate_qrels_system_instruction, cfg.temperature)
                 requests.append(req)
@@ -375,10 +375,10 @@ def generate_qrels(batch_submit=False, batch_fetch_id=None) -> bool:
         source_chunk_id = parse_source_chunk_id(query_id)
         candidates = candidate_pool.get(query_id, [])
         print(f"Query {query_id}: judging {len(candidates)} pooled candidates.")
-        for i, (doc_id, text) in enumerate(candidates):
+        for doc_id, text in candidates:
             if force and source_chunk_id and doc_id == source_chunk_id:
                 continue  # forced relevant without judging
-            prompt = f"Question: {query_text}\n{i+1}. [{doc_id}] \"{text}\"\n\n"
+            prompt = f"Question: {query_text}\n[{doc_id}] \"{text}\"\n\n"
             relevance = generate_content(cfg.generate_qrels_system_instruction, prompt)
             label = 1 if parse_relevance_score(relevance) > 0 else 0
             qrel_map.setdefault(query_id, {})[doc_id] = label
