@@ -126,7 +126,7 @@ The query-level evidence again supports the ordering: the paired interval for \t
 \caption{Representative per-dataset metric profile generated automatically for the \texttt{law\_tr} benchmark.}\label{fig:results_law_tr_model_comparison}
 \end{figure}
 
-\subsection{Cross-Language Shortlist Stability: the Education Corpora}\label{language-effect}
+\subsection{Cross-Language Shortlist Stability: The Education Corpora}\label{language-effect}
 
 Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, the English and Turkish education corpora provide a within-snapshot comparison of whether model behavior differs between the two language-associated cases. Because the comparison rests on a single corpus per language, language is confounded with corpus identity, source selection, and qrels composition; the comparison is therefore a bounded case observation rather than an isolated causal estimate. The two corpora are drawn from the same institutional regulation set and are not disjoint: four documents appear in both in translation, namely the long-term academic leave regulation, the quality-commission directive, and two Erasmus+ mobility calls. They are not parallel collections, however. The remaining documents have no counterpart and differ in emphasis, with \texttt{education\_eng} weighted toward student-facing academic regulation such as admission criteria, examination rules, internships, and scholarships, and \texttt{education\_tr} weighted toward institutional administration such as budgeting, procurement, fixed-asset inventory, and signature authority. Language therefore co-varies with document composition, which is a further reason to read this subsection as a comparison of two corpus reports produced under one protocol rather than as an estimate of a language effect. Table~\ref{tbl:language_effect_comparison} shows that the English results sit in a relatively narrow high band, with all five models between 0.3557 and 0.5260 in \texttt{MAP@10}, whereas the Turkish results are lower and more spread by model family.
 
@@ -141,7 +141,7 @@ The practical implication is narrow but useful. For local retrieval deployment, 
 \input{tbl_language_effect_comparison.tex}
 \end{table}
 
-\subsection{Cross-Domain Shortlist Stability: the Turkish Corpora}\label{domain-effect-within-turkish}
+\subsection{Cross-Domain Shortlist Stability: The Turkish Corpora}\label{domain-effect-within-turkish}
 
 Under the shared evaluation setup in Section~\ref{shared-evaluation-setup}, Table~\ref{tbl:turkish_domain_comparison} compares what changes when the corpus stays Turkish but the domain-associated case shifts from education to law/regulation. As with the language-associated comparison, this rests on one corpus per domain, so domain is confounded with corpus structure---notably \texttt{law\_tr}'s two long regulatory documents---and the comparison is a case observation rather than a general causal estimate.
 
@@ -194,7 +194,7 @@ The benchmark is intended not only to rank embedding models but to show how much
 
 Read descriptively, \texttt{M5} has the highest aggregate \texttt{MAP@10}, and the paired intervals for \texttt{M5}$-$model differences are positive for the other four candidates. The intervals also keep the snapshot's limits visible: the per-model intervals are wide and overlap, and the ordering is not uniform across conditions. On \texttt{education\_eng}, the English-oriented models lead and \texttt{M5} trails the \texttt{MAP@10}-leading candidate \texttt{M1}, whereas on both Turkish corpora \texttt{M5} leads. The two properties of this aggregate estimator set out in Section~\ref{query-level-uncertainty} apply here concretely: it is a pooled mean over the 148 scored queries, so it differs slightly from the macro-mean aggregates in Table~\ref{tbl:quality_speed_summary}, and it is unstratified over the 48/50/50 split across corpora.
 
-The corresponding per-corpus layer, which is what the dataset reports carry and what the selections in Section~\ref{cross-dataset-headline-findings} rest on, was given in Table~\ref{tbl:per_corpus_ci}.
+The corresponding per-corpus layer, which is what the dataset reports carry and what the selections in Section~\ref{cross-dataset-headline-findings} rest on, is given in Table~\ref{tbl:per_corpus_ci}.
 
 \subsection{Qualitative Examples and Error Analysis}\label{examples-error-analysis}
 
