@@ -164,13 +164,85 @@ def check_scored_query_counts(findings: list[str]) -> int:
     return checks
 
 
+# The qualitative example walked through in Section 5.10. The IDs are quoted verbatim in
+# the manuscript so a reader can locate them in the released artifacts, which makes them
+# exactly the kind of hand-written value that can rot silently on a rerun.
+WORKED_EXAMPLE = {
+    "dataset": "education_eng",
+    "query_id": "q1_for_English_chunk24",
+    "relevant_chunk": "English_chunk12",
+    "near_miss_chunk": "Admission_chunk2",
+    "judged_phrase": "Thirty-seven pooled candidates",
+    "positive_phrase": "six were labeled relevant",
+    "also_cited": [
+        ("education_tr", "q1_for_Bütçe_chunk2"),
+        ("law_tr", "q1_for_Sermaye_chunk238"),
+    ],
+}
+
+
+def check_worked_example(findings: list[str]) -> int:
+    """Section 5.10 names concrete query/chunk IDs; they must exist and be labeled as claimed."""
+    text = _section_text()
+    checks = 0
+
+    qrels = PROJECT_ROOT / "datasets" / WORKED_EXAMPLE["dataset"] / "qrels.tsv"
+    if not qrels.exists():
+        raise FileNotFoundError(qrels)
+    judged = {}
+    for line in qrels.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        qid, chunk_id, label = line.split("\t")[:3]
+        if qid == WORKED_EXAMPLE["query_id"]:
+            judged[chunk_id] = label.strip()
+
+    checks += 1
+    if not judged:
+        findings.append(
+            f"worked example {WORKED_EXAMPLE['query_id']} has no rows in {qrels.name}; "
+            f"the identifiers quoted in Section 5.10 no longer resolve")
+        return checks
+
+    n_judged = len(judged)
+    n_pos = sum(1 for v in judged.values() if v == "1")
+    for count, phrase in ((n_judged, WORKED_EXAMPLE["judged_phrase"]),
+                          (n_pos, WORKED_EXAMPLE["positive_phrase"])):
+        checks += 1
+        if phrase not in text:
+            findings.append(
+                f"worked example: artifacts give {count} for '{phrase}', "
+                f"but the paper does not state it in those words")
+
+    for chunk_id, want in ((WORKED_EXAMPLE["relevant_chunk"], "1"),
+                           (WORKED_EXAMPLE["near_miss_chunk"], "0")):
+        checks += 1
+        got = judged.get(chunk_id)
+        if got != want:
+            findings.append(
+                f"worked example: {chunk_id} is labeled {got!r} for "
+                f"{WORKED_EXAMPLE['query_id']}, paper describes it as {want!r}")
+
+    for dataset, query_id in WORKED_EXAMPLE["also_cited"]:
+        checks += 1
+        path = PROJECT_ROOT / "datasets" / dataset / "queries.jsonl"
+        ids = {json.loads(l)["query_id"]
+               for l in path.read_text(encoding="utf-8").splitlines() if l.strip()}
+        if query_id not in ids:
+            findings.append(
+                f"worked example: query ID {query_id} cited for {dataset} "
+                f"is absent from {path.name}")
+    return checks
+
+
 def main() -> int:
     findings: list[str] = []
     checks = 0
     for fn in (check_generated_fragments_present,
                check_dataset_result_summary,
                check_inline_paired_intervals,
-               check_scored_query_counts):
+               check_scored_query_counts,
+               check_worked_example):
         try:
             checks += fn(findings)
         except FileNotFoundError as e:

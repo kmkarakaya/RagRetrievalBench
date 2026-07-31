@@ -34,7 +34,7 @@ Reporting & Dataset-level evaluation artifacts & Produce a dataset-level report 
 \begin{figure}
 \centering
 \includegraphics[width=0.95\linewidth]{conceptual_overview.png}
-\caption{Conceptual overview of the proposed embedding benchmarking pipeline. The figure summarizes the flow from a local document collection to corpus-specific reporting; Table~\ref{tbl:method_pipeline_stages} gives the authoritative stage sequence, including the uncertainty-estimation stage of Section~\ref{query-level-uncertainty}.}\label{fig:method_pipeline_workflow}
+\caption{Conceptual overview of the proposed embedding benchmarking pipeline. The figure summarizes the flow from a local document collection to corpus-specific reporting; Table~\ref{tbl:method_pipeline_stages} gives the authoritative stage sequence, including the uncertainty-estimation stage of Section~\ref{query-level-uncertainty}. The three model boxes are schematic: the pipeline indexes and evaluates a roster of $n$ candidates, and the reported snapshot uses five.}\label{fig:method_pipeline_workflow}
 \end{figure}
 
 \subsection{Corpus Preparation}\label{corpus-preparation}
@@ -123,4 +123,4 @@ Aggregate level & Cross-dataset comparison report, pooled confidence intervals, 
 \caption{Reporting flow from dataset-specific benchmark outputs to aggregate comparison artifacts.}\label{fig:method_reporting_workflow}
 \end{figure}
 
-The method is designed for reproducibility at both the artifact and workflow levels. Intermediate benchmark resources are materialized as explicit corpus, query, qrels, ranking, timing, and report artifacts; model evaluation is performed on isolated vector collections; and reporting outputs are stored as timestamped run products at both dataset and aggregate levels. The implementation of this pipeline is publicly available for inspection and reuse, which supports transparent reconstruction of the workflow described in this paper. This availability should be understood as implementation transparency and artifact-level reuse, not as an immutable archival record or a guarantee that external services and model aliases will remain unchanged \citep{GitHub_RagRetrievalBench}.
+The method is designed for reproducibility at both the artifact and workflow levels. Intermediate benchmark resources are materialized as explicit corpus, query, qrels, ranking, timing, and report artifacts; model evaluation is performed on isolated vector collections; and reporting outputs are stored as timestamped run products at both dataset and aggregate levels. The implementation of this pipeline is publicly available for inspection and reuse, which supports transparent reconstruction of the workflow described in this paper. This availability should be understood as implementation transparency and artifact-level reuse, not as an immutable archival record or a guarantee that external services and model aliases will remain unchanged.
