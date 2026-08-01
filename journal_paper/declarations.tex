@@ -1,32 +1,54 @@
-% \printcredits emits its own "CRediT authorship contribution statement" heading
-% from the \credit{} roles declared in the frontmatter; do not add one here.
-\printcredits
+%% Springer Nature back matter. \backmatter switches off section numbering for
+%% everything that follows; \bmhead{} produces the run-in subheadings that
+%% Springer expects under the "Declarations" heading.
+\backmatter
 
-\section*{Declaration of competing interest}
+\section*{Declarations}
 
-The author declares that there are no known competing financial interests or personal
-relationships that could have appeared to influence the work reported in this paper.
-
-\section*{Funding}
+\bmhead{Funding}
 
 This research did not receive any specific grant from funding agencies in the public,
 commercial, or not-for-profit sectors.
 
-\section*{Ethics}
+\bmhead{Competing interests}
 
-This study did not involve human participants, animal subjects, or personal data. The
-benchmark corpora consist of publicly available institutional regulations and legislation
-retrieved from the sources listed in Table~\ref{tbl:dataset_provenance}.
+The author declares that there are no known competing financial interests or personal
+relationships that could have appeared to influence the work reported in this paper.
 
-\section*{Code and data availability}
+\bmhead{Ethics approval and consent to participate}
 
-The pipeline implementation and the benchmark artifacts reported in this paper are available
-in the project repository \citep{GitHub_RagRetrievalBench}. The released artifacts comprise
-the source documents, chunked corpora, generated synthetic queries, LLM-judged qrels
-including explicit negative labels, per-model ranking files, raw-result JSON, and the
-generated dataset-level and aggregate reports for all three corpora. Persisted ChromaDB
-vector indexes are excluded from the release and can be rebuilt from the chunked corpora with
-the pipeline's indexing stage. The source documents are public institutional regulations
-obtained from the providers listed in Table~\ref{tbl:dataset_provenance}
-\citep{TED_Regulations, BDDK_Mevzuat}; the reproducibility conditions under which the reported
-snapshot was produced are summarized in Table~\ref{tbl:reproducibility}.
+Not applicable. This study did not involve human participants, animal subjects, or personal
+data. The benchmark corpora consist of publicly available institutional regulations and
+legislation retrieved from the sources listed in Table~\ref{tbl:dataset_provenance}.
+
+\bmhead{Consent for publication}
+
+Not applicable.
+
+\bmhead{Data availability}
+
+The benchmark artifacts reported in this paper are available in the project repository
+\citep{GitHub_RagRetrievalBench}. The released artifacts comprise the source documents,
+chunked corpora, generated synthetic queries, LLM-judged qrels including explicit negative
+labels, per-model ranking files, raw-result JSON, and the generated dataset-level and
+aggregate reports for all three corpora. Persisted ChromaDB vector indexes are excluded from
+the release and can be rebuilt from the chunked corpora with the pipeline's indexing stage.
+The source documents are public institutional regulations obtained from the providers listed
+in Table~\ref{tbl:dataset_provenance} \citep{TED_Regulations, BDDK_Mevzuat}; the
+reproducibility conditions under which the reported snapshot was produced are summarized in
+Table~\ref{tbl:reproducibility}.
+
+\bmhead{Materials availability}
+
+Not applicable.
+
+\bmhead{Code availability}
+
+The pipeline implementation is available in the project repository
+\citep{GitHub_RagRetrievalBench}, together with the configuration and stage sequence used to
+produce the reported snapshot.
+
+\bmhead{Author contributions}
+
+M.K. is the sole author and was responsible for conceptualization, methodology, software,
+investigation, writing of the original draft, and writing---review and editing.

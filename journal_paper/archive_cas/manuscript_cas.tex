@@ -1,0 +1,44 @@
+\documentclass[a4paper,fleqn]{__CAS_CLASS__}
+\usepackage[authoryear,longnamesfirst]{natbib}
+\usepackage{longtable,booktabs,array,calc}
+\makeatletter
+\providecommand\insert@pcolumn{\insert@column}
+\makeatother
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\begin{document}
+\shorttitle{Local RAG Embedding Benchmarking}
+\shortauthors{Murat Karakaya}
+\title[mode=title]{A Local RAG Retrieval Benchmarking Pipeline for Corpus-Specific Embedding-Model Selection}
+\author[1]{Murat Karakaya}[orcid=0000-0002-9542-6965]
+\credit{Conceptualization, Methodology, Software, Investigation, Writing - original draft, Writing - review \& editing}
+\cormark[1]
+\ead{murat.karakaya@tedu.edu.tr}
+\affiliation[1]{organization={Department of Software Engineering, TED University},city={Ankara},country={T\"urkiye}}
+\cortext[1]{Corresponding author}
+\begin{abstract}
+Practitioners who operate retrieval-augmented generation (RAG) systems often manage several heterogeneous local corpora, and an embedding model that is suitable for one collection should not be transferred automatically to another. This paper presents a configurable local benchmarking pipeline for corpus-specific embedding-model selection. The completed workflow processes each corpus separately through document preparation, synthetic query generation, relevance-judgment construction, multi-model retrieval evaluation, and automated report generation. Each dataset-level report combines retrieval metrics, embedding/insertion throughput, query latency, and preserved artifacts; aggregate reporting is used only as secondary cross-corpus context.
+
+The pipeline is demonstrated through one frozen three-corpus experimental instantiation (education\_eng, education\_tr, law\_tr) with five sentence-transformer embedding candidates denoted M1--M5, 60 source documents, 1{,}914 chunks, 150 generated synthetic queries, and 9{,}296 judged query--chunk pairs, including 952 positive relevance judgments. The purpose of the demonstration is not to make these particular model rankings the main contribution, but to show that the same controlled workflow can expose substantial corpus- and priority-dependent differences across retrieval quality and operational metrics. In the snapshot, the dataset-level reports point to M1 for education\_eng when MAP@10 and latency are both considered, to M5 as the quality-first candidate for the two Turkish corpora, and to M3 as a lower-latency Turkish compromise. These different readings illustrate the practical need for a pipeline that lets practitioners evaluate candidate embeddings on their own datasets and application requirements instead of assuming one transferable winner. Each report also carries query-level bootstrap intervals over the 148 scored positive-bearing queries, so a reader can see which parts of a corpus ranking the benchmark actually resolves. All evidence remains conditional on the reported snapshot: synthetic queries, unvalidated LLM qrels, a fixed retrieval geometry, a five-model roster, and single-run timing.
+\end{abstract}
+\begin{highlights}
+\item Per-corpus benchmarking generates separate local RAG retrieval reports.
+\item Heterogeneous corpora can support different embedding-model selections.
+\item Reports combine retrieval quality with measured operational tradeoffs.
+\item Shared-protocol artifacts make corpus-specific screening inspectable and repeatable.
+\end{highlights}
+\begin{keywords}
+Local RAG benchmarking \sep Embedding-model selection \sep Corpus-specific evaluation \sep Retrieval evaluation \sep Synthetic queries \sep Relevance judgments
+\end{keywords}
+\maketitle
+\input{intro.tex}
+\input{related.tex}
+\input{method.tex}
+\input{experiments.tex}
+\input{results.tex}
+\input{discussion.tex}
+\input{conclusion.tex}
+\input{declarations.tex}
+\bibliographystyle{cas-model2-names}
+\bibliography{refs}
+\end{document}

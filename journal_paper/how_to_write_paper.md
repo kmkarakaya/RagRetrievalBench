@@ -2,6 +2,11 @@
 
 This file is the practical guide for a human working with Codex in VS Code.
 
+> **Current target journal:** Machine Learning (Springer, journal 10994).
+> Template: `journal_paper/ML_Template/` (`sn-jnl.cls`, `bst/sn-basic.bst`), built with pdflatex.
+> The retired Elsevier CAS front matter is archived in `journal_paper/archive_cas/`; the section
+> files were format-agnostic and carried over unchanged.
+
 ## Full Workflow: From Solved Repo to Paper Writing
 
 Working assumption:
@@ -10,7 +15,7 @@ Working assumption:
 
 Start-here workflow:
 
-1. Select the target journal/paper and place the LaTeX template under `journal_paper/template/`.
+1. Select the target journal/paper and place its LaTeX template in its own folder under `journal_paper/` (currently `journal_paper/ML_Template/`).
 2. Ask the agent to review the template and align `AGENTS.md` and `codex_skills/latex-template-compliance/SKILL.md` if template constraints require updates.
 3. Prepare `journal_paper/publication_plan.md` with the agent as the canonical planning baseline.
 4. Start one section cycle in a target `.tex` file: draft writing, table work, image placeholder/insertion, revision, polish, and temporary finalize.
@@ -47,7 +52,7 @@ Do not edit generated files inside `journal_paper/build/...`.
   - canonical planning source for paper-writing cycles
   - use this for claim boundaries, snapshot constraints, and step-1 planning
 - `codex_skills/latex-template-compliance/SKILL.md`
-  - detailed CAS/LaTeX workflow guidance
+  - detailed Springer Nature sn-jnl / LaTeX workflow guidance
   - use this when the task is about tables, figures, labels, citations, layout, or template compliance
 
 ## 3) How the human should use them
@@ -81,7 +86,7 @@ Read and follow AGENTS.md and journal_paper/codex_session_prompt.txt.
 Use journal_paper/publication_plan.md as the canonical planning baseline.
 If the task is template-sensitive, also use codex_skills/latex-template-compliance/SKILL.md.
 Edit only journal_paper/manuscript.tex, journal_paper/*.tex, and journal_paper/refs.bib.
-Follow Elsevier CAS template conventions.
+Follow Springer Nature sn-jnl template conventions (target journal: Machine Learning, Springer 10994).
 Run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf before declaring success.
 ```
 
@@ -112,7 +117,7 @@ This does the full validation path:
 
 - lint/template checks
 - wrapper generation
-- XeLaTeX/BibTeX/PDF build
+- pdfLaTeX/BibTeX/PDF build, plus the single-file `manuscript_sn_full.tex` submission wrapper
 
 For real manuscript editing, prefer `-CompilePdf`, because some failures only appear during actual LaTeX compilation.
 
@@ -141,7 +146,7 @@ Always ask Codex to report:
 - Ask Codex to regenerate the PDF after each substantial section change.
 - If a small table causes LaTeX trouble, ask Codex to prefer `table` over `longtable` unless multi-page behavior is required.
 - If a figure does not exist yet, ask Codex to:
-  - insert a CAS-compliant figure placeholder with `\caption{...}` and `\label{...}`
+  - insert a template-compliant figure placeholder with `\caption{...}` and `\label{...}`
   - add a short design prompt in a nearby LaTeX comment
   - write a reusable image-generation prompt you can paste into Banana 2 or another image model
 
@@ -370,7 +375,7 @@ Read and follow AGENTS.md and journal_paper/codex_session_prompt.txt.
 Use journal_paper/publication_plan.md as the canonical planning baseline.
 Use codex_skills/latex-template-compliance/SKILL.md if the task is template-sensitive.
 Edit only journal_paper/manuscript.tex, journal_paper/*.tex, and journal_paper/refs.bib.
-Follow Elsevier CAS template conventions.
+Follow Springer Nature sn-jnl template conventions (target journal: Machine Learning, Springer 10994).
 Always run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf before declaring success.
 ```
 
@@ -415,7 +420,7 @@ Do not let Method absorb results discussion.
 ### D. Add or revise a figure placeholder
 
 ```text
-Add a CAS-compliant figure placeholder in the target section with \caption{...} and \label{...}.
+Add a template-compliant figure placeholder in the target section with \caption{...} and \label{...}.
 Include a short nearby LaTeX comment that can later be used to generate the image with Banana 2.
 Also write a reusable Banana 2 prompt for the figure.
 Keep the figure path flat inside journal_paper/.
@@ -470,7 +475,7 @@ Regenerate the PDF after the change.
 
 ```text
 Read AGENTS.md and use codex_skills/latex-template-compliance/SKILL.md.
-Check journal_paper/<section>.tex for alignment with the Elsevier CAS template and local repo rules.
+Check journal_paper/<section>.tex for alignment with the Springer Nature sn-jnl template and local repo rules.
 If anything is weak or inconsistent, fix it.
 Then run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf and report the result.
 ```
@@ -479,7 +484,7 @@ Then run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build
 
 ```text
 Read AGENTS.md and use codex_skills/latex-template-compliance/SKILL.md.
-Check journal_paper/refs.bib against the local CAS template files under journal_paper/template.
+Check journal_paper/refs.bib against the Springer sn-basic author-year style used by the build.
 For website-style resources, use the template-consistent @misc pattern with howpublished = {\url{...}}.
 For organizational authors, use double braces so BibTeX does not invert the name into a fake personal-author form.
 Fix any non-compliant or awkward-looking bibliography entries, then run powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1 -CompilePdf and report the result.
@@ -510,7 +515,7 @@ If something is missing and belongs here, add it.
 If it belongs in another section, state that briefly and do not duplicate it here.
 
 4. Read AGENTS.md and use codex_skills/latex-template-compliance/SKILL.md as a checklist.
-Ensure the section follows the Elsevier CAS template rules and the repo-specific manuscript rules.
+Ensure the section follows the Springer Nature sn-jnl template rules and the repo-specific manuscript rules.
 Fix any weak template-compliance issue you find.
 
 5. Strengthen readability and defensibility where needed:

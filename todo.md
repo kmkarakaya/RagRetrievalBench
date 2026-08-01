@@ -73,12 +73,39 @@ Scope: consistency and goal-alignment only — no length compression, no figure 
 - [x] `pytest tests/ -q` → matches the 6-failure `HEAD` baseline, 81 passing
 - [x] After items 4 and 5, re-count hedge words and headline restatements to confirm the reduction landed
 
+## Reformatted for Machine Learning (Springer) — 2026-08-01
+
+Target journal changed from Elsevier to **Machine Learning** (Springer, journal 10994).
+
+- [x] `manuscript.tex` → `sn-jnl` with `[pdflatex,sn-basic,lineno]`; Springer Basic author–year
+      references, `\author*`/`\affil*`/`\abstract{}`/`\keywords{}`, `lineno` margin numbers for referees.
+      Elsevier `highlights` removed (no Springer equivalent); `\bibliographystyle` and the manual
+      `natbib` load removed because the class supplies both.
+- [x] `declarations.tex` → `\backmatter` + `\section*{Declarations}` with `\bmhead{}` subheadings:
+      Funding, Competing interests, Ethics approval, Consent for publication, Data availability,
+      Materials availability, Code availability, Author contributions (replaces `\printcredits`).
+- [x] `build.ps1` → sn-jnl assets from `ML_Template/`, `pdflatex` instead of `xelatex`, SN001–SN014 lint
+      rules replacing CAS001–CAS016. Structural rules (caption/label/centering, flat-source, image and
+      citation-key resolution) are unchanged.
+- [x] Elsevier front matter archived under `journal_paper/archive_cas/` (invisible to every glob).
+- [x] Verified: lint 0/0, 0 undefined citations/references, `.aux` converged, 47 pages,
+      `--verify-paper` 33/33, `datasets/` untouched. `manuscript_sn_full.tex` compiles standalone.
+
+**Submit `build/<timestamp>/manuscript_sn_full.tex`** — Springer asks for a single `.tex` document, and
+that wrapper has every `\input` inlined.
+
 ## Blocking before submission — author action
 
-- [ ] **Make the GitHub repository public.** It currently 404s anonymously. The Code and Data Availability
-      statement and two inline citations point at it. This is the single largest gap between what the paper
+- [ ] **Make the GitHub repository public.** It currently 404s anonymously. The Data and Code Availability
+      statements and two inline citations point at it. This is the single largest gap between what the paper
       claims and what a referee can verify.
-- [ ] Confirm whether the target journal requires a generative-AI declaration in the manuscript body
+- [ ] **Write the 1–2 page information sheet** that Machine Learning requires alongside each submission.
+- [ ] Confirm on the live submission-guidelines page that Machine Learning wants Springer Basic
+      **author–year** (current setting). Switching to numbered is a one-word change: add `Numbered` to the
+      `\documentclass` options in `manuscript.tex`.
+- [ ] Enter the ORCID (0000-0002-9542-6965) in the submission portal — `sn-jnl`'s `\orcid` macro needs an
+      `Orcidlogo.eps` that ships separately, so it is not set in the LaTeX source.
+- [ ] Confirm whether the journal requires a generative-AI declaration in the manuscript body
       (currently omitted by author decision) or only in the submission portal.
 
 ## Not in this pass

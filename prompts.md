@@ -1,5 +1,12 @@
 # Cold-Start Prompts for Completing `todo.md`
 
+> **Historical record — do not run as-is.** These prompts were written for a `todo.md` and a
+> `reviewer.md` that no longer exist, and for the Elsevier CAS format. The paper was reformatted
+> for Machine Learning (Springer, `sn-jnl`) on 2026-08-01. Any prompt below that says "preserve
+> CAS front matter", "rewrite highlights", or "the CAS PDF passes lint" is obsolete: `sn-jnl` has
+> no highlights environment and a different front-matter contract. See `AGENTS.md` and
+> `codex_skills/latex-template-compliance/SKILL.md` for the current rules.
+
 ## How to Use This File
 
 Run the prompts **in order**, using one fresh agent session per prompt. Copy the complete prompt block into the cold-start session. Do not combine prompts: each is deliberately limited to a small manuscript scope.

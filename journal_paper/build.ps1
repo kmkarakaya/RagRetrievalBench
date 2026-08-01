@@ -1,6 +1,8 @@
+# Builds the Springer Nature (sn-jnl) manuscript for Machine Learning (journal 10994).
+#
+# The retired Elsevier CAS build lives in archive_cas/build_cas.ps1 alongside the CAS
+# front matter; the section files (intro..conclusion) are format-agnostic and shared.
 param(
-    [ValidateSet("sc", "dc")]
-    [string]$Layout = "sc",
     [switch]$CompilePdf
 )
 
@@ -28,19 +30,21 @@ function Invoke-CheckedExternal {
 
 $PaperDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BuildRoot = Join-Path $PaperDir "build"
-$TemplateDir = Join-Path $PaperDir "template"
-$ClassName = if ($Layout -eq "dc") { "cas-dc" } else { "cas-sc" }
-$WrapperName = "manuscript_cas_$Layout.tex"
-$FullWrapperName = "manuscript_cas_${Layout}_full.tex"
+$TemplateDir = Join-Path $PaperDir "ML_Template"
+$WrapperName = "manuscript_sn.tex"
+$FullWrapperName = "manuscript_sn_full.tex"
 $MasterTexPath = Join-Path $PaperDir "manuscript.tex"
 $BibPath = Join-Path $PaperDir "refs.bib"
+
+# sn-jnl selects its own .bst from the documentclass option; sn-basic (without the
+# "Numbered" option) is Springer Basic author-year, which is what Machine Learning uses.
+$BstName = "sn-basic.bst"
 
 $requiredFiles = @(
     $MasterTexPath,
     $BibPath,
-    (Join-Path $TemplateDir "$ClassName.cls"),
-    (Join-Path $TemplateDir "cas-common.sty"),
-    (Join-Path $TemplateDir "cas-model2-names.bst")
+    (Join-Path $TemplateDir "sn-jnl.cls"),
+    (Join-Path $TemplateDir "bst/$BstName")
 )
 
 $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
@@ -165,7 +169,7 @@ if not master.exists():
         "project root",
         "Required source file manuscript.tex is missing.",
         "Create manuscript.tex in journal_paper root.",
-        r"\documentclass[a4paper,fleqn]{__CAS_CLASS__}",
+        r"\documentclass[pdflatex,sn-basic,lineno]{sn-jnl}",
     )
 if not refs.exists():
     add_finding(
@@ -194,81 +198,88 @@ if any(f["rule_id"] in {"CAS000", "CAS200", "CAS002"} for f in findings):
     if write_report_and_print() > 0:
         raise SystemExit(1)
 
-master_text = master.read_text(encoding="utf-8")
+comment_re = re.compile(r"(?<!\\)%.*?$", re.M)
+
+def strip_comments(text: str) -> str:
+    """Drop TeX line comments so that commented-out markup does not trip the gates."""
+    return comment_re.sub("", text)
+
+master_text = strip_comments(master.read_text(encoding="utf-8"))
+all_tex_text = strip_comments("\n".join(p.read_text(encoding="utf-8") for p in tex_files))
+
+# --- Springer Nature (sn-jnl) front-matter gates -------------------------------------
 required_master_patterns = [
-    ("CAS001", r"\\documentclass\[.*\]\{__CAS_CLASS__\}", r"Missing CAS class token in \documentclass.", r"Set class token exactly to __CAS_CLASS__ for layout replacement.", r"\documentclass[a4paper,fleqn]{__CAS_CLASS__}"),
-    ("CAS003", r"\\shorttitle\{", r"Missing \shorttitle{...}.", r"Add a concise running title in preamble front matter.", r"\shorttitle{Short Title}"),
-    ("CAS004", r"\\shortauthors\{", r"Missing \shortauthors{...}.", r"Add running author list in front matter.", r"\shortauthors{Karakaya et al.}"),
-    ("CAS005", r"\\title\[mode=title\]\{", r"Missing \title[mode=title]{...}.", r"Add manuscript title using CAS syntax.", r"\title[mode=title]{Your Manuscript Title}"),
-    ("CAS006", r"\\begin\{abstract\}", r"Missing \begin{abstract}.", r"Insert abstract environment before highlights/keywords.", r"\begin{abstract}\n...\n\end{abstract}"),
-    ("CAS007", r"\\end\{abstract\}", r"Missing \end{abstract}.", r"Close abstract environment.", r"\begin{abstract}\n...\n\end{abstract}"),
-    ("CAS008", r"\\begin\{highlights\}", r"Missing \begin{highlights}.", r"Add highlights environment with 3-5 bullet points.", r"\begin{highlights}\n\item ...\n\end{highlights}"),
-    ("CAS009", r"\\end\{highlights\}", r"Missing \end{highlights}.", r"Close highlights environment.", r"\begin{highlights}\n\item ...\n\end{highlights}"),
-    ("CAS010", r"\\begin\{keywords\}", r"Missing \begin{keywords}.", r"Add keywords environment after highlights.", r"\begin{keywords}\nkeyword1 \sep keyword2\n\end{keywords}"),
-    ("CAS011", r"\\end\{keywords\}", r"Missing \end{keywords}.", r"Close keywords environment.", r"\begin{keywords}\nkeyword1 \sep keyword2\n\end{keywords}"),
-    ("CAS012", r"\\maketitle\b", r"Missing \maketitle.", r"Insert \maketitle after front matter blocks.", r"\maketitle"),
-    ("CAS013", r"\\bibliographystyle\{cas-model2-names\}", r"Bibliography style must be cas-model2-names.", r"Set bibliography style to CAS required BST.", r"\bibliographystyle{cas-model2-names}"),
-    ("CAS014", r"\\bibliography\{refs\}", r"Bibliography source must be refs.", r"Point bibliography command to refs.bib base name.", r"\bibliography{refs}"),
+    ("SN001", r"\\documentclass\[[^\]]*\bsn-basic\b[^\]]*\]\{sn-jnl\}", r"Missing sn-jnl class with the sn-basic reference style.", r"Machine Learning uses Springer Basic author-year; do not add the Numbered option.", r"\documentclass[pdflatex,sn-basic,lineno]{sn-jnl}"),
+    ("SN002", r"\\title(?:\[[^\]]*\])?\{", r"Missing \title{...}.", r"Add the manuscript title; the optional argument sets the running head.", r"\title[Short Title]{Full Manuscript Title}"),
+    ("SN003", r"\\author\*?\[[^\]]+\]\{", r"Missing Springer \author entry.", r"Add \author*[1]{\fnm{First} \sur{Last}} for the corresponding author.", r"\author*[1]{\fnm{Murat} \sur{Karakaya}}\email{a@b.c}"),
+    ("SN004", r"\\affil\*?\[[^\]]+\]\{", r"Missing Springer \affil entry.", r"Add \affil*[1]{...} matching each author affiliation index.", r"\affil*[1]{\orgdiv{Dept}, \orgname{University}, \orgaddress{\city{City}, \country{Country}}}"),
+    ("SN005", r"\\abstract\{", r"Missing \abstract{...}.", r"sn-jnl takes the abstract as a command argument, not an environment.", r"\abstract{Abstract text.}"),
+    ("SN006", r"\\keywords\{", r"Missing \keywords{...}.", r"Add a comma-separated keyword list after the abstract.", r"\keywords{keyword one, keyword two}"),
+    ("SN007", r"\\maketitle\b", r"Missing \maketitle.", r"Insert \maketitle after the front-matter blocks.", r"\maketitle"),
+    ("SN008", r"\\bibliography\{refs\}", r"Bibliography source must be refs.", r"Point the bibliography command at the refs.bib base name.", r"\bibliography{refs}"),
 ]
 for rule_id, pat, message, fix_hint, example_fix in required_master_patterns:
     if not re.search(pat, master_text, re.S):
         add_finding("ERROR", rule_id, master.name, 1, "front matter", message, fix_hint, example_fix)
 
-if not re.search(r"\\author\[[^\]]+\]\{", master_text):
-    add_finding(
-        "ERROR",
-        "CAS015",
-        master.name,
-        1,
-        "author block",
-        r"Missing template-style \author[...] entry.",
-        r"Add at least one \author[affX]{Name} block in front matter.",
-        r"\author[aff1]{First Author}",
-    )
-if not re.search(r"\\affiliation\[[^\]]+\]\{", master_text):
-    add_finding(
-        "ERROR",
-        "CAS016",
-        master.name,
-        1,
-        "affiliation block",
-        r"Missing template-style \affiliation[...] entry.",
-        r"Add at least one \affiliation[...] matching author affiliation IDs.",
-        r"\affiliation[aff1]{organization={...}, city={...}, country={...}}",
-    )
+# sn-jnl loads natbib and sets the bibliography style from the class option. Doing either
+# in the preamble causes an option clash or silently overrides the journal style.
+forbidden_master_patterns = [
+    ("SN010", r"\\usepackage(?:\[[^\]]*\])?\{[^}]*\bnatbib\b[^}]*\}", r"sn-jnl already loads natbib; loading it again causes an option clash.", r"Delete the \usepackage{natbib} line and let the class load it.", r"% \usepackage[authoryear]{natbib}  <- remove"),
+    ("SN011", r"\\bibliographystyle\{", r"sn-jnl sets \bibliographystyle from the class option.", r"Delete \bibliographystyle; select the style via the documentclass option instead.", r"\documentclass[pdflatex,sn-basic]{sn-jnl}"),
+    ("SN012", r"\\begin\{highlights\}", r"Highlights are an Elsevier construct and are not supported by sn-jnl.", r"Remove the highlights environment; Springer has no equivalent.", r"% highlights removed"),
+]
+for rule_id, pat, message, fix_hint, example_fix in forbidden_master_patterns:
+    m = re.search(pat, master_text, re.S)
+    if m:
+        add_finding("ERROR", rule_id, master.name, line_from_pos(master_text, m.start()), "preamble", message, fix_hint, example_fix)
 
-if not re.search(r"\\ead\{", master_text):
+# Springer requires a Declarations block in the back matter.
+if not re.search(r"\\backmatter\b", all_tex_text):
+    add_finding(
+        "ERROR",
+        "SN013",
+        "declarations.tex",
+        1,
+        "back matter",
+        r"Missing \backmatter before the declarations.",
+        r"Open the back matter with \backmatter so trailing headings are unnumbered.",
+        r"\backmatter",
+    )
+if not re.search(r"\\section\*\{Declarations\}", all_tex_text):
+    add_finding(
+        "ERROR",
+        "SN014",
+        "declarations.tex",
+        1,
+        "back matter",
+        r"Missing \section*{Declarations}.",
+        r"Springer expects the declarations under a single 'Declarations' heading.",
+        r"\section*{Declarations}",
+    )
+for heading in ("Funding", "Competing interests", "Data availability", "Code availability", "Author contributions"):
+    if not re.search(r"\\bmhead\{" + re.escape(heading) + r"\}", all_tex_text):
+        add_finding(
+            "WARN",
+            "SN901",
+            "declarations.tex",
+            1,
+            "declarations",
+            f"Declaration subheading '{heading}' not found.",
+            "Springer asks for each declaration heading, using 'Not applicable' where it does not apply.",
+            rf"\bmhead{{{heading}}}",
+        )
+
+if not re.search(r"\\email\{", master_text):
     add_finding(
         "WARN",
-        "CAS901",
+        "SN902",
         master.name,
-        first_line_of(r"\\author\[[^\]]+\]\{", master_text),
+        first_line_of(r"\\author\*?\[[^\]]+\]\{", master_text),
         "author metadata",
-        r"Optional metadata missing: no \ead{...} email found.",
-        r"Add at least one author email for better submission metadata.",
-        r"\ead{author@example.com}",
-    )
-if not re.search(r"\\cortext\[[^\]]+\]\{", master_text):
-    add_finding(
-        "WARN",
-        "CAS902",
-        master.name,
-        first_line_of(r"\\author\[[^\]]+\]\{", master_text),
-        "corresponding author metadata",
-        r"Optional metadata missing: no \cortext[...]{} found.",
-        r"Define corresponding author note if applicable.",
-        r"\cortext[cor1]{Corresponding author}",
-    )
-if not re.search(r"\\credit\{", master_text):
-    add_finding(
-        "WARN",
-        "CAS903",
-        master.name,
-        first_line_of(r"\\author\[[^\]]+\]\{", master_text),
-        "CRediT metadata",
-        r"Optional metadata missing: no \credit{...} statements found.",
-        r"Add CRediT roles per author if journal/editor requests them.",
-        r"\credit{Conceptualization, Methodology, Writing - original draft}",
+        r"Optional metadata missing: no \email{...} found.",
+        r"Add the corresponding author email directly after the \author* entry.",
+        r"\author*[1]{\fnm{First} \sur{Last}}\email{first.last@example.com}",
     )
 
 bib_text = refs.read_text(encoding="utf-8")
@@ -511,22 +522,15 @@ foreach ($ext in $imageExtensions) {
     }
 }
 
-# Copy required CAS template assets.
-Copy-Item (Join-Path $TemplateDir "$ClassName.cls") $BuildDir -Force
-Copy-Item (Join-Path $TemplateDir "cas-common.sty") $BuildDir -Force
-Copy-Item (Join-Path $TemplateDir "cas-model2-names.bst") $BuildDir -Force
-if (Test-Path (Join-Path $TemplateDir "thumbnails")) {
-    Copy-Item (Join-Path $TemplateDir "thumbnails") $BuildDir -Recurse -Force
-}
+# Copy required Springer Nature template assets.
+Copy-Item (Join-Path $TemplateDir "sn-jnl.cls") $BuildDir -Force
+Copy-Item (Join-Path $TemplateDir "bst/$BstName") $BuildDir -Force
 
-# Generate layout-specific wrapper from manuscript.tex.
+# Generate the build wrapper. Unlike the CAS build there is no class placeholder to
+# substitute: manuscript.tex already names sn-jnl directly.
 $masterText = Get-Content -Path $MasterTexPath -Raw
-if ($masterText -notmatch "__CAS_CLASS__") {
-    throw "manuscript.tex must contain __CAS_CLASS__ token in \\documentclass{...}."
-}
-$wrapperText = $masterText -replace "__CAS_CLASS__", $ClassName
 $WrapperPath = Join-Path $BuildDir $WrapperName
-Set-Content -Path $WrapperPath -Value $wrapperText -Encoding UTF8
+Set-Content -Path $WrapperPath -Value $masterText -Encoding UTF8
 
 # Generate full/inlined wrapper for debugging and inspection.
 $env:BUILD_DIR = $BuildDir
@@ -576,16 +580,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if ($CompilePdf) {
-    Assert-Command -Name "xelatex"
+    # sn-jnl is a pdflatex class (the "pdflatex" documentclass option selects its
+    # graphics path). All source is ASCII with escaped accents, so 8-bit TeX is safe.
+    Assert-Command -Name "pdflatex"
     Assert-Command -Name "bibtex"
 
     $texBaseName = [System.IO.Path]::GetFileNameWithoutExtension($WrapperName)
     Push-Location $BuildDir
     try {
-        Invoke-CheckedExternal -FilePath "xelatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "XeLaTeX pass 1"
+        Invoke-CheckedExternal -FilePath "pdflatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "pdfLaTeX pass 1"
         Invoke-CheckedExternal -FilePath "bibtex" -ArgumentList @($texBaseName) -StepName "BibTeX pass"
-        Invoke-CheckedExternal -FilePath "xelatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "XeLaTeX pass 2"
-        Invoke-CheckedExternal -FilePath "xelatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "XeLaTeX pass 3"
+        Invoke-CheckedExternal -FilePath "pdflatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "pdfLaTeX pass 2"
+        Invoke-CheckedExternal -FilePath "pdflatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "pdfLaTeX pass 3"
     }
     finally {
         Pop-Location
@@ -595,10 +601,10 @@ if ($CompilePdf) {
 $pdfPath = Join-Path $BuildDir ($WrapperName -replace '\.tex$', '.pdf')
 
 Write-Host "Build complete."
-Write-Host "  Layout: $Layout"
+Write-Host "  Journal: Machine Learning (Springer) - sn-jnl / sn-basic author-year"
 Write-Host "  Build folder: $BuildDir"
 Write-Host "  Wrapper: $(Join-Path $BuildDir $WrapperName)"
-Write-Host "  Full wrapper: $(Join-Path $BuildDir $FullWrapperName)"
+Write-Host "  Submission file (single .tex, all inputs inlined): $(Join-Path $BuildDir $FullWrapperName)"
 Write-Host "  Bib: $(Join-Path $BuildDir 'refs.bib')"
 if ($CompilePdf) {
     Write-Host "  PDF: $pdfPath"
