@@ -1,8 +1,8 @@
 {
   ".claude/settings.local.json": {
-    "mtime": 1784792962.8360543,
-    "ast_hash": "9f0564f37202e2c350d2d5850e4beeb5",
-    "semantic_hash": "9f0564f37202e2c350d2d5850e4beeb5"
+    "mtime": 1785513159.7581806,
+    "ast_hash": "94e0e12c4aa6847ee98672ef18ffb5dd",
+    "semantic_hash": "94e0e12c4aa6847ee98672ef18ffb5dd"
   },
   ".miktex-user/config/miktex/config/issues.json": {
     "mtime": 1772835367.2487953,
@@ -10,9 +10,9 @@
     "semantic_hash": "756016f9c8676522eb564e3ca65c85b6"
   },
   "analysis/bootstrap_ci.py": {
-    "mtime": 1784795995.1666112,
-    "ast_hash": "b44e049e2fb268734aa79033f59d7e8f",
-    "semantic_hash": "b44e049e2fb268734aa79033f59d7e8f"
+    "mtime": 1785156934.3252714,
+    "ast_hash": "2fd8e1782342395716bfe7d15eb4ce2f",
+    "semantic_hash": "2fd8e1782342395716bfe7d15eb4ce2f"
   },
   "analysis/cite_audit.py": {
     "mtime": 1784828023.8108513,
@@ -20,14 +20,9 @@
     "semantic_hash": "6157b691029bdd703f8de6cecaff5a5e"
   },
   "analysis/common.py": {
-    "mtime": 1784794524.99452,
-    "ast_hash": "6e6fa6f37ee0ab492fdb6cb1b8678d14",
-    "semantic_hash": "6e6fa6f37ee0ab492fdb6cb1b8678d14"
-  },
-  "analysis/plot_bootstrap_forest.py": {
-    "mtime": 1784827910.2723227,
-    "ast_hash": "6806a79c92808cc1c587504957020997",
-    "semantic_hash": "6806a79c92808cc1c587504957020997"
+    "mtime": 1785156671.7420273,
+    "ast_hash": "f9774d659bc0239b512733c2cd69f067",
+    "semantic_hash": "f9774d659bc0239b512733c2cd69f067"
   },
   "analysis/pooled_qrels.py": {
     "mtime": 1784794613.919988,
@@ -35,9 +30,9 @@
     "semantic_hash": "f360744e7d936e658b7d182e0e4dff0b"
   },
   "analysis/query_level_eval.py": {
-    "mtime": 1784795413.4378276,
-    "ast_hash": "d242bed5bfa78000f6afc4a100f07596",
-    "semantic_hash": "d242bed5bfa78000f6afc4a100f07596"
+    "mtime": 1785156893.7243216,
+    "ast_hash": "9b1eb0dbc7bf4e8a2fe4f1b3c70b077f",
+    "semantic_hash": "9b1eb0dbc7bf4e8a2fe4f1b3c70b077f"
   },
   "analysis/reconstruct_negatives.py": {
     "mtime": 1784794314.7000403,
@@ -45,14 +40,14 @@
     "semantic_hash": "bf64116681bc1fc801913a2b70e7ceaf"
   },
   "config.py": {
-    "mtime": 1784814082.0598946,
-    "ast_hash": "b33b4e58d1f050e9d702a3735bde1d55",
-    "semantic_hash": "b33b4e58d1f050e9d702a3735bde1d55"
+    "mtime": 1785502122.816595,
+    "ast_hash": "cd25998f0fd018278ce3c49f4e1d13df",
+    "semantic_hash": "cd25998f0fd018278ce3c49f4e1d13df"
   },
   "journal_paper/build.ps1": {
-    "mtime": 1772911072.0931036,
-    "ast_hash": "a3fc3c3a4696705e187c4d54040f31a5",
-    "semantic_hash": "a3fc3c3a4696705e187c4d54040f31a5"
+    "mtime": 1785531325.6358619,
+    "ast_hash": "7b45498f89a7e3e8f1767920d1320cd3",
+    "semantic_hash": "7b45498f89a7e3e8f1767920d1320cd3"
   },
   "journal_paper/template/cas-dc.cls": {
     "mtime": 1772823282.312764,
@@ -70,14 +65,14 @@
     "semantic_hash": "3c87367454b290246d64f7684cd64d3f"
   },
   "rag_benchmark.py": {
-    "mtime": 1784809457.9474924,
-    "ast_hash": "53efb80408d184e5cb28644efe863eb6",
-    "semantic_hash": "53efb80408d184e5cb28644efe863eb6"
+    "mtime": 1785501861.6785023,
+    "ast_hash": "7f1b4310eb02db91a4b1b711a850dfc0",
+    "semantic_hash": "7f1b4310eb02db91a4b1b711a850dfc0"
   },
   "results_reanalysis/bootstrap_frozen.json": {
-    "mtime": 1784823220.4170961,
-    "ast_hash": "d60171fe81bc54cc87fede72588eaa10",
-    "semantic_hash": "d60171fe81bc54cc87fede72588eaa10"
+    "mtime": 1785156947.146669,
+    "ast_hash": "7a4df83eb8dd37e2571a4f481aceeee8",
+    "semantic_hash": "7a4df83eb8dd37e2571a4f481aceeee8"
   },
   "results_reanalysis/bootstrap_pooled.json": {
     "mtime": 1784798583.4611886,
@@ -105,9 +100,9 @@
     "semantic_hash": "58decf037bc5b6b6b2158684fc032194"
   },
   "tests/test_chromadb_utils.py": {
-    "mtime": 1770579052.674155,
-    "ast_hash": "65aff6e78845450d2039e4c6df47bd13",
-    "semantic_hash": "65aff6e78845450d2039e4c6df47bd13"
+    "mtime": 1785108845.5879056,
+    "ast_hash": "77a86dde58dc12045b8ff3de6d8a6c22",
+    "semantic_hash": "77a86dde58dc12045b8ff3de6d8a6c22"
   },
   "tests/test_document_loader.py": {
     "mtime": 1772492718.3407512,
@@ -150,9 +145,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "utils/aggregate_report_utils.py": {
-    "mtime": 1784809270.669456,
-    "ast_hash": "45a334a03be1b3367c8aa9028133ee68",
-    "semantic_hash": "45a334a03be1b3367c8aa9028133ee68"
+    "mtime": 1785502152.6534798,
+    "ast_hash": "ef06aa2a4b8d419e5314cfc121fa0216",
+    "semantic_hash": "ef06aa2a4b8d419e5314cfc121fa0216"
   },
   "utils/batch_manager.py": {
     "mtime": 1769352134.4651954,
@@ -160,9 +155,9 @@
     "semantic_hash": "bd8cb717865e8219189ad9f1763ba804"
   },
   "utils/chromadb_utils.py": {
-    "mtime": 1784809260.721856,
-    "ast_hash": "594ad6c56cc6399020ca13a99e127060",
-    "semantic_hash": "594ad6c56cc6399020ca13a99e127060"
+    "mtime": 1785108669.2658036,
+    "ast_hash": "5505cdd904bfe0283566cb8abd9e2d73",
+    "semantic_hash": "5505cdd904bfe0283566cb8abd9e2d73"
   },
   "utils/document_loader.py": {
     "mtime": 1772492693.3865848,
@@ -170,9 +165,9 @@
     "semantic_hash": "55e7845dcf51f1e29a075299cea2bec1"
   },
   "utils/generate_journal_results_figures.py": {
-    "mtime": 1784149234.160997,
-    "ast_hash": "99c60469ba8da691b8a9e565199b1b57",
-    "semantic_hash": "99c60469ba8da691b8a9e565199b1b57"
+    "mtime": 1785221787.6432362,
+    "ast_hash": "3fd031638d04369547b789f1feb7de63",
+    "semantic_hash": "3fd031638d04369547b789f1feb7de63"
   },
   "utils/llm.py": {
     "mtime": 1755294042.442891,
@@ -180,9 +175,9 @@
     "semantic_hash": "f92bafd7c7671a63e8280f56a39891b9"
   },
   "utils/report_utils.py": {
-    "mtime": 1784809524.4593737,
-    "ast_hash": "e46b9c5ccd2796b1bff4832678ba2368",
-    "semantic_hash": "e46b9c5ccd2796b1bff4832678ba2368"
+    "mtime": 1785502078.35123,
+    "ast_hash": "68acbf70c1ad4ac5ce5523063e2be53b",
+    "semantic_hash": "68acbf70c1ad4ac5ce5523063e2be53b"
   },
   "utils/text_splitter.py": {
     "mtime": 1749160773.0620484,
@@ -195,34 +190,34 @@
     "semantic_hash": "5074b037a105002afdf4b13d3e6f8101"
   },
   "AGENTS.md": {
-    "mtime": 1772983001.5792725,
-    "ast_hash": "77021194c75575cb6ed5b5b4b3b24f76",
-    "semantic_hash": "77021194c75575cb6ed5b5b4b3b24f76"
+    "mtime": 1785580692.7729273,
+    "ast_hash": "be0e98aec9b37c1ddbe011d234dfed0a",
+    "semantic_hash": "be0e98aec9b37c1ddbe011d234dfed0a"
   },
   "README.md": {
-    "mtime": 1784828615.9403636,
-    "ast_hash": "2c972186e9f7cc6f8f1fe475a6e11168",
-    "semantic_hash": "2c972186e9f7cc6f8f1fe475a6e11168"
+    "mtime": 1785225580.6414435,
+    "ast_hash": "73a0d0422fffd663abefadedf537d0c6",
+    "semantic_hash": "73a0d0422fffd663abefadedf537d0c6"
   },
   "analysis/README.md": {
-    "mtime": 1784813448.904107,
-    "ast_hash": "67120f90d05337771dc85e15d6b84482",
-    "semantic_hash": "67120f90d05337771dc85e15d6b84482"
+    "mtime": 1785158798.9946902,
+    "ast_hash": "705c8b6a76ec9b1c787512b242e14343",
+    "semantic_hash": "705c8b6a76ec9b1c787512b242e14343"
   },
   "codex_skills/latex-template-compliance/SKILL.md": {
-    "mtime": 1774731563.5639493,
-    "ast_hash": "e58aeb3d68d01e6e078e18a3aebbfadb",
-    "semantic_hash": "e58aeb3d68d01e6e078e18a3aebbfadb"
+    "mtime": 1785580750.269899,
+    "ast_hash": "0068800359f727ea83109181b144acfe",
+    "semantic_hash": "0068800359f727ea83109181b144acfe"
   },
   "codex_skills/latex-template-compliance/references/checklist.md": {
-    "mtime": 1774731588.14807,
-    "ast_hash": "7e5b6a6d6f35435c0a71d91a0ddc142b",
-    "semantic_hash": "7e5b6a6d6f35435c0a71d91a0ddc142b"
+    "mtime": 1785580796.8763676,
+    "ast_hash": "8b3fac351e0f3fc7ac024dbe939e2c30",
+    "semantic_hash": "8b3fac351e0f3fc7ac024dbe939e2c30"
   },
   "codex_skills/latex-template-compliance/references/template_rules.md": {
-    "mtime": 1774731575.8586617,
-    "ast_hash": "141bb059a8b98e5236acc5e4cc76b939",
-    "semantic_hash": "141bb059a8b98e5236acc5e4cc76b939"
+    "mtime": 1785580784.1899068,
+    "ast_hash": "ce9ba71ba981b1ea3f5ff47602650edc",
+    "semantic_hash": "ce9ba71ba981b1ea3f5ff47602650edc"
   },
   "current_versions.txt": {
     "mtime": 1755295607.9347167,
@@ -235,9 +230,9 @@
     "semantic_hash": "1bd1e4a6fef8fb501e35dccdb632c605"
   },
   "journal_paper/how_to_write_paper.md": {
-    "mtime": 1782226835.0571582,
-    "ast_hash": "3f67a9919de6894e17a022ee5d542ddc",
-    "semantic_hash": "3f67a9919de6894e17a022ee5d542ddc"
+    "mtime": 1785580886.7006629,
+    "ast_hash": "9f90fdc3882a1a03b58af50b73a0fb1d",
+    "semantic_hash": "9f90fdc3882a1a03b58af50b73a0fb1d"
   },
   "journal_paper/literature_blueprint.md": {
     "mtime": 1774638492.8395038,
@@ -268,11 +263,6 @@
     "mtime": 1769369911.3163183,
     "ast_hash": "3eab44220042ef32106c4228d4c0ffcf",
     "semantic_hash": "3eab44220042ef32106c4228d4c0ffcf"
-  },
-  "journal_paper/abstract.tex": {
-    "mtime": 1784820513.406148,
-    "ast_hash": "e5dc49e2125e849b4256c84708397816",
-    "semantic_hash": "e5dc49e2125e849b4256c84708397816"
   },
   "journal_paper/conclusion.tex": {
     "mtime": 1784826919.3385446,
@@ -313,5 +303,1405 @@
     "mtime": 1774712312.062069,
     "ast_hash": "a9f083151b853e45a2b8bac61b04f7fa",
     "semantic_hash": "a9f083151b853e45a2b8bac61b04f7fa"
+  },
+  "datasets/education_eng/reports/raw_results_2026-07-23_17-51-50.json": {
+    "mtime": 1784826998.458818,
+    "ast_hash": "76f25174af9d57034d5d618d2861ffbc",
+    "semantic_hash": "76f25174af9d57034d5d618d2861ffbc"
+  },
+  "datasets/education_tr/reports/raw_results_2026-07-23_17-57-53.json": {
+    "mtime": 1784826998.458818,
+    "ast_hash": "31e14306e07060e7095e3ccbe2cde425",
+    "semantic_hash": "31e14306e07060e7095e3ccbe2cde425"
+  },
+  "datasets/law_tr/reports/raw_results_2026-07-23_18-04-23.json": {
+    "mtime": 1784826998.4598036,
+    "ast_hash": "abfe7e614acbcd5f5c40a1da7c6559e1",
+    "semantic_hash": "abfe7e614acbcd5f5c40a1da7c6559e1"
+  },
+  "journal_paper/ML_Template/sn-jnl.cls": {
+    "mtime": 1785502740.7231927,
+    "ast_hash": "c14ef9d34b3d95356940eaf177aff85f",
+    "semantic_hash": "c14ef9d34b3d95356940eaf177aff85f"
+  },
+  "journal_paper/archive_cas/build_cas.ps1": {
+    "mtime": 1785531135.7196596,
+    "ast_hash": "a3fc3c3a4696705e187c4d54040f31a5",
+    "semantic_hash": "a3fc3c3a4696705e187c4d54040f31a5"
+  },
+  "tests/test_bootstrap_utils.py": {
+    "mtime": 1785158851.3972692,
+    "ast_hash": "15d4e3c25eaae13fd6c7edb4c4b37c14",
+    "semantic_hash": "15d4e3c25eaae13fd6c7edb4c4b37c14"
+  },
+  "tmp/crossref_m19_results.json": {
+    "mtime": 1785093899.9164276,
+    "ast_hash": "cbf9eedcc65f4218391a84d63e823f0f",
+    "semantic_hash": "cbf9eedcc65f4218391a84d63e823f0f"
+  },
+  "tmp/crossref_m22_results.json": {
+    "mtime": 1785095363.1978502,
+    "ast_hash": "62076bb1a932d9975606947e74f54b3c",
+    "semantic_hash": "62076bb1a932d9975606947e74f54b3c"
+  },
+  "utils/bootstrap_utils.py": {
+    "mtime": 1785156979.2975783,
+    "ast_hash": "4da484c01b2ba2b70258287a326cff1c",
+    "semantic_hash": "4da484c01b2ba2b70258287a326cff1c"
+  },
+  "utils/paper_artifacts.py": {
+    "mtime": 1785221737.1507244,
+    "ast_hash": "2cfa74def43ccfcb59bb0f85c646f612",
+    "semantic_hash": "2cfa74def43ccfcb59bb0f85c646f612"
+  },
+  "utils/verify_paper_numbers.py": {
+    "mtime": 1785508343.9354405,
+    "ast_hash": "1b5d4be361c801ec4c9ae15af5d02b87",
+    "semantic_hash": "1b5d4be361c801ec4c9ae15af5d02b87"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_benchmark_report_2026-07-23_17-51-50.md": {
+    "mtime": 1785223618.8042533,
+    "ast_hash": "fdd3f95a96d3fd87e5d9395cc8f1060e",
+    "semantic_hash": "fdd3f95a96d3fd87e5d9395cc8f1060e"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_benchmark_report_2026-07-23_17-57-53.md": {
+    "mtime": 1785223668.2228296,
+    "ast_hash": "73badf9980f1baf8bf6a426a77432764",
+    "semantic_hash": "73badf9980f1baf8bf6a426a77432764"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_benchmark_report_2026-07-23_18-04-23.md": {
+    "mtime": 1785223718.27189,
+    "ast_hash": "b59df8fd3eb105f3a6a3bfc0bc287a91",
+    "semantic_hash": "b59df8fd3eb105f3a6a3bfc0bc287a91"
+  },
+  "graphify-out/memory/query_20260726_150012_considering_the_central_research_position__should.md": {
+    "mtime": 1785078012.1655648,
+    "ast_hash": "1ff6cb4b97c9c4903f92ec746a9e87e3",
+    "semantic_hash": "1ff6cb4b97c9c4903f92ec746a9e87e3"
+  },
+  "journal_paper/archive_cas/README.md": {
+    "mtime": 1785532152.1537561,
+    "ast_hash": "3e7116a98199f25f36a9af696734ec5c",
+    "semantic_hash": "3e7116a98199f25f36a9af696734ec5c"
+  },
+  "prompts.md": {
+    "mtime": 1785580863.207562,
+    "ast_hash": "05397aded14b95f93063860e12ee17b5",
+    "semantic_hash": "05397aded14b95f93063860e12ee17b5"
+  },
+  "review.md": {
+    "mtime": 1785513271.0167654,
+    "ast_hash": "07a3073f5e887058c5c2ffe99dd3b5dc",
+    "semantic_hash": "07a3073f5e887058c5c2ffe99dd3b5dc"
+  },
+  "todo.md": {
+    "mtime": 1785532268.8801866,
+    "ast_hash": "433b40830c44d51c1f81068e5352a36f",
+    "semantic_hash": "433b40830c44d51c1f81068e5352a36f"
+  },
+  "datasets/education_eng/pdfs/Admission.pdf": {
+    "mtime": 1784814430.522653,
+    "ast_hash": "2059f3d68573685feb07f04278e2609e",
+    "semantic_hash": "2059f3d68573685feb07f04278e2609e"
+  },
+  "datasets/education_eng/pdfs/Barriers.pdf": {
+    "mtime": 1784814430.552719,
+    "ast_hash": "7e936f7909a026b2616338a5ff7e3ae6",
+    "semantic_hash": "7e936f7909a026b2616338a5ff7e3ae6"
+  },
+  "datasets/education_eng/pdfs/Certificates.pdf": {
+    "mtime": 1784814430.5849411,
+    "ast_hash": "0624cab1bbd3e2b367606216aac00ebf",
+    "semantic_hash": "0624cab1bbd3e2b367606216aac00ebf"
+  },
+  "datasets/education_eng/pdfs/Council.pdf": {
+    "mtime": 1784814430.611856,
+    "ast_hash": "eb6a1059dfa447e5ad7d0dca0e2e80ca",
+    "semantic_hash": "eb6a1059dfa447e5ad7d0dca0e2e80ca"
+  },
+  "datasets/education_eng/pdfs/Directive.pdf": {
+    "mtime": 1784814430.6417189,
+    "ast_hash": "a8e7dd19d41e1dbbd84f22bceaa72d74",
+    "semantic_hash": "a8e7dd19d41e1dbbd84f22bceaa72d74"
+  },
+  "datasets/education_eng/pdfs/DoubleMajor.pdf": {
+    "mtime": 1784814430.6742315,
+    "ast_hash": "1844f753b8a316cba133cbf54f3b3844",
+    "semantic_hash": "1844f753b8a316cba133cbf54f3b3844"
+  },
+  "datasets/education_eng/pdfs/English.pdf": {
+    "mtime": 1784814430.699311,
+    "ast_hash": "88ddedf0e78a817b6b2d4a7f32907830",
+    "semantic_hash": "88ddedf0e78a817b6b2d4a7f32907830"
+  },
+  "datasets/education_eng/pdfs/Exams.pdf": {
+    "mtime": 1784814430.7255538,
+    "ast_hash": "87b413fbcf5b85ba69930137aa26d233",
+    "semantic_hash": "87b413fbcf5b85ba69930137aa26d233"
+  },
+  "datasets/education_eng/pdfs/Graduate.pdf": {
+    "mtime": 1784814430.7513497,
+    "ast_hash": "a4a992e3ead16b0bff3f2bc37659a991",
+    "semantic_hash": "a4a992e3ead16b0bff3f2bc37659a991"
+  },
+  "datasets/education_eng/pdfs/Hind.pdf": {
+    "mtime": 1784814430.7841518,
+    "ast_hash": "d23b138657175994b3668d974ea29066",
+    "semantic_hash": "d23b138657175994b3668d974ea29066"
+  },
+  "datasets/education_eng/pdfs/Integrity.pdf": {
+    "mtime": 1784814431.0977335,
+    "ast_hash": "948de47e53d88da8f6f07569917df33c",
+    "semantic_hash": "948de47e53d88da8f6f07569917df33c"
+  },
+  "datasets/education_eng/pdfs/Internship.pdf": {
+    "mtime": 1784814431.121483,
+    "ast_hash": "1f8296f999d5fd52f610346d57b350ad",
+    "semantic_hash": "1f8296f999d5fd52f610346d57b350ad"
+  },
+  "datasets/education_eng/pdfs/Leave.pdf": {
+    "mtime": 1784814431.1353886,
+    "ast_hash": "5ec982ec8462040060f1f137b1f3408c",
+    "semantic_hash": "5ec982ec8462040060f1f137b1f3408c"
+  },
+  "datasets/education_eng/pdfs/Medical.pdf": {
+    "mtime": 1784814431.1579826,
+    "ast_hash": "50edb5370ce6860ab3ceb6ecc3930268",
+    "semantic_hash": "50edb5370ce6860ab3ceb6ecc3930268"
+  },
+  "datasets/education_eng/pdfs/Minor.pdf": {
+    "mtime": 1784814431.1850836,
+    "ast_hash": "099313016e29bfc1893da86879b68c40",
+    "semantic_hash": "099313016e29bfc1893da86879b68c40"
+  },
+  "datasets/education_eng/pdfs/Online.pdf": {
+    "mtime": 1784814431.2152493,
+    "ast_hash": "19e5ef79b09c48a3cc28ec5ca56246cf",
+    "semantic_hash": "19e5ef79b09c48a3cc28ec5ca56246cf"
+  },
+  "datasets/education_eng/pdfs/PartTime.pdf": {
+    "mtime": 1784814431.2377298,
+    "ast_hash": "d618e81517543dc24836642701462ffb",
+    "semantic_hash": "d618e81517543dc24836642701462ffb"
+  },
+  "datasets/education_eng/pdfs/Ranking.pdf": {
+    "mtime": 1784814431.2634966,
+    "ast_hash": "d17c32642ccb6d6497fb161dd672296e",
+    "semantic_hash": "d17c32642ccb6d6497fb161dd672296e"
+  },
+  "datasets/education_eng/pdfs/Rules.pdf": {
+    "mtime": 1784814431.2846925,
+    "ast_hash": "a491d50330e32bfe3e9750086c6956c1",
+    "semantic_hash": "a491d50330e32bfe3e9750086c6956c1"
+  },
+  "datasets/education_eng/pdfs/Scholarship.pdf": {
+    "mtime": 1784814431.308747,
+    "ast_hash": "b9a3dbf6048b0c7bf217ad1129c64dca",
+    "semantic_hash": "b9a3dbf6048b0c7bf217ad1129c64dca"
+  },
+  "datasets/education_eng/pdfs/Social.pdf": {
+    "mtime": 1784814431.3332698,
+    "ast_hash": "678f196962ada29e50d06dc5fdfacb47",
+    "semantic_hash": "678f196962ada29e50d06dc5fdfacb47"
+  },
+  "datasets/education_eng/pdfs/Societies.pdf": {
+    "mtime": 1784814431.350966,
+    "ast_hash": "d695e5510e4171bc76d6e6849158146e",
+    "semantic_hash": "d695e5510e4171bc76d6e6849158146e"
+  },
+  "datasets/education_eng/pdfs/Staff.pdf": {
+    "mtime": 1784814431.3776214,
+    "ast_hash": "a76b3ce3f66b2b12ad087d584587c52b",
+    "semantic_hash": "a76b3ce3f66b2b12ad087d584587c52b"
+  },
+  "datasets/education_eng/pdfs/Studies.pdf": {
+    "mtime": 1784814431.4057848,
+    "ast_hash": "0c8426b544c8fefce30e2aba879c9cda",
+    "semantic_hash": "0c8426b544c8fefce30e2aba879c9cda"
+  },
+  "datasets/education_eng/pdfs/Traineeshipdf.pdf": {
+    "mtime": 1784814431.4662187,
+    "ast_hash": "e142891054e0424587549fd1ee4ac84e",
+    "semantic_hash": "e142891054e0424587549fd1ee4ac84e"
+  },
+  "datasets/education_eng/pdfs/Transfer.pdf": {
+    "mtime": 1784814431.4968438,
+    "ast_hash": "df23fb0d6b67f33b07b5ff01a1fdef0d",
+    "semantic_hash": "df23fb0d6b67f33b07b5ff01a1fdef0d"
+  },
+  "datasets/education_eng/pdfs/Undergraduate.pdf": {
+    "mtime": 1784814431.530706,
+    "ast_hash": "f06785e49a7dd16ac7b05faa21fed67a",
+    "semantic_hash": "f06785e49a7dd16ac7b05faa21fed67a"
+  },
+  "datasets/education_eng/pdfs/Violation.pdf": {
+    "mtime": 1784814431.5606837,
+    "ast_hash": "7b65d0313a2aea81df252cd0459614ae",
+    "semantic_hash": "7b65d0313a2aea81df252cd0459614ae"
+  },
+  "datasets/education_eng/pdfs/mobility.pdf": {
+    "mtime": 1784814431.5790591,
+    "ast_hash": "da28d5bc20fb1f10e695d5b791cbab09",
+    "semantic_hash": "da28d5bc20fb1f10e695d5b791cbab09"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_benchmark_report_2026-07-23_17-51-50.pdf": {
+    "mtime": 1785223634.5925846,
+    "ast_hash": "bbcfba326ecacca3b7efa75adfb19838",
+    "semantic_hash": "bbcfba326ecacca3b7efa75adfb19838"
+  },
+  "datasets/education_tr/pdfs/Atama.pdf": {
+    "mtime": 1784814431.7140846,
+    "ast_hash": "519d621718aa79c1ec32eebff38e23d1",
+    "semantic_hash": "519d621718aa79c1ec32eebff38e23d1"
+  },
+  "datasets/education_tr/pdfs/A\u00e7\u0131k.pdf": {
+    "mtime": 1784814431.7556045,
+    "ast_hash": "7f352a02df365c32372bb818cf286660",
+    "semantic_hash": "7f352a02df365c32372bb818cf286660"
+  },
+  "datasets/education_tr/pdfs/Bap.pdf": {
+    "mtime": 1784814431.8039403,
+    "ast_hash": "4b5738ceeba7a306d95a20afa8c073a0",
+    "semantic_hash": "4b5738ceeba7a306d95a20afa8c073a0"
+  },
+  "datasets/education_tr/pdfs/Basvuru.pdf": {
+    "mtime": 1784814431.8491988,
+    "ast_hash": "1fbc08794338b62b4f2d9c8e79673890",
+    "semantic_hash": "1fbc08794338b62b4f2d9c8e79673890"
+  },
+  "datasets/education_tr/pdfs/Bili\u015fim.pdf": {
+    "mtime": 1784814431.9084625,
+    "ast_hash": "ab4f02bc58a19458e190f7fa07f10e5f",
+    "semantic_hash": "ab4f02bc58a19458e190f7fa07f10e5f"
+  },
+  "datasets/education_tr/pdfs/B\u00fct\u00e7e.pdf": {
+    "mtime": 1784814431.964047,
+    "ast_hash": "e5799bf9b65d729b2a779289b1377baf",
+    "semantic_hash": "e5799bf9b65d729b2a779289b1377baf"
+  },
+  "datasets/education_tr/pdfs/Cinsiyet.pdf": {
+    "mtime": 1784814432.0227187,
+    "ast_hash": "bbf988a45b44b55dfe60ea770f546e1a",
+    "semantic_hash": "bbf988a45b44b55dfe60ea770f546e1a"
+  },
+  "datasets/education_tr/pdfs/Demirbas.pdf": {
+    "mtime": 1784814432.0578837,
+    "ast_hash": "fac98f058dce05e9f345fdd2bd948bf5",
+    "semantic_hash": "fac98f058dce05e9f345fdd2bd948bf5"
+  },
+  "datasets/education_tr/pdfs/Etik.pdf": {
+    "mtime": 1784814432.094118,
+    "ast_hash": "3257ec5aa56b0094b9a6ea91288cb74a",
+    "semantic_hash": "3257ec5aa56b0094b9a6ea91288cb74a"
+  },
+  "datasets/education_tr/pdfs/Fikri.pdf": {
+    "mtime": 1784814432.1473255,
+    "ast_hash": "552ce57ffb553194e55af9eeafa790ac",
+    "semantic_hash": "552ce57ffb553194e55af9eeafa790ac"
+  },
+  "datasets/education_tr/pdfs/Fiziki.pdf": {
+    "mtime": 1784814432.1822877,
+    "ast_hash": "059120e9e9d77ce9cec2e1374ae40ea7",
+    "semantic_hash": "059120e9e9d77ce9cec2e1374ae40ea7"
+  },
+  "datasets/education_tr/pdfs/Harita.pdf": {
+    "mtime": 1784814432.223452,
+    "ast_hash": "abf7ff246927c957ccbb69c64dd59f88",
+    "semantic_hash": "abf7ff246927c957ccbb69c64dd59f88"
+  },
+  "datasets/education_tr/pdfs/Kaf.pdf": {
+    "mtime": 1784814432.2743545,
+    "ast_hash": "98a2566462d8e313a26ae169f045da3e",
+    "semantic_hash": "98a2566462d8e313a26ae169f045da3e"
+  },
+  "datasets/education_tr/pdfs/Kalite.pdf": {
+    "mtime": 1784814432.3192675,
+    "ast_hash": "37e57852c281b8dbaa3a470cc151b82b",
+    "semantic_hash": "37e57852c281b8dbaa3a470cc151b82b"
+  },
+  "datasets/education_tr/pdfs/Kriterler.pdf": {
+    "mtime": 1784814432.3762863,
+    "ast_hash": "2918dea8d5605d3f1eb98f0ab7fa406f",
+    "semantic_hash": "2918dea8d5605d3f1eb98f0ab7fa406f"
+  },
+  "datasets/education_tr/pdfs/Lad.pdf": {
+    "mtime": 1784814432.432896,
+    "ast_hash": "b1584ee3613056bb946ca5a20494301b",
+    "semantic_hash": "b1584ee3613056bb946ca5a20494301b"
+  },
+  "datasets/education_tr/pdfs/Misafir.pdf": {
+    "mtime": 1784814432.4732752,
+    "ast_hash": "b6fa676161fb80bc52e1f757a37d14e6",
+    "semantic_hash": "b6fa676161fb80bc52e1f757a37d14e6"
+  },
+  "datasets/education_tr/pdfs/STAM.pdf": {
+    "mtime": 1784814432.5053644,
+    "ast_hash": "35a31b73f9af22acd01151017ae31a83",
+    "semantic_hash": "35a31b73f9af22acd01151017ae31a83"
+  },
+  "datasets/education_tr/pdfs/Sosyal.pdf": {
+    "mtime": 1784814432.5428896,
+    "ast_hash": "b533e28ba61b1055b2002325fe8c8082",
+    "semantic_hash": "b533e28ba61b1055b2002325fe8c8082"
+  },
+  "datasets/education_tr/pdfs/Te\u015fvik.pdf": {
+    "mtime": 1784814432.5831645,
+    "ast_hash": "21cfd8f96a2c52467771b9bfac50b8cc",
+    "semantic_hash": "21cfd8f96a2c52467771b9bfac50b8cc"
+  },
+  "datasets/education_tr/pdfs/Uzun.pdf": {
+    "mtime": 1784814432.6213675,
+    "ast_hash": "f769bbfa22565cca589dd1d579cc53d3",
+    "semantic_hash": "f769bbfa22565cca589dd1d579cc53d3"
+  },
+  "datasets/education_tr/pdfs/Yagd.pdf": {
+    "mtime": 1784814432.6559525,
+    "ast_hash": "cc5f98e1ffedd3c3ad59ff1a34ca4c6b",
+    "semantic_hash": "cc5f98e1ffedd3c3ad59ff1a34ca4c6b"
+  },
+  "datasets/education_tr/pdfs/YapayZeka.pdf": {
+    "mtime": 1784814432.7112353,
+    "ast_hash": "3921d6478803ab95d6f554ff0af524d7",
+    "semantic_hash": "3921d6478803ab95d6f554ff0af524d7"
+  },
+  "datasets/education_tr/pdfs/hareketlilik.pdf": {
+    "mtime": 1784814432.7427175,
+    "ast_hash": "b5c6bd48eae1c403ac57c5ecca895564",
+    "semantic_hash": "b5c6bd48eae1c403ac57c5ecca895564"
+  },
+  "datasets/education_tr/pdfs/\u0130hale.pdf": {
+    "mtime": 1784814432.8091874,
+    "ast_hash": "027c03ae257282ba589fa87fc05ad65f",
+    "semantic_hash": "027c03ae257282ba589fa87fc05ad65f"
+  },
+  "datasets/education_tr/pdfs/\u0130ktisadi.pdf": {
+    "mtime": 1784814432.8657088,
+    "ast_hash": "71b42aefa7303df2e40fc51a41fe8fff",
+    "semantic_hash": "71b42aefa7303df2e40fc51a41fe8fff"
+  },
+  "datasets/education_tr/pdfs/\u0130leti\u015fim.pdf": {
+    "mtime": 1784814432.9056847,
+    "ast_hash": "69054ae0b6c7cff3d4fc51300f7d55c7",
+    "semantic_hash": "69054ae0b6c7cff3d4fc51300f7d55c7"
+  },
+  "datasets/education_tr/pdfs/\u0130mza.pdf": {
+    "mtime": 1784814432.959242,
+    "ast_hash": "392d177676cf02b82b56105819d220a8",
+    "semantic_hash": "392d177676cf02b82b56105819d220a8"
+  },
+  "datasets/education_tr/pdfs/\u0130zin.pdf": {
+    "mtime": 1784814433.006878,
+    "ast_hash": "4a1afcf19bbdc0f8156a552612ac8dba",
+    "semantic_hash": "4a1afcf19bbdc0f8156a552612ac8dba"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_benchmark_report_2026-07-23_17-57-53.pdf": {
+    "mtime": 1785223684.3784187,
+    "ast_hash": "6a7c83ee3dd5eb12cd1046c3336ab6d8",
+    "semantic_hash": "6a7c83ee3dd5eb12cd1046c3336ab6d8"
+  },
+  "datasets/law_tr/pdfs/Bankac\u0131l\u0131k.pdf": {
+    "mtime": 1784814433.252795,
+    "ast_hash": "4d4b7f1bf10abf2d7f6404acc9c1403c",
+    "semantic_hash": "4d4b7f1bf10abf2d7f6404acc9c1403c"
+  },
+  "datasets/law_tr/pdfs/Sermaye.pdf": {
+    "mtime": 1784814433.3162582,
+    "ast_hash": "e241917a857ef24986117d05243224d8",
+    "semantic_hash": "e241917a857ef24986117d05243224d8"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_benchmark_report_2026-07-23_18-04-23.pdf": {
+    "mtime": 1785223734.4740922,
+    "ast_hash": "a586b1767785f89284b6767a95deb5b8",
+    "semantic_hash": "a586b1767785f89284b6767a95deb5b8"
+  },
+  "journal_paper/ML_Template/sn-article.pdf": {
+    "mtime": 1785502740.697326,
+    "ast_hash": "7d4412bce1e78e8b8df91aaee20c8071",
+    "semantic_hash": "7d4412bce1e78e8b8df91aaee20c8071"
+  },
+  "journal_paper/ML_Template/user-manual.pdf": {
+    "mtime": 1785502740.7326622,
+    "ast_hash": "07e8b45d28006e626c01bae5f6159bdb",
+    "semantic_hash": "07e8b45d28006e626c01bae5f6159bdb"
+  },
+  "journal_paper/literature_round2.md": {
+    "mtime": 1774712765.511808,
+    "ast_hash": "6ddc1af2b26ab1e122aff2b04d530bb4",
+    "semantic_hash": "6ddc1af2b26ab1e122aff2b04d530bb4"
+  },
+  "journal_paper/template/cas-dc-sample.pdf": {
+    "mtime": 1772823282.3265624,
+    "ast_hash": "1136f65f05d49180e4c6ad3ed3526116",
+    "semantic_hash": "1136f65f05d49180e4c6ad3ed3526116"
+  },
+  "journal_paper/template/cas-sc-sample.pdf": {
+    "mtime": 1772823282.3951643,
+    "ast_hash": "32058e6323b33f5226a13f2bc37f8dde",
+    "semantic_hash": "32058e6323b33f5226a13f2bc37f8dde"
+  },
+  "journal_paper/template/doc/dc-sample.pdf": {
+    "mtime": 1772823282.1843495,
+    "ast_hash": "4f1ff1873629bce16cab77fd7ad70157",
+    "semantic_hash": "4f1ff1873629bce16cab77fd7ad70157"
+  },
+  "journal_paper/template/doc/elsdoc-cas.pdf": {
+    "mtime": 1772823282.1568463,
+    "ast_hash": "3c0dab9eafaea7d7a10196b94f7cbef7",
+    "semantic_hash": "3c0dab9eafaea7d7a10196b94f7cbef7"
+  },
+  "journal_paper/template/doc/sc-sample.pdf": {
+    "mtime": 1772823282.163383,
+    "ast_hash": "96c8ac3e6baab8b9d2beb4338fba1c17",
+    "semantic_hash": "96c8ac3e6baab8b9d2beb4338fba1c17"
+  },
+  "journal_paper/template/figs/cas-grabs.pdf": {
+    "mtime": 1772823282.244396,
+    "ast_hash": "2b0cb3e8a2cbce93efca0f0d15d289db",
+    "semantic_hash": "2b0cb3e8a2cbce93efca0f0d15d289db"
+  },
+  "journal_paper/template/figs/cas-pic1.pdf": {
+    "mtime": 1772823282.2383313,
+    "ast_hash": "1974ca2a59030f69d428dc0dbbc70b7f",
+    "semantic_hash": "1974ca2a59030f69d428dc0dbbc70b7f"
+  },
+  "publishedConferencePaper.pdf": {
+    "mtime": 1785506253.995111,
+    "ast_hash": "6ed397d0dd3458c2f8b095e19f09d456",
+    "semantic_hash": "6ed397d0dd3458c2f8b095e19f09d456"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_corpus_statistics_2026-07-23_17-51-50.png": {
+    "mtime": 1784818314.9905443,
+    "ast_hash": "8633a5271b34a65fa4a8673ef2c0c283",
+    "semantic_hash": "8633a5271b34a65fa4a8673ef2c0c283"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_hit_rate_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818313.7242546,
+    "ast_hash": "6c32eb4e57d9f3728880fda20cd45fb6",
+    "semantic_hash": "6c32eb4e57d9f3728880fda20cd45fb6"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_map_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818311.5799885,
+    "ast_hash": "d4c57273bc3fbd87c024248370abc23f",
+    "semantic_hash": "d4c57273bc3fbd87c024248370abc23f"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_model_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818310.9999788,
+    "ast_hash": "61abb3c09b2061a9beecb603cb3e1052",
+    "semantic_hash": "61abb3c09b2061a9beecb603cb3e1052"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_mrr_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818313.2843857,
+    "ast_hash": "ae519bf9d11d20718e3ccf94e97e86e5",
+    "semantic_hash": "ae519bf9d11d20718e3ccf94e97e86e5"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_ndcg_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818312.8644204,
+    "ast_hash": "b78e06a4623c4281ced842f7c745ce3c",
+    "semantic_hash": "b78e06a4623c4281ced842f7c745ce3c"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_precision_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818312.3571546,
+    "ast_hash": "0f086426a57168ec67f72d53ba21575d",
+    "semantic_hash": "0f086426a57168ec67f72d53ba21575d"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_recall_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818311.9553542,
+    "ast_hash": "e3e1a3978fbf2667e20d3dce63782491",
+    "semantic_hash": "e3e1a3978fbf2667e20d3dce63782491"
+  },
+  "datasets/education_eng/reports/education_eng_rerun_timing_comparison_2026-07-23_17-51-50.png": {
+    "mtime": 1784818338.117535,
+    "ast_hash": "53e0de7b081e4b72c01d3c586a2a8992",
+    "semantic_hash": "53e0de7b081e4b72c01d3c586a2a8992"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_corpus_statistics_2026-07-23_17-57-53.png": {
+    "mtime": 1784818677.8452797,
+    "ast_hash": "6fba6685e581422df38954246822b7cf",
+    "semantic_hash": "6fba6685e581422df38954246822b7cf"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_hit_rate_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818676.8208635,
+    "ast_hash": "7ff2cf1992c924dc127fc027d4393724",
+    "semantic_hash": "7ff2cf1992c924dc127fc027d4393724"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_map_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818674.9212644,
+    "ast_hash": "f09507e11a1ef8a4e3973742781ad4b2",
+    "semantic_hash": "f09507e11a1ef8a4e3973742781ad4b2"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_model_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818674.343248,
+    "ast_hash": "14e198cfe8d85a36ddc58418056e1ef0",
+    "semantic_hash": "14e198cfe8d85a36ddc58418056e1ef0"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_mrr_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818676.4677339,
+    "ast_hash": "fbc066b24bb9cbcbf6a4bfe9404bd821",
+    "semantic_hash": "fbc066b24bb9cbcbf6a4bfe9404bd821"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_ndcg_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818676.0686703,
+    "ast_hash": "e120c45c86c45563271cde49d27fba0b",
+    "semantic_hash": "e120c45c86c45563271cde49d27fba0b"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_precision_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818675.634814,
+    "ast_hash": "e979dafa3660975b36e1144c8bc0e56a",
+    "semantic_hash": "e979dafa3660975b36e1144c8bc0e56a"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_recall_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818675.286947,
+    "ast_hash": "cf015c63b686e7e6a77f98251c15f958",
+    "semantic_hash": "cf015c63b686e7e6a77f98251c15f958"
+  },
+  "datasets/education_tr/reports/education_tr_rerun_timing_comparison_2026-07-23_17-57-53.png": {
+    "mtime": 1784818693.6869519,
+    "ast_hash": "11e80e4d8a99f8da6b02024cac857135",
+    "semantic_hash": "11e80e4d8a99f8da6b02024cac857135"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_corpus_statistics_2026-07-23_18-04-23.png": {
+    "mtime": 1784819068.1887586,
+    "ast_hash": "20f48007782c1f96bc92fcf58497dfc8",
+    "semantic_hash": "20f48007782c1f96bc92fcf58497dfc8"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_hit_rate_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819067.1455536,
+    "ast_hash": "2a5a235f083fe569ced5d8bbbf460966",
+    "semantic_hash": "2a5a235f083fe569ced5d8bbbf460966"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_map_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819065.1248577,
+    "ast_hash": "a3b8ab54874da77bb2dd7e256a1670b1",
+    "semantic_hash": "a3b8ab54874da77bb2dd7e256a1670b1"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_model_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819064.5938416,
+    "ast_hash": "3aabc0baa1002cd5130af8032ea936cf",
+    "semantic_hash": "3aabc0baa1002cd5130af8032ea936cf"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_mrr_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819066.6625822,
+    "ast_hash": "cb38a2698bbab2e095965a7b25b8ddbb",
+    "semantic_hash": "cb38a2698bbab2e095965a7b25b8ddbb"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_ndcg_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819066.2966044,
+    "ast_hash": "ad521675c1b6e65281293c971c310c13",
+    "semantic_hash": "ad521675c1b6e65281293c971c310c13"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_precision_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819065.9365602,
+    "ast_hash": "d681429369a55a604b770f4574fd1fee",
+    "semantic_hash": "d681429369a55a604b770f4574fd1fee"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_recall_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819065.482622,
+    "ast_hash": "348b9ba28e9ce3532b755b2fedb1f70e",
+    "semantic_hash": "348b9ba28e9ce3532b755b2fedb1f70e"
+  },
+  "datasets/law_tr/reports/law_tr_rerun_timing_comparison_2026-07-23_18-04-23.png": {
+    "mtime": 1784819081.9965112,
+    "ast_hash": "3dea6df0db78c153c61b5d7508818d6b",
+    "semantic_hash": "3dea6df0db78c153c61b5d7508818d6b"
+  },
+  "journal_paper/benchmark_datasets.png": {
+    "mtime": 1772998985.541384,
+    "ast_hash": "360f28d969caaac4be31445fbbda017e",
+    "semantic_hash": "360f28d969caaac4be31445fbbda017e"
+  },
+  "journal_paper/conceptual_overview.png": {
+    "mtime": 1785240098.9286673,
+    "ast_hash": "34f8aff57b469198a8c5d8b0cea798c3",
+    "semantic_hash": "34f8aff57b469198a8c5d8b0cea798c3"
+  },
+  "journal_paper/conceptual_overview_old.jpg": {
+    "mtime": 1772919066.302844,
+    "ast_hash": "9b143d4fbe29217ef5c96c79ba43bfa3",
+    "semantic_hash": "9b143d4fbe29217ef5c96c79ba43bfa3"
+  },
+  "journal_paper/evaluation_workflow.png": {
+    "mtime": 1772918964.6770623,
+    "ast_hash": "db71b482287513235f239c7897389962",
+    "semantic_hash": "db71b482287513235f239c7897389962"
+  },
+  "journal_paper/experimental_design.png": {
+    "mtime": 1772998440.0605803,
+    "ast_hash": "96cda601377916367dabbf251113942d",
+    "semantic_hash": "96cda601377916367dabbf251113942d"
+  },
+  "journal_paper/query_qrels.png": {
+    "mtime": 1772916105.9639444,
+    "ast_hash": "da3c9909be363560ead8f2e2c064e7e0",
+    "semantic_hash": "da3c9909be363560ead8f2e2c064e7e0"
+  },
+  "journal_paper/repo_to_paper.png": {
+    "mtime": 1774726530.7844367,
+    "ast_hash": "9411e7ed220a5dbba6e882d1cc9c856b",
+    "semantic_hash": "9411e7ed220a5dbba6e882d1cc9c856b"
+  },
+  "journal_paper/report_generation.png": {
+    "mtime": 1772916544.515862,
+    "ast_hash": "b52c1e3b793ef1193774b3db834fc9cc",
+    "semantic_hash": "b52c1e3b793ef1193774b3db834fc9cc"
+  },
+  "journal_paper/results_bootstrap_forest.png": {
+    "mtime": 1785221859.120616,
+    "ast_hash": "b891efef0c3db63d3faa3a5e1c8f41d9",
+    "semantic_hash": "b891efef0c3db63d3faa3a5e1c8f41d9"
+  },
+  "journal_paper/results_cross_dataset_performance.png": {
+    "mtime": 1785221858.1451168,
+    "ast_hash": "24595159c89ec3eee37e35fb9bce2227",
+    "semantic_hash": "24595159c89ec3eee37e35fb9bce2227"
+  },
+  "journal_paper/results_cross_dataset_performance_OLD.png": {
+    "mtime": 1772699571.9947643,
+    "ast_hash": "e30db7ae6b93ad4931df7c57784ea038",
+    "semantic_hash": "e30db7ae6b93ad4931df7c57784ea038"
+  },
+  "journal_paper/results_education_eng_model_comparison.png": {
+    "mtime": 1785221857.2653036,
+    "ast_hash": "1e6c742fa55c553df9fe701da65b712f",
+    "semantic_hash": "1e6c742fa55c553df9fe701da65b712f"
+  },
+  "journal_paper/results_education_eng_model_comparison_OLD.png": {
+    "mtime": 1772699250.4473243,
+    "ast_hash": "5c801c32dab91358f7dcc37b310ceb4b",
+    "semantic_hash": "5c801c32dab91358f7dcc37b310ceb4b"
+  },
+  "journal_paper/results_education_tr_model_comparison.png": {
+    "mtime": 1785221857.5476072,
+    "ast_hash": "2182c84da49a190ea1ec3ad8f8fee786",
+    "semantic_hash": "2182c84da49a190ea1ec3ad8f8fee786"
+  },
+  "journal_paper/results_education_tr_model_comparison_OLD.png": {
+    "mtime": 1772699348.3081727,
+    "ast_hash": "44b762f7f8436b5e15d93b4f29533680",
+    "semantic_hash": "44b762f7f8436b5e15d93b4f29533680"
+  },
+  "journal_paper/results_law_tr_model_comparison.png": {
+    "mtime": 1785221857.8117175,
+    "ast_hash": "56a360b0b5c619d2e1fee08ab2f90031",
+    "semantic_hash": "56a360b0b5c619d2e1fee08ab2f90031"
+  },
+  "journal_paper/results_law_tr_model_comparison_OLD.png": {
+    "mtime": 1772699427.6163697,
+    "ast_hash": "f317d3da30c4a4541e555c17c001767d",
+    "semantic_hash": "f317d3da30c4a4541e555c17c001767d"
+  },
+  "journal_paper/results_quality_speed_tradeoff.png": {
+    "mtime": 1785221858.4807901,
+    "ast_hash": "d53dd87aa1feb2e61947c7110c783df9",
+    "semantic_hash": "d53dd87aa1feb2e61947c7110c783df9"
+  },
+  "journal_paper/results_quality_speed_tradeoff_OLD.png": {
+    "mtime": 1784125175.9666643,
+    "ast_hash": "492afc8871d893cf34b155473f3f7025",
+    "semantic_hash": "492afc8871d893cf34b155473f3f7025"
+  },
+  "journal_paper/template/figs/cas-munnar-2024.jpg": {
+    "mtime": 1772823282.2286015,
+    "ast_hash": "920ba9206cdcb0f7210dbc5af6f8ea81",
+    "semantic_hash": "920ba9206cdcb0f7210dbc5af6f8ea81"
+  },
+  "journal_paper/template/thumbnails/cas-email.jpeg": {
+    "mtime": 1772823282.2790084,
+    "ast_hash": "ae276cc9956197082d008c18ae4cbb28",
+    "semantic_hash": "ae276cc9956197082d008c18ae4cbb28"
+  },
+  "journal_paper/template/thumbnails/cas-facebook.jpeg": {
+    "mtime": 1772823282.293988,
+    "ast_hash": "e8bdda207ff3067256c9970ffe343313",
+    "semantic_hash": "e8bdda207ff3067256c9970ffe343313"
+  },
+  "journal_paper/template/thumbnails/cas-gplus.jpeg": {
+    "mtime": 1772823282.2626846,
+    "ast_hash": "0ec7ed2498654bd3b8ecd8eb9bb82890",
+    "semantic_hash": "0ec7ed2498654bd3b8ecd8eb9bb82890"
+  },
+  "journal_paper/template/thumbnails/cas-linkedin.jpeg": {
+    "mtime": 1772823282.2725794,
+    "ast_hash": "b995ad7dc911a8687e33f17bcfd9a6e0",
+    "semantic_hash": "b995ad7dc911a8687e33f17bcfd9a6e0"
+  },
+  "journal_paper/template/thumbnails/cas-twitter.jpeg": {
+    "mtime": 1772823282.2561648,
+    "ast_hash": "bb2daef1c15f7aa2fc391f3405c3a1fe",
+    "semantic_hash": "bb2daef1c15f7aa2fc391f3405c3a1fe"
+  },
+  "journal_paper/template/thumbnails/cas-url.jpeg": {
+    "mtime": 1772823282.2877357,
+    "ast_hash": "ef75ae5d7195a5176d102b6aea09b729",
+    "semantic_hash": "ef75ae5d7195a5176d102b6aea09b729"
+  },
+  "tmp/pdf_inspect/contact-1.png": {
+    "mtime": 1784969371.186541,
+    "ast_hash": "37038970e6936ef0eb926ebbb1898634",
+    "semantic_hash": "37038970e6936ef0eb926ebbb1898634"
+  },
+  "tmp/pdf_inspect/contact-2.png": {
+    "mtime": 1784969371.2428863,
+    "ast_hash": "6840dc00056478493ee3eecf77d75fc1",
+    "semantic_hash": "6840dc00056478493ee3eecf77d75fc1"
+  },
+  "tmp/pdf_inspect/contact-3.png": {
+    "mtime": 1784969371.277893,
+    "ast_hash": "6efb9066bf502a207d9fef7eeb795fe2",
+    "semantic_hash": "6efb9066bf502a207d9fef7eeb795fe2"
+  },
+  "tmp/pdf_inspect/contact-4.png": {
+    "mtime": 1784969371.3001792,
+    "ast_hash": "686038601cb24c7fb2283333eeb5d305",
+    "semantic_hash": "686038601cb24c7fb2283333eeb5d305"
+  },
+  "tmp/pdf_inspect/manuscript-01.png": {
+    "mtime": 1784969335.0016394,
+    "ast_hash": "a5c5fdd90795386cb398b99b7e328c5b",
+    "semantic_hash": "a5c5fdd90795386cb398b99b7e328c5b"
+  },
+  "tmp/pdf_inspect/manuscript-02.png": {
+    "mtime": 1784969335.2813194,
+    "ast_hash": "2202c903fd3eb3de74e7062e16e4a8b3",
+    "semantic_hash": "2202c903fd3eb3de74e7062e16e4a8b3"
+  },
+  "tmp/pdf_inspect/manuscript-03.png": {
+    "mtime": 1784969335.6150548,
+    "ast_hash": "595fe7661c13ad53a3a9acac2e1c8e63",
+    "semantic_hash": "595fe7661c13ad53a3a9acac2e1c8e63"
+  },
+  "tmp/pdf_inspect/manuscript-04.png": {
+    "mtime": 1784969335.9801073,
+    "ast_hash": "31c45a5465f118e1ce2bfc8f5714002b",
+    "semantic_hash": "31c45a5465f118e1ce2bfc8f5714002b"
+  },
+  "tmp/pdf_inspect/manuscript-05.png": {
+    "mtime": 1784969336.308329,
+    "ast_hash": "fbd5d643f61b7d2221b423642a850de3",
+    "semantic_hash": "fbd5d643f61b7d2221b423642a850de3"
+  },
+  "tmp/pdf_inspect/manuscript-06.png": {
+    "mtime": 1784969336.732494,
+    "ast_hash": "0627ca97a6718e556df6b1f21eb516c5",
+    "semantic_hash": "0627ca97a6718e556df6b1f21eb516c5"
+  },
+  "tmp/pdf_inspect/manuscript-07.png": {
+    "mtime": 1784969337.001196,
+    "ast_hash": "087417b13eaeeaf2b04ec3db1b24f111",
+    "semantic_hash": "087417b13eaeeaf2b04ec3db1b24f111"
+  },
+  "tmp/pdf_inspect/manuscript-08.png": {
+    "mtime": 1784969337.8359668,
+    "ast_hash": "4a529006c95fc27dcace3967011856c7",
+    "semantic_hash": "4a529006c95fc27dcace3967011856c7"
+  },
+  "tmp/pdf_inspect/manuscript-09.png": {
+    "mtime": 1784969338.9655883,
+    "ast_hash": "a4b8e6cbd1429486bcfa72fb5cbccac3",
+    "semantic_hash": "a4b8e6cbd1429486bcfa72fb5cbccac3"
+  },
+  "tmp/pdf_inspect/manuscript-10.png": {
+    "mtime": 1784969339.3655348,
+    "ast_hash": "a257a8885e0f03230beebec39352f4f2",
+    "semantic_hash": "a257a8885e0f03230beebec39352f4f2"
+  },
+  "tmp/pdf_inspect/manuscript-11.png": {
+    "mtime": 1784969340.4940581,
+    "ast_hash": "44aa67ae8021ed613ba8a593f4cc892e",
+    "semantic_hash": "44aa67ae8021ed613ba8a593f4cc892e"
+  },
+  "tmp/pdf_inspect/manuscript-12.png": {
+    "mtime": 1784969342.1245449,
+    "ast_hash": "359f7f0761a20afd08d9195ce9eceb32",
+    "semantic_hash": "359f7f0761a20afd08d9195ce9eceb32"
+  },
+  "tmp/pdf_inspect/manuscript-13.png": {
+    "mtime": 1784969342.4147296,
+    "ast_hash": "facb50304503187550e2d8af35908999",
+    "semantic_hash": "facb50304503187550e2d8af35908999"
+  },
+  "tmp/pdf_inspect/manuscript-14.png": {
+    "mtime": 1784969342.7153497,
+    "ast_hash": "653c6f38bbfcb733eaafc031dcb2a2a9",
+    "semantic_hash": "653c6f38bbfcb733eaafc031dcb2a2a9"
+  },
+  "tmp/pdf_inspect/manuscript-15.png": {
+    "mtime": 1784969342.971751,
+    "ast_hash": "ebdfedadf7f335004f60703321358ca8",
+    "semantic_hash": "ebdfedadf7f335004f60703321358ca8"
+  },
+  "tmp/pdf_inspect/manuscript-16.png": {
+    "mtime": 1784969343.2590544,
+    "ast_hash": "f183ed0aedde1bb53125452ea4ef148b",
+    "semantic_hash": "f183ed0aedde1bb53125452ea4ef148b"
+  },
+  "tmp/pdf_inspect/manuscript-17.png": {
+    "mtime": 1784969343.5202885,
+    "ast_hash": "ea01e68e93a22a2d62e34e8e46868c22",
+    "semantic_hash": "ea01e68e93a22a2d62e34e8e46868c22"
+  },
+  "tmp/pdf_inspect/manuscript-18.png": {
+    "mtime": 1784969343.8173034,
+    "ast_hash": "4589c6b37c5f75501a20d6dacc1066b4",
+    "semantic_hash": "4589c6b37c5f75501a20d6dacc1066b4"
+  },
+  "tmp/pdf_inspect/manuscript-19.png": {
+    "mtime": 1784969344.135388,
+    "ast_hash": "67ee79624500921da66ccbd67b45c8bb",
+    "semantic_hash": "67ee79624500921da66ccbd67b45c8bb"
+  },
+  "tmp/pdf_inspect/manuscript-20.png": {
+    "mtime": 1784969344.3910923,
+    "ast_hash": "34d035e5947fefae7bff4864a94f1ae2",
+    "semantic_hash": "34d035e5947fefae7bff4864a94f1ae2"
+  },
+  "tmp/pdf_inspect/manuscript-21.png": {
+    "mtime": 1784969344.7161689,
+    "ast_hash": "e0e10b98897d5adb79229883d89ccedd",
+    "semantic_hash": "e0e10b98897d5adb79229883d89ccedd"
+  },
+  "tmp/pdf_inspect/manuscript-22.png": {
+    "mtime": 1784969344.9587247,
+    "ast_hash": "df6b00fddb9d3a3e062b1365131f8bf6",
+    "semantic_hash": "df6b00fddb9d3a3e062b1365131f8bf6"
+  },
+  "tmp/pdf_inspect/manuscript-23.png": {
+    "mtime": 1784969345.2143283,
+    "ast_hash": "05af3ebe08ffb370e815a104b7928bf1",
+    "semantic_hash": "05af3ebe08ffb370e815a104b7928bf1"
+  },
+  "tmp/pdf_inspect/manuscript-24.png": {
+    "mtime": 1784969345.5395956,
+    "ast_hash": "dcfb6f1875b2e0ae769d381bb628ca25",
+    "semantic_hash": "dcfb6f1875b2e0ae769d381bb628ca25"
+  },
+  "tmp/pdf_inspect/manuscript-25.png": {
+    "mtime": 1784969345.910416,
+    "ast_hash": "0943b709c68745fc0e04784d6f29156e",
+    "semantic_hash": "0943b709c68745fc0e04784d6f29156e"
+  },
+  "tmp/pdf_inspect/manuscript-26.png": {
+    "mtime": 1784969346.299636,
+    "ast_hash": "b5a58759e6ea6ccf795a47d93bdb753d",
+    "semantic_hash": "b5a58759e6ea6ccf795a47d93bdb753d"
+  },
+  "tmp/pdf_inspect/manuscript-27.png": {
+    "mtime": 1784969346.6573572,
+    "ast_hash": "655ab2ecbcea80e53d57121256ddd081",
+    "semantic_hash": "655ab2ecbcea80e53d57121256ddd081"
+  },
+  "tmp/pdf_inspect/manuscript-28.png": {
+    "mtime": 1784969346.7940934,
+    "ast_hash": "bcd05577099bfdc21261425e0272e58e",
+    "semantic_hash": "bcd05577099bfdc21261425e0272e58e"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-01.png": {
+    "mtime": 1784969539.1624067,
+    "ast_hash": "a5c5fdd90795386cb398b99b7e328c5b",
+    "semantic_hash": "a5c5fdd90795386cb398b99b7e328c5b"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-02.png": {
+    "mtime": 1784969539.4163594,
+    "ast_hash": "2202c903fd3eb3de74e7062e16e4a8b3",
+    "semantic_hash": "2202c903fd3eb3de74e7062e16e4a8b3"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-03.png": {
+    "mtime": 1784969539.764787,
+    "ast_hash": "595fe7661c13ad53a3a9acac2e1c8e63",
+    "semantic_hash": "595fe7661c13ad53a3a9acac2e1c8e63"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-04.png": {
+    "mtime": 1784969540.1726413,
+    "ast_hash": "31c45a5465f118e1ce2bfc8f5714002b",
+    "semantic_hash": "31c45a5465f118e1ce2bfc8f5714002b"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-05.png": {
+    "mtime": 1784969540.5505693,
+    "ast_hash": "fbd5d643f61b7d2221b423642a850de3",
+    "semantic_hash": "fbd5d643f61b7d2221b423642a850de3"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-06.png": {
+    "mtime": 1784969540.9387991,
+    "ast_hash": "0627ca97a6718e556df6b1f21eb516c5",
+    "semantic_hash": "0627ca97a6718e556df6b1f21eb516c5"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-07.png": {
+    "mtime": 1784969541.1891778,
+    "ast_hash": "087417b13eaeeaf2b04ec3db1b24f111",
+    "semantic_hash": "087417b13eaeeaf2b04ec3db1b24f111"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-08.png": {
+    "mtime": 1784969542.0565631,
+    "ast_hash": "4a529006c95fc27dcace3967011856c7",
+    "semantic_hash": "4a529006c95fc27dcace3967011856c7"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-09.png": {
+    "mtime": 1784969543.05113,
+    "ast_hash": "a4b8e6cbd1429486bcfa72fb5cbccac3",
+    "semantic_hash": "a4b8e6cbd1429486bcfa72fb5cbccac3"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-10.png": {
+    "mtime": 1784969543.546947,
+    "ast_hash": "0e1987e64af9fd744d0eb7f30dd02ee1",
+    "semantic_hash": "0e1987e64af9fd744d0eb7f30dd02ee1"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-11.png": {
+    "mtime": 1784969544.7154696,
+    "ast_hash": "6d4b9a755fc04bf76a1cd08057aff015",
+    "semantic_hash": "6d4b9a755fc04bf76a1cd08057aff015"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-12.png": {
+    "mtime": 1784969544.9727263,
+    "ast_hash": "e4f462f93e4c129029043fbf67abda58",
+    "semantic_hash": "e4f462f93e4c129029043fbf67abda58"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-13.png": {
+    "mtime": 1784969545.2808166,
+    "ast_hash": "e3495d0a812a2486ca6d29135c546c4f",
+    "semantic_hash": "e3495d0a812a2486ca6d29135c546c4f"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-14.png": {
+    "mtime": 1784969545.5659626,
+    "ast_hash": "6a5a9420870214ae938f5d8c3a4da3f3",
+    "semantic_hash": "6a5a9420870214ae938f5d8c3a4da3f3"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-15.png": {
+    "mtime": 1784969545.883895,
+    "ast_hash": "f4cebb6e2d26c5556e47e48ddfef5a29",
+    "semantic_hash": "f4cebb6e2d26c5556e47e48ddfef5a29"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-16.png": {
+    "mtime": 1784969546.1878421,
+    "ast_hash": "8609a78bc453683568a3094e9ff8eff4",
+    "semantic_hash": "8609a78bc453683568a3094e9ff8eff4"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-17.png": {
+    "mtime": 1784969546.4396281,
+    "ast_hash": "63f070d1d5127bf4b68aaa01b2a47f11",
+    "semantic_hash": "63f070d1d5127bf4b68aaa01b2a47f11"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-18.png": {
+    "mtime": 1784969546.7154615,
+    "ast_hash": "89ebe8f8c3ebb9304fbc2b19a4e90030",
+    "semantic_hash": "89ebe8f8c3ebb9304fbc2b19a4e90030"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-19.png": {
+    "mtime": 1784969547.0158007,
+    "ast_hash": "3c2a6d6fc83f6301ddc1e15d29663153",
+    "semantic_hash": "3c2a6d6fc83f6301ddc1e15d29663153"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-20.png": {
+    "mtime": 1784969547.301692,
+    "ast_hash": "352e0903caf857ae669bc89a7d2e2344",
+    "semantic_hash": "352e0903caf857ae669bc89a7d2e2344"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-21.png": {
+    "mtime": 1784969547.566388,
+    "ast_hash": "24dbba696c0dab16e1f5f755f3bdf5d2",
+    "semantic_hash": "24dbba696c0dab16e1f5f755f3bdf5d2"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-22.png": {
+    "mtime": 1784969547.8129306,
+    "ast_hash": "e05bf9bbbb3684b9e9c352e5a0e200b1",
+    "semantic_hash": "e05bf9bbbb3684b9e9c352e5a0e200b1"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-23.png": {
+    "mtime": 1784969548.130851,
+    "ast_hash": "43d3f3b429c5c9ef21bb75a620a40569",
+    "semantic_hash": "43d3f3b429c5c9ef21bb75a620a40569"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-24.png": {
+    "mtime": 1784969548.5166407,
+    "ast_hash": "cfd75ab58dc33ffc9780b3c38dd62a54",
+    "semantic_hash": "cfd75ab58dc33ffc9780b3c38dd62a54"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-25.png": {
+    "mtime": 1784969548.9072301,
+    "ast_hash": "de0b402506a6ab88d666453b2c3a588d",
+    "semantic_hash": "de0b402506a6ab88d666453b2c3a588d"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-26.png": {
+    "mtime": 1784969549.2441318,
+    "ast_hash": "761c7982fa43185a48b239d324bc519d",
+    "semantic_hash": "761c7982fa43185a48b239d324bc519d"
+  },
+  "tmp/pdf_inspect/updated_1152/manuscript-27.png": {
+    "mtime": 1784969549.555959,
+    "ast_hash": "04fef5f8a201a6731d6e61f3fa637a53",
+    "semantic_hash": "04fef5f8a201a6731d6e61f3fa637a53"
+  },
+  "tmp/pdf_inspect_latest/manuscript-01.png": {
+    "mtime": 1784969681.3176663,
+    "ast_hash": "45b6b8939a1a978ce32dda570bed1e36",
+    "semantic_hash": "45b6b8939a1a978ce32dda570bed1e36"
+  },
+  "tmp/pdf_inspect_latest/manuscript-02.png": {
+    "mtime": 1784969681.5505702,
+    "ast_hash": "de02b1e56dfb73098b45a772e18adcbe",
+    "semantic_hash": "de02b1e56dfb73098b45a772e18adcbe"
+  },
+  "tmp/pdf_inspect_latest/manuscript-03.png": {
+    "mtime": 1784969681.918457,
+    "ast_hash": "fde52df6bab108793f63056eca1cf72c",
+    "semantic_hash": "fde52df6bab108793f63056eca1cf72c"
+  },
+  "tmp/pdf_inspect_latest/manuscript-04.png": {
+    "mtime": 1784969682.2215924,
+    "ast_hash": "c4b1e540be424f7e0a1e0319174d50f5",
+    "semantic_hash": "c4b1e540be424f7e0a1e0319174d50f5"
+  },
+  "tmp/pdf_inspect_latest/manuscript-05.png": {
+    "mtime": 1784969682.5249083,
+    "ast_hash": "1464a69faa617d5a2b9d3e3f5164f82f",
+    "semantic_hash": "1464a69faa617d5a2b9d3e3f5164f82f"
+  },
+  "tmp/pdf_inspect_latest/manuscript-06.png": {
+    "mtime": 1784969682.88234,
+    "ast_hash": "303b777d133192c35bc7594de67c23af",
+    "semantic_hash": "303b777d133192c35bc7594de67c23af"
+  },
+  "tmp/pdf_inspect_latest/manuscript-07.png": {
+    "mtime": 1784969683.111528,
+    "ast_hash": "4384f111c3feecaa6431861bcc54fb80",
+    "semantic_hash": "4384f111c3feecaa6431861bcc54fb80"
+  },
+  "tmp/pdf_inspect_latest/manuscript-08.png": {
+    "mtime": 1784969683.9365616,
+    "ast_hash": "be84ae325aa5efe79c0b972f7fb3d17b",
+    "semantic_hash": "be84ae325aa5efe79c0b972f7fb3d17b"
+  },
+  "tmp/pdf_inspect_latest/manuscript-09.png": {
+    "mtime": 1784969684.9109864,
+    "ast_hash": "a03c25d1f038806fcd2ad2d05925c583",
+    "semantic_hash": "a03c25d1f038806fcd2ad2d05925c583"
+  },
+  "tmp/pdf_inspect_latest/manuscript-10.png": {
+    "mtime": 1784969685.3022237,
+    "ast_hash": "eb3a2fe5d7daa52af132c9187970665d",
+    "semantic_hash": "eb3a2fe5d7daa52af132c9187970665d"
+  },
+  "tmp/pdf_inspect_latest/manuscript-11.png": {
+    "mtime": 1784969686.342773,
+    "ast_hash": "d66dfcf87586ac7ca4be8933630471d7",
+    "semantic_hash": "d66dfcf87586ac7ca4be8933630471d7"
+  },
+  "tmp/pdf_inspect_latest/manuscript-12.png": {
+    "mtime": 1784969686.5741284,
+    "ast_hash": "1c5e257f73714ab39b96385180a56a19",
+    "semantic_hash": "1c5e257f73714ab39b96385180a56a19"
+  },
+  "tmp/pdf_inspect_latest/manuscript-13.png": {
+    "mtime": 1784969686.8790402,
+    "ast_hash": "59b190e3090cec788458e3569b4070af",
+    "semantic_hash": "59b190e3090cec788458e3569b4070af"
+  },
+  "tmp/pdf_inspect_latest/manuscript-14.png": {
+    "mtime": 1784969687.1211705,
+    "ast_hash": "4a66912a18a08c46146d83c688a48d56",
+    "semantic_hash": "4a66912a18a08c46146d83c688a48d56"
+  },
+  "tmp/pdf_inspect_latest/manuscript-15.png": {
+    "mtime": 1784969687.3511002,
+    "ast_hash": "f5dfbe6aa4861589f7ab5ae7d0d8130a",
+    "semantic_hash": "f5dfbe6aa4861589f7ab5ae7d0d8130a"
+  },
+  "tmp/pdf_inspect_latest/manuscript-16.png": {
+    "mtime": 1784969687.613035,
+    "ast_hash": "1b589b7afa81a1693c07487eec1d08ff",
+    "semantic_hash": "1b589b7afa81a1693c07487eec1d08ff"
+  },
+  "tmp/pdf_inspect_latest/manuscript-17.png": {
+    "mtime": 1784969687.8514667,
+    "ast_hash": "c800fef57cb748cecef51e321cda34da",
+    "semantic_hash": "c800fef57cb748cecef51e321cda34da"
+  },
+  "tmp/pdf_inspect_latest/manuscript-18.png": {
+    "mtime": 1784969688.1217215,
+    "ast_hash": "a54e9a6b47951b5f1e5eeb164366bcdb",
+    "semantic_hash": "a54e9a6b47951b5f1e5eeb164366bcdb"
+  },
+  "tmp/pdf_inspect_latest/manuscript-19.png": {
+    "mtime": 1784969688.385089,
+    "ast_hash": "7e2ec0c48097e0bf029984cd5fe57f58",
+    "semantic_hash": "7e2ec0c48097e0bf029984cd5fe57f58"
+  },
+  "tmp/pdf_inspect_latest/manuscript-20.png": {
+    "mtime": 1784969688.6235616,
+    "ast_hash": "8de1ee819111eae2fd1720ffc3e48819",
+    "semantic_hash": "8de1ee819111eae2fd1720ffc3e48819"
+  },
+  "tmp/pdf_inspect_latest/manuscript-21.png": {
+    "mtime": 1784969688.8525293,
+    "ast_hash": "068223ae1e850b75f0684d4ed31ee739",
+    "semantic_hash": "068223ae1e850b75f0684d4ed31ee739"
+  },
+  "tmp/pdf_inspect_latest/manuscript-22.png": {
+    "mtime": 1784969689.0835638,
+    "ast_hash": "2642d7e5799900e636530f38e7275e34",
+    "semantic_hash": "2642d7e5799900e636530f38e7275e34"
+  },
+  "tmp/pdf_inspect_latest/manuscript-23.png": {
+    "mtime": 1784969689.3776858,
+    "ast_hash": "01c1498021af70a9a028f84ff1740ded",
+    "semantic_hash": "01c1498021af70a9a028f84ff1740ded"
+  },
+  "tmp/pdf_inspect_latest/manuscript-24.png": {
+    "mtime": 1784969689.685415,
+    "ast_hash": "f5983423a786d4d661e34a7be5dd27dc",
+    "semantic_hash": "f5983423a786d4d661e34a7be5dd27dc"
+  },
+  "tmp/pdf_inspect_latest/manuscript-25.png": {
+    "mtime": 1784969690.0321193,
+    "ast_hash": "37de10914765bd14b752d0492cda16ff",
+    "semantic_hash": "37de10914765bd14b752d0492cda16ff"
+  },
+  "tmp/pdf_inspect_latest/manuscript-26.png": {
+    "mtime": 1784969690.3205326,
+    "ast_hash": "c376b5d31f491b4b58091ecc4aedc61b",
+    "semantic_hash": "c376b5d31f491b4b58091ecc4aedc61b"
+  },
+  "tmp/pdf_inspect_latest/manuscript-27.png": {
+    "mtime": 1784969690.6271515,
+    "ast_hash": "3ff0c0cf87ba0725a04c7bf0705cf419",
+    "semantic_hash": "3ff0c0cf87ba0725a04c7bf0705cf419"
+  },
+  "tmp/pdfs/conclusion_closing_revision_20260726/page-24.png": {
+    "mtime": 1785077402.3280065,
+    "ast_hash": "ccb659486580f2604ded23ad66d4caf2",
+    "semantic_hash": "ccb659486580f2604ded23ad66d4caf2"
+  },
+  "tmp/pdfs/conclusion_closing_revision_20260726/page-25.png": {
+    "mtime": 1785077402.6351862,
+    "ast_hash": "a831532aead5bbcd3ac9124fdff550d5",
+    "semantic_hash": "a831532aead5bbcd3ac9124fdff550d5"
+  },
+  "tmp/pdfs/conclusion_closing_revision_20260726/page-26.png": {
+    "mtime": 1785077402.96049,
+    "ast_hash": "1e73a706553a4eb70321c2cefe7e9f79",
+    "semantic_hash": "1e73a706553a4eb70321c2cefe7e9f79"
+  },
+  "tmp/pdfs/conclusion_consolidation_20260726/page-24.png": {
+    "mtime": 1785078192.1135612,
+    "ast_hash": "c1aca3ed04ba8d6910076070c7a16ab3",
+    "semantic_hash": "c1aca3ed04ba8d6910076070c7a16ab3"
+  },
+  "tmp/pdfs/conclusion_consolidation_20260726/page-25.png": {
+    "mtime": 1785078192.6184907,
+    "ast_hash": "bfa47302d5fdc0c3099146cfd5c438e1",
+    "semantic_hash": "bfa47302d5fdc0c3099146cfd5c438e1"
+  },
+  "tmp/pdfs/conclusion_consolidation_20260726/page-26.png": {
+    "mtime": 1785078193.0821447,
+    "ast_hash": "9e406a61588a7d357daa2ff5226398f7",
+    "semantic_hash": "9e406a61588a7d357daa2ff5226398f7"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_180808/page-24.png": {
+    "mtime": 1785078566.452216,
+    "ast_hash": "d328d9861ce8e9ed47ca6812cbfa5d22",
+    "semantic_hash": "d328d9861ce8e9ed47ca6812cbfa5d22"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_180808/page-25.png": {
+    "mtime": 1785078566.9542007,
+    "ast_hash": "a6ed9525207ed614fd9b8b9dd9f2f1bf",
+    "semantic_hash": "a6ed9525207ed614fd9b8b9dd9f2f1bf"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_180808/page-26.png": {
+    "mtime": 1785078567.4336672,
+    "ast_hash": "4d47e38e36bc60c31e0dbc1b7b835d5c",
+    "semantic_hash": "4d47e38e36bc60c31e0dbc1b7b835d5c"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_180808/page-27.png": {
+    "mtime": 1785078567.8742528,
+    "ast_hash": "9aa1284b5e47050c74ae2d7dbacafd84",
+    "semantic_hash": "9aa1284b5e47050c74ae2d7dbacafd84"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_181038/page-25.png": {
+    "mtime": 1785078697.849112,
+    "ast_hash": "fb8ba40c9e4173a345c6b95b75698021",
+    "semantic_hash": "fb8ba40c9e4173a345c6b95b75698021"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_181038/page-26.png": {
+    "mtime": 1785078698.3632967,
+    "ast_hash": "16f1cff619e720591f50083e1ff0e05d",
+    "semantic_hash": "16f1cff619e720591f50083e1ff0e05d"
+  },
+  "tmp/pdfs/conclusion_visual_check_20260726_181038/page-27.png": {
+    "mtime": 1785078698.758495,
+    "ast_hash": "766e8cc9a63d9cceb24a54c3606ff16d",
+    "semantic_hash": "766e8cc9a63d9cceb24a54c3606ff16d"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/contact-1.png": {
+    "mtime": 1784988925.247455,
+    "ast_hash": "d274acec505b8ca9b8c0f801c435fa3c",
+    "semantic_hash": "d274acec505b8ca9b8c0f801c435fa3c"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/contact-2.png": {
+    "mtime": 1784988925.3645432,
+    "ast_hash": "dcc7eadb2b7c6bd9a775fb5d0f6c2258",
+    "semantic_hash": "dcc7eadb2b7c6bd9a775fb5d0f6c2258"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-01.png": {
+    "mtime": 1784988866.1793563,
+    "ast_hash": "45b6b8939a1a978ce32dda570bed1e36",
+    "semantic_hash": "45b6b8939a1a978ce32dda570bed1e36"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-02.png": {
+    "mtime": 1784988866.7060533,
+    "ast_hash": "5b2db93d120dbec0352e8f0fea54da44",
+    "semantic_hash": "5b2db93d120dbec0352e8f0fea54da44"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-03.png": {
+    "mtime": 1784989004.7991147,
+    "ast_hash": "e0da2748fe868a50a7abfbf75f65b93b",
+    "semantic_hash": "e0da2748fe868a50a7abfbf75f65b93b"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-04.png": {
+    "mtime": 1784988867.2471726,
+    "ast_hash": "6280b57838ef7e7b3ed9cd179f51a023",
+    "semantic_hash": "6280b57838ef7e7b3ed9cd179f51a023"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-05.png": {
+    "mtime": 1784988867.8406813,
+    "ast_hash": "14b3f5f6bf1c0141f438892db18fab78",
+    "semantic_hash": "14b3f5f6bf1c0141f438892db18fab78"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-06.png": {
+    "mtime": 1784988979.302084,
+    "ast_hash": "f66d0c602073bfa2020fa8c73123291b",
+    "semantic_hash": "f66d0c602073bfa2020fa8c73123291b"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-08.png": {
+    "mtime": 1784988869.318189,
+    "ast_hash": "51cc66b6a8329eca2ce79d4c16b46bea",
+    "semantic_hash": "51cc66b6a8329eca2ce79d4c16b46bea"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-09.png": {
+    "mtime": 1784988870.9813745,
+    "ast_hash": "f225d93aef5d3706fac286079e55e2df",
+    "semantic_hash": "f225d93aef5d3706fac286079e55e2df"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-11.png": {
+    "mtime": 1784988872.593468,
+    "ast_hash": "47163f36404b875068aa37d87dc2a5c8",
+    "semantic_hash": "47163f36404b875068aa37d87dc2a5c8"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-13.png": {
+    "mtime": 1784988873.3246915,
+    "ast_hash": "b1e11406f9a77c037ca81d842e89e03e",
+    "semantic_hash": "b1e11406f9a77c037ca81d842e89e03e"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-22.png": {
+    "mtime": 1784988874.2133958,
+    "ast_hash": "d808facc1bb421ecf6a48cf8a1c94859",
+    "semantic_hash": "d808facc1bb421ecf6a48cf8a1c94859"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-23.png": {
+    "mtime": 1784988874.919334,
+    "ast_hash": "86004e79bd2998c13141f33c18f6eb60",
+    "semantic_hash": "86004e79bd2998c13141f33c18f6eb60"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-24.png": {
+    "mtime": 1784988875.530558,
+    "ast_hash": "519393836f962b3c98116c4f37003399",
+    "semantic_hash": "519393836f962b3c98116c4f37003399"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-25.png": {
+    "mtime": 1784988876.6426353,
+    "ast_hash": "dc6d1f6a80bc94baba20200e540eade4",
+    "semantic_hash": "dc6d1f6a80bc94baba20200e540eade4"
+  },
+  "tmp/pdfs/configurable_pipeline_revision_20260725/page-26.png": {
+    "mtime": 1784989047.2043455,
+    "ast_hash": "972b515e43ca02385e733b005abaa4f7",
+    "semantic_hash": "972b515e43ca02385e733b005abaa4f7"
+  },
+  "tmp/pdfs/future_work_revision_20260726/page-24.png": {
+    "mtime": 1785077008.7950995,
+    "ast_hash": "ccb659486580f2604ded23ad66d4caf2",
+    "semantic_hash": "ccb659486580f2604ded23ad66d4caf2"
+  },
+  "tmp/pdfs/future_work_revision_20260726/page-25.png": {
+    "mtime": 1785077009.122458,
+    "ast_hash": "a831532aead5bbcd3ac9124fdff550d5",
+    "semantic_hash": "a831532aead5bbcd3ac9124fdff550d5"
+  },
+  "tmp/pdfs/future_work_revision_20260726/page-26.png": {
+    "mtime": 1785077009.4646926,
+    "ast_hash": "410e6d244e7cdddde7f72388a66d14f8",
+    "semantic_hash": "410e6d244e7cdddde7f72388a66d14f8"
+  },
+  "tmp/pdfs/future_work_revision_20260726/page-27.png": {
+    "mtime": 1785077009.8074746,
+    "ast_hash": "e89b027a9911250880f7d3a20bc68cbe",
+    "semantic_hash": "e89b027a9911250880f7d3a20bc68cbe"
+  },
+  "tmp/pdfs/future_work_revision_20260726/page-28.png": {
+    "mtime": 1785077009.9086974,
+    "ast_hash": "b568ef8796b308df78d29219b784e23e",
+    "semantic_hash": "b568ef8796b308df78d29219b784e23e"
+  },
+  "tmp/pdfs/limitations_merge_20260726/page-23.png": {
+    "mtime": 1785071901.7052555,
+    "ast_hash": "f527c95f407ecff0b300840566e6e959",
+    "semantic_hash": "f527c95f407ecff0b300840566e6e959"
+  },
+  "tmp/pdfs/limitations_merge_20260726/page-24.png": {
+    "mtime": 1785071902.0454178,
+    "ast_hash": "92e66f46c185e68a2ee781d3f0accb4b",
+    "semantic_hash": "92e66f46c185e68a2ee781d3f0accb4b"
+  },
+  "tmp/pdfs/limitations_merge_20260726/page-25.png": {
+    "mtime": 1785071902.4062488,
+    "ast_hash": "bada46802a9118da74a7695a3dce7c66",
+    "semantic_hash": "bada46802a9118da74a7695a3dce7c66"
+  },
+  "tmp/pdfs/limitations_merge_20260726/tail-26.png": {
+    "mtime": 1785071921.918388,
+    "ast_hash": "f8beb3c0e22d32eaec4269cf2cbdb592",
+    "semantic_hash": "f8beb3c0e22d32eaec4269cf2cbdb592"
+  },
+  "tmp/pdfs/limitations_merge_20260726/tail-27.png": {
+    "mtime": 1785071922.2592063,
+    "ast_hash": "2fdc8fc5e5c2f3da443c8509570b0961",
+    "semantic_hash": "2fdc8fc5e5c2f3da443c8509570b0961"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-01.png": {
+    "mtime": 1785063883.2203946,
+    "ast_hash": "a5c5fdd90795386cb398b99b7e328c5b",
+    "semantic_hash": "a5c5fdd90795386cb398b99b7e328c5b"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-02.png": {
+    "mtime": 1785063883.533163,
+    "ast_hash": "b3221ccd86ab9e0b9877d0dcae2c1b13",
+    "semantic_hash": "b3221ccd86ab9e0b9877d0dcae2c1b13"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-03.png": {
+    "mtime": 1785063883.88656,
+    "ast_hash": "9ac25fdefcb0665410cb99f7cf33dc56",
+    "semantic_hash": "9ac25fdefcb0665410cb99f7cf33dc56"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-04.png": {
+    "mtime": 1785063884.2330234,
+    "ast_hash": "a1a57ed09a619a824f578646cd876791",
+    "semantic_hash": "a1a57ed09a619a824f578646cd876791"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-05.png": {
+    "mtime": 1785063884.6041448,
+    "ast_hash": "a5a22b90047afb712970ba925d426728",
+    "semantic_hash": "a5a22b90047afb712970ba925d426728"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-06.png": {
+    "mtime": 1785063884.9410994,
+    "ast_hash": "14bb8912367667f36d1e2ea895670f81",
+    "semantic_hash": "14bb8912367667f36d1e2ea895670f81"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-07.png": {
+    "mtime": 1785063885.301713,
+    "ast_hash": "478c3b4bbfe0f12789120a8368ad6691",
+    "semantic_hash": "478c3b4bbfe0f12789120a8368ad6691"
+  },
+  "tmp/pdfs/prior_work_pdf_20260726/page-08.png": {
+    "mtime": 1785063886.1976285,
+    "ast_hash": "06fa36efccb9e08cf35b6debed40e9ad",
+    "semantic_hash": "06fa36efccb9e08cf35b6debed40e9ad"
   }
 }

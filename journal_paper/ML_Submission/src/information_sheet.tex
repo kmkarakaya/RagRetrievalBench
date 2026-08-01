@@ -1,0 +1,150 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=1.9cm]{geometry}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{parskip}
+\usepackage[hidelinks]{hyperref}
+
+\setlist[itemize]{topsep=2pt,itemsep=1pt,parsep=0pt,leftmargin=1.4em}
+\setlist[enumerate]{topsep=2pt,itemsep=1pt,parsep=0pt,leftmargin=1.6em}
+\newcommand{\q}[1]{\medskip\noindent\textbf{#1}\par\nopagebreak}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\large\bfseries Information Sheet}\\[2pt]
+{\itshape Machine Learning} (Springer)\\[6pt]
+\textbf{A Local RAG Retrieval Benchmarking Pipeline for Corpus-Specific
+Embedding-Model Selection}\\[2pt]
+Murat Karakaya, Department of Software Engineering, TED University, Ankara, T\"urkiye\\
+\href{mailto:murat.karakaya@tedu.edu.tr}{murat.karakaya@tedu.edu.tr}
+\end{center}
+
+\q{1. What is the main claim of the paper? Why is this an important contribution to the
+machine learning / data mining research area?}
+
+The main claim is that embedding-model selection for retrieval-augmented generation (RAG)
+should be decided per corpus, and that this decision can be made repeatable and statistically
+interpretable by an end-to-end local benchmarking pipeline. The pipeline turns a folder of
+documents into a complete evaluation benchmark---chunks, synthetic queries, LLM-constructed
+relevance judgments, multi-model retrieval runs, uncertainty estimates, and automated
+reports---without requiring the practitioner to supply any labeled data.
+
+This matters because standard practice is to pick an embedding model from a public leaderboard.
+Public benchmarks are essential shared references, but they measure behavior on public tasks,
+not on the practitioner's own documents, and they cannot say whether an observed ranking gap on
+a local corpus is large enough to act on. The contribution is a reusable measurement instrument
+rather than a new model or metric.
+
+\q{2. What is the evidence provided to support claims? Be precise.}
+
+The pipeline is demonstrated through one frozen experimental snapshot, reported in full and
+released as artifacts:
+
+\begin{itemize}
+  \item \textbf{Scope.} Three corpora (\texttt{education\_eng}, \texttt{education\_tr},
+        \texttt{law\_tr}); 60 source documents; 1{,}914 chunks; five sentence-transformer
+        candidates (M1--M5); 150 generated synthetic queries; 9{,}296 judged query--chunk
+        pairs, of which 952 are positive; 148 positive-bearing queries scored after
+        zero-positive exclusion.
+  \item \textbf{Relevance judgments.} Model-independent pooled qrels built from the union of
+        top-20 candidates retrieved by all five models, with explicit negative labels retained
+        so the judged set is not biased toward any one candidate.
+  \item \textbf{Uncertainty.} Percentile and paired bootstrap intervals
+        ($B = 10{,}000$) over each corpus's own scored queries. The paired intervals are the
+        discriminating evidence: on \texttt{education\_eng} the M1$-$M2 interval includes zero,
+        so that corpus does not separate the two leading candidates on retrieval quality and
+        the decision falls to latency; on both Turkish corpora every paired interval against
+        M5 excludes zero.
+  \item \textbf{Pool completeness.} Seed-chunk coverage is measured directly rather than
+        assumed: 9 of 150 seed chunks fall outside the pooled candidate set.
+  \item \textbf{Operational cost.} Compound corpus embedding and index-insertion throughput,
+        and compound query-embedding and vector-search latency, from a single-run CPU-only
+        snapshot.
+  \item \textbf{Verification.} Every hand-written number in the manuscript is checked against
+        the stored run artifacts by an automated gate (33 values); the reported snapshot is
+        frozen and released.
+\end{itemize}
+
+The paper is explicit about what this evidence does not establish: queries are synthetic and
+qrels are LLM-generated without human validation; each language and domain condition is
+represented by one corpus, so both are confounded with corpus identity; retrieval geometry,
+chunking, pool depth, and cutoff are fixed demonstration settings with no sensitivity study; and
+timing is single-run and single-machine. These limits appear in the abstract and Section~6.4.
+
+\q{3. Report the 3--5 most closely related contributions in the past 7 years, and briefly state
+the relation of the submission to them.}
+
+\begin{enumerate}
+  \item \textbf{Muennighoff et al. (2023), MTEB}, EACL; and \textbf{Enevoldsen et al. (2025),
+        MMTEB}, ICLR. These supply corpus, queries, and judgments together and answer which
+        model performs best on fixed public tasks. This submission is upstream and
+        complementary: it \emph{produces} a labeled benchmark from a practitioner's own
+        unlabeled documents---precisely the input MTEB-style evaluation presupposes.
+  \item \textbf{Thakur et al. (2025), Assessing Support for the TREC 2024 RAG Track}, SIGIR.
+        Characterizes when LLM relevance assessment agrees with human assessment. This
+        submission depends on LLM judging and cites this work as the basis for treating its own
+        unvalidated qrels as a stated limitation rather than as ground truth.
+  \item \textbf{Upadhyay et al. (2024), UMBRELA}. Provides an LLM relevance judge as a
+        component. This submission uses a judge of that kind inside a larger corpus-to-report
+        workflow and contributes the surrounding pooling, uncertainty, and reporting stages.
+  \item \textbf{Es et al. (2024), RAGAs}, EACL Demos. Scores an assembled generation pipeline on
+        faithfulness and answer relevance, and can synthesize evaluation data from documents.
+        This submission sits upstream: it compares ranked retrieval over the full chunk set, the
+        stage RAGAS assumes is already fixed.
+  \item \textbf{Wang et al. (2025), On the Reproducibility Limitations of RAG Systems}.
+        Documents how RAG evaluation results fail to reproduce. This submission responds by
+        freezing and releasing every intermediate artifact and verifying all reported numbers
+        against them automatically.
+\end{enumerate}
+
+\q{4. Specify 5 general keywords and 5 specific keywords describing the main research activity.}
+
+\textbf{General:} information retrieval; retrieval-augmented generation; evaluation
+methodology; benchmarking; reproducibility.
+
+\textbf{Specific:} corpus-specific embedding-model selection; synthetic query generation;
+LLM-as-judge relevance construction; model-independent pooled qrels; query-level paired
+bootstrap intervals.
+
+\q{5. Conflicts of interest}
+
+\textbf{Institutional conflicts.} The author is affiliated with the Department of Software
+Engineering, TED University, Ankara, T\"urkiye. Reviewers from TED University should not be
+assigned.
+
+\textbf{Guest Editorial Board conflicts.} None known.
+
+\textbf{Financial and personal conflicts.} None. This research received no specific grant from
+funding agencies in the public, commercial, or not-for-profit sectors. The author declares no
+competing financial interests or personal relationships that could have appeared to influence
+the work.
+
+\textbf{Prior publication.} A preliminary version was presented at the International Conference
+on Computer Science and Intelligence Systems (ICCSIS 2025), Madrid, Spain, 10--11 August 2025,
+pp.~1--6; the conference organizers subsequently published accepted papers in the
+\emph{International Journal of Advances in Electronics and Computer Science} 12(9), ISSN
+2394-2835. That version established feasibility on a single English corpus. The present
+submission extends it with three language- and domain-differentiated corpora,
+model-independent pooled qrels, query-level bootstrap uncertainty, dataset-level reports as the
+primary selection artifact, and operational-cost evidence. The relationship is stated in
+Section~1 and in full in Section~2.6, and the prior paper is cited and supplied with this
+submission. The manuscript is not under review at any other journal or conference.
+
+\q{6. Suggested reviewers (up to four)}
+
+\fbox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
+\textbf{TO BE COMPLETED BY THE AUTHOR BEFORE UPLOAD.} Machine Learning requires up to four
+candidate reviewers. Supply full name, affiliation, email, and a one-line justification for
+each. None may be from TED University, a co-author, or a recent collaborator.
+
+\medskip
+1.\ Name --- Affiliation --- Email --- Why appropriate:\par\medskip
+2.\ Name --- Affiliation --- Email --- Why appropriate:\par\medskip
+3.\ Name --- Affiliation --- Email --- Why appropriate:\par\medskip
+4.\ Name --- Affiliation --- Email --- Why appropriate:\par
+}}
+
+\end{document}

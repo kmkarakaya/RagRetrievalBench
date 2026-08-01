@@ -94,14 +94,34 @@ Target journal changed from Elsevier to **Machine Learning** (Springer, journal 
 **Submit `build/<timestamp>/manuscript_sn_full.tex`** — Springer asks for a single `.tex` document, and
 that wrapper has every `\input` inlined.
 
+## Submission package — 2026-08-01
+
+Assembled in `journal_paper/ML_Submission/`; see `00_UPLOAD_GUIDE.md` there for upload order and
+Editorial Manager item types.
+
+- [x] Prior-publication citation corrected: `Karakaya_Conference_2025` is now `@inproceedings`
+      (ICCSIS 2025, Madrid, 10–11 Aug 2025, pp. 1–6, IIER) with the IJAECS 12(9) proceedings-journal
+      publication disclosed in a `note`. It was previously recorded only as an IJAECS journal article,
+      which framed it as the stricter journal-to-journal category and omitted the conference peer review.
+- [x] `intro.tex`: added the ICCSIS 2025 extension disclosure to §1. MLJ requires the overlap to be
+      "described clearly at the beginning of the submission"; it was previously only in §2.6 and §3.2.
+- [x] Cover letter written and compiled (1 page).
+- [x] Information sheet written and compiled (2 pages) covering MLJ's six required questions.
+- [x] Complete recompilable LaTeX source assembled + zipped; **self-tested** by rebuilding in an
+      isolated folder with the `.bbl` deleted → 47 pages, 0 undefined, 0 missing files.
+- [x] Re-verified after the two edits: lint 0/0, 0 undefined refs, `.aux` converged, 47 pages,
+      `--verify-paper` 33/33, `datasets/` untouched.
+
 ## Blocking before submission — author action
 
+- [ ] **Fill the four suggested reviewers** into the boxed placeholder on page 2 of the information
+      sheet (`ML_Submission/src/information_sheet.tex`), then recompile and re-copy the PDF.
 - [ ] **Make the GitHub repository public.** It currently 404s anonymously. The Data and Code Availability
       statements and two inline citations point at it. This is the single largest gap between what the paper
       claims and what a referee can verify.
-- [ ] **Write the 1–2 page information sheet** that Machine Learning requires alongside each submission.
 - [ ] Confirm on the live submission-guidelines page that Machine Learning wants Springer Basic
-      **author–year** (current setting). Switching to numbered is a one-word change: add `Numbered` to the
+      **author–year** (current setting) and that review is **single-blind** (author names are not
+      anonymised). Switching to numbered references is a one-word change: add `Numbered` to the
       `\documentclass` options in `manuscript.tex`.
 - [ ] Enter the ORCID (0000-0002-9542-6965) in the submission portal — `sn-jnl`'s `\orcid` macro needs an
       `Orcidlogo.eps` that ships separately, so it is not set in the LaTeX source.

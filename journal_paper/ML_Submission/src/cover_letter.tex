@@ -1,0 +1,85 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{parskip}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{empty}
+
+\begin{document}
+
+\noindent
+Murat Karakaya\\
+Department of Software Engineering\\
+TED University, Ankara, T\"urkiye\\
+\href{mailto:murat.karakaya@tedu.edu.tr}{murat.karakaya@tedu.edu.tr}
+
+\bigskip
+\noindent
+The Editors-in-Chief\\
+\emph{Machine Learning}\\
+Springer
+
+\bigskip
+\noindent
+Dear Editors,
+
+\medskip
+I am pleased to submit the manuscript \textbf{``A Local RAG Retrieval Benchmarking Pipeline for
+Corpus-Specific Embedding-Model Selection''} for consideration in \emph{Machine Learning}.
+
+Practitioners who build retrieval-augmented generation systems usually choose an embedding
+model from a public leaderboard. Those leaderboards measure behavior on public tasks, not on
+the practitioner's own documents, and they offer no way to tell whether a ranking gap observed
+on a local corpus is large enough to act on. The paper argues that this decision should be made
+per corpus, and it contributes the measurement instrument that makes doing so practical: a
+configurable pipeline that turns a folder of documents into a complete benchmark---chunks,
+synthetic queries, LLM-constructed relevance judgments, multi-model retrieval runs, query-level
+uncertainty estimates, and automated per-dataset and aggregate reports---without requiring any
+labeled data from the practitioner.
+
+Three aspects may be of particular interest to the journal. First, the relevance judgments are
+pooled model-independently across the whole evaluated roster, with explicit negative labels
+retained, so the judged set is not biased toward any single candidate. Second, every corpus
+ranking carries paired bootstrap intervals, which turn out to be decisive rather than
+decorative: on the English education corpus the interval between the two leading candidates
+includes zero, so that corpus does not resolve them on retrieval quality and the choice falls to
+latency, whereas on both Turkish corpora the corresponding intervals exclude zero. Third, pool
+incompleteness is measured directly---9 of 150 seed chunks fall outside the pooled candidate
+set---rather than acknowledged in the abstract and then set aside.
+
+The demonstration uses one frozen snapshot across three language- and domain-differentiated
+corpora: 60 documents, 1{,}914 chunks, five sentence-transformer candidates, 150 synthetic
+queries, and 9{,}296 judged query--chunk pairs including 952 positives. All intermediate
+artifacts are released, and every number stated in the paper is checked automatically against
+those artifacts. The paper is equally explicit about what the evidence does not establish: the
+queries are synthetic, the relevance judgments are LLM-generated without human validation, each
+language and domain condition is represented by a single corpus, and the retrieval geometry and
+chunking are fixed demonstration settings rather than tuned optima.
+
+I should disclose that a preliminary version of this work was presented at the International
+Conference on Computer Science and Intelligence Systems (ICCSIS 2025) in Madrid, 10--11 August
+2025, and was subsequently published by the conference organizers in the \emph{International
+Journal of Advances in Electronics and Computer Science} 12(9). That version established
+feasibility on a single English corpus. The present manuscript extends it substantially: three
+language- and domain-differentiated corpora rather than one, model-independent pooled qrels,
+query-level bootstrap uncertainty, dataset-level reports as the primary selection artifact, and
+operational-cost evidence. The relationship is stated in Section~1 and in full in Section~2.6,
+the prior paper is cited, and a copy accompanies this submission.
+
+The manuscript is not under review at any other journal or conference, and no overlapping
+submission is in progress. It has been prepared with the Springer Nature \LaTeX{} template; the
+source files, style files, figures, and the compiled PDF are included.
+
+\medskip
+\noindent
+Thank you for your consideration.
+
+\bigskip
+\noindent
+Yours sincerely,
+
+\medskip
+\noindent
+Murat Karakaya
+
+\end{document}
