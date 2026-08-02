@@ -24,6 +24,17 @@
 
 \raggedbottom
 
+%% Float placement. sn-jnl sets \textfraction to .13 and \floatpagefraction to
+%% .887. Between them the larger tables here fall into a gap: too tall to leave
+%% the required four lines of text on a column, too short to earn a float page.
+%% LaTeX then defers them indefinitely, and because floats are placed in order
+%% every later table is dragged to the end of the document with them. Relaxing
+%% both bounds restores in-place positioning.
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.85}
+
 \begin{document}
 
 \title[Corpus-Specific Embedding-Model Selection]{Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty}

@@ -90,6 +90,16 @@ def family_name(model_name: str) -> str:
     return FAMILY_NAMES[tail]
 
 
+def stack(*lines: str, align: str = "r") -> str:
+    """A column header broken over several lines.
+
+    Long single-line headers push these tables past the journal's 372pt text
+    block; stacking them keeps the full wording without the overflow.
+    """
+    return ("\\begin{tabular}[b]{@{}" + align + "@{}}"
+            + r" \\ ".join(lines) + "\\end{tabular}")
+
+
 def tabular(colspec: str, header: list[str], rows: list[list[str]],
             group_rows: list[tuple[int, str]] | None = None) -> str:
     """Render a booktabs tabular. group_rows inserts a full-width row before index i."""
@@ -204,8 +214,9 @@ def build_dataset_timing(dataset: str, data: dict, alias_map: dict) -> str:
 # ----------------------------------------------------------------------------------
 
 def build_dataset_statistics(datasets: dict, alias_map: dict) -> str:
-    header = ["Dataset", "Source documents", "Chunks", "Generated queries",
-              "Scored queries", "Judged pairs", "Positive qrels"]
+    header = ["Dataset", stack("Source", "documents"), "Chunks",
+              stack("Generated", "queries"), stack("Scored", "queries"),
+              stack("Judged", "pairs"), stack("Positive", "qrels")]
     rows = []
     totals = [0] * 6
     for name, data in datasets.items():
@@ -257,8 +268,9 @@ def build_cross_dataset_consistency(datasets: dict, alias_map: dict) -> str:
 
 
 def build_quality_speed(datasets: dict, alias_map: dict) -> str:
-    header = ["Model", "Mean MAP@10", "Avg Rank", "Weighted latency (ms/query)",
-              "Throughput range (chunks/s)"]
+    header = ["Model", stack("Mean", "MAP@10"), stack("Avg", "Rank"),
+              stack("Weighted latency", "(ms/query)"),
+              stack("Throughput range", "(chunks/s)")]
     names = list(datasets)
     ranks = _ranks(datasets, alias_map)
     rows = []
@@ -282,7 +294,9 @@ def build_pair_comparison(datasets: dict, alias_map: dict, ds_a: str, ds_b: str,
     header = ["Model"]
     if with_family:
         header.append("Family")
-    header += [f"{a_lab} MAP@10", f"{b_lab} MAP@10", f"$\\Delta$ ({arrow})"]
+    header += [stack(a_lab, "MAP@10", align="c"),
+               stack(b_lab, "MAP@10", align="c"),
+               f"$\\Delta$ ({arrow})"]
     rows = []
     for model_name, alias in ordered_aliases(alias_map):
         # Round first, then subtract, so the delta a reader computes from the two

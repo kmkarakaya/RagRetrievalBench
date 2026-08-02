@@ -10,7 +10,7 @@ Before a benchmark run, the practitioner selects the document collection and con
 
 Once these corpus-level artifacts have been created, the pipeline branches into model-specific indexing and evaluation. Separate vector collections are built for each candidate embedding model, and each model from the shared roster is evaluated against the same query and qrels resources for that corpus rather than against model-specific or manually curated evidence. Holding the selected configuration constant makes the resulting dataset-level reports comparable while preserving corpus-specific model selection as the primary objective. Retrieval evaluation is followed by an uncertainty stage that resamples the per-query metric values, so that each dataset report states not only how the candidates rank but which parts of that ranking the corpus actually resolves. The final stage consolidates the resulting outputs into dataset-level reports and, when multiple corpora are available, an optional aggregate comparison report. The sequence of stages and their intermediate products are summarized in Table~\ref{tbl:method_pipeline_stages} and illustrated conceptually in Figure~\ref{fig:method_pipeline_workflow}.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Stage sequence and intermediate artifacts of the proposed embedding benchmarking workflow.}\label{tbl:method_pipeline_stages}
 \centering
 \small
@@ -105,7 +105,7 @@ The first layer operates separately for each dataset or dataset subset. When the
 
 The second layer begins only after one or more dataset-level reports have been completed. This aggregation stage is optional secondary context for settings in which the available collection is heterogeneous, for example when documents belong to different topic classes such as finance, law, or administration, or when the corpus spans multiple languages such as English, Turkish, or French. In such cases, a practitioner may evaluate heterogeneous language or domain subsets separately, generate a dataset report for each subset, and then combine the completed reports into an aggregate comparison package, as shown in Figure~\ref{fig:method_reporting_workflow}. The aggregate report is therefore derived from completed benchmark products rather than from raw retrieval outputs: it loads the stored per-dataset result files and reports cross-dataset rankings by average rank, per-dataset model performance, embedding-speed and latency comparisons, pooled query-level intervals, and a per-dataset recapitulation, so that cross-corpus behavior can be inspected without overriding the corpus-specific shortlist produced by each dataset-level report. The concrete experimental configuration and the resulting comparative evidence are presented in Sections~\ref{experiments} and~\ref{results}, respectively.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Reporting outputs produced by the proposed benchmarking pipeline.}\label{tbl:method_reporting_outputs}
 \centering
 \small
@@ -133,7 +133,7 @@ The workflow is distributed as a command-line tool, and the stages of Table~\ref
 
 Table~\ref{tbl:method_invocations} lists the invocations. The two language-model stages---query generation and relevance judging---may be run synchronously for small corpora or submitted as batch jobs for larger ones; this is the only point at which the execution mode varies. A single end-to-end invocation runs the whole sequence and skips any stage whose artifact already exists, so an interrupted run is resumed by repeating the same command. Because each stage writes its artifact to disk before the next begins, a practitioner can stop after relevance construction to inspect the generated queries and judgments before committing to the evaluation stages, or re-run only the uncertainty and reporting stages after changing a reporting option---neither re-embeds the corpus nor issues further language-model calls.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Pipeline stages and their command-line invocations. Every invocation takes \texttt{-{}-dataset <name>}, which performs the dataset-routing stage.}\label{tbl:method_invocations}
 \centering
 \small

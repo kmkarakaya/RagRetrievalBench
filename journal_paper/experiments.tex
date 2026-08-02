@@ -20,7 +20,7 @@ Table~\ref{tbl:dataset_statistics_summary} summarizes the same per-dataset count
 
 Table~\ref{tbl:dataset_statistics_summary} also shows an important structural characteristic of the benchmark: although \texttt{law\_tr} contains only two source documents, it yields more chunks than either education dataset. The present dataset collection should therefore be read as an intentionally diverse experimental snapshot for demonstrating corpus-specific model selection under a shared protocol. In the present implementation, these source documents were processed from PDF files, but the experimental logic is framed at the document-collection level rather than at one fixed file format.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Dataset statistics summary for the frozen experimental snapshot. \emph{Judged pairs} counts every query--chunk pair drawn from the model-independent candidate pool and submitted to the LLM judge; the positive qrels are the subset of those pairs labeled relevant, and the remainder are stored as explicit negative labels.}\label{tbl:dataset_statistics_summary}
 \centering
 \small
@@ -31,10 +31,10 @@ Table~\ref{tbl:dataset_statistics_summary} also shows an important structural ch
 
 Table~\ref{tbl:dataset_provenance} records the provenance boundary of the datasets used in the paper. Its columns summarize the dataset identifier used in this paper, the corresponding language-and-domain category, and the source collection from which the benchmark subset was curated. The education corpora were curated from the TED University regulations and guidelines collection \citep{TED_Regulations}, whereas the law corpus was curated from the BDDK regulations listing \citep{BDDK_Mevzuat}. All source material was retrieved on \texttt{2026-01-01}. TED University and BDDK are the originating source publishers identified for these materials; this paper does not assert additional licenses, permissions, or redistribution rights beyond the repository artifacts and the documented source provenance. Reuse of extracted source text remains subject to the terms of the originating sources. Explicit provenance is important because the benchmark is intended as a reusable local evaluation workflow: when the same procedure is applied to a different institutional collection, domain archive, or multilingual document set, the resulting evidence should be interpreted relative to that corpus boundary.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Provenance and document composition of the benchmark datasets used in this paper. The two education corpora share four documents in translation but are not parallel collections; see Section~\ref{language-effect}.}\label{tbl:dataset_provenance}
 \centering
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.29\linewidth}>{\raggedright\arraybackslash}p{0.25\linewidth}@{}}
 \toprule
 Dataset & Language and domain & Document type & Source \\
 \midrule
@@ -51,7 +51,7 @@ All datasets were processed under the same evaluation configuration so that the 
 
 The values selected for this snapshot are demonstration settings, not tuned optima. Retrieval used the common cutoff \texttt{k=10}; chunking used a size of \texttt{1000} characters with \texttt{200} characters of overlap; 50 synthetic queries were generated per dataset; and qrels construction pooled the top-20 candidates retrieved by each of the five models into one model-independent candidate set before LLM judging (Section~\ref{method}). In the pipeline implementation, these experiment-related parameters are stored in a central configuration file, which makes the setup directly accessible and adjustable when a practitioner needs to benchmark a different corpus, alternative model roster, or modified operating constraint \citep{ChromaDB_Docs}. They are held fixed here so that the three corpus demonstrations can be compared under one protocol. Changing any value defines a separate controlled benchmark run and may produce different scores or rankings; this paper reports no sensitivity runs for chunking, query count, pool depth, retrieval geometry, or cutoff.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Parameter values selected for the reported experimental snapshot.}\label{tbl:experiment_workflow_parameters}
 \centering
 \small
@@ -79,7 +79,7 @@ The aggregate concepts used in Section~\ref{results} are derived only from exist
 
 Table~\ref{tbl:experiment_embedding_models} lists the embedding model roster used in the experimental configuration. The table identifies each model, its embedding dimension, and its role within the benchmarked roster. This roster contains five accessible Sentence-Transformers candidates selected partly through popularity and accessibility in the Sentence Transformers Hugging Face repository \citep{SentenceTransformers_HF_Repo,HuggingFace_SentenceTransformers}. These choices make the roster practical for a reproducible demonstration, but they do not make it comprehensive. The snapshot does not include lexical retrieval, hybrid retrieval, reranking, domain-adapted embedding models, newer multilingual alternatives, or commercial embedding providers. The purpose of the present setup is to demonstrate that the proposed pipeline can evaluate a realistic open candidate set under controlled conditions; all model-selection claims are therefore conditional on this five-model roster and fixed protocol.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Embedding model roster used in the experimental configuration.}\label{tbl:experiment_embedding_models}
 \centering
 \small
@@ -106,7 +106,7 @@ Table~\ref{tbl:reproducibility} summarizes the software, data-processing, and me
 
 The operational timing measurements are descriptive single-run, single-machine, CPU-only observations. Embedding throughput combines corpus embedding and ChromaDB index insertion, while query latency combines query embedding and vector search. These compound measurements are useful for comparing the frozen runs under one local setup, but they do not isolate model inference from vector-store behavior, report repeated-trial variability, or measure runtime memory.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \caption{Reproducibility conditions for the benchmark snapshot.}\label{tbl:reproducibility}
 \centering
 \small
