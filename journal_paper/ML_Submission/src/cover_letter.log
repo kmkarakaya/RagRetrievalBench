@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 24.1) (preloaded format=pdflatex 2026.3.19)  1 AUG 2026 15:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 24.1) (preloaded format=pdflatex 2026.3.19)  2 AUG 2026 23:32
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -251,9 +251,9 @@ Package hyperref Info: Link coloring OFF on input line 8.
 \openout3 = `cover_letter.out'.
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 70.
+(Font)              <7> on input line 71.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 70.
+(Font)              <5> on input line 71.
 
 
 [1
@@ -270,7 +270,7 @@ Package rerunfilecheck Info: File `cover_letter.out' has not changed.
 Here is how much of TeX's memory you used:
  8268 strings out of 467870
  128567 string characters out of 5418893
- 553271 words of memory out of 5000000
+ 554271 words of memory out of 5000000
  37112 multiletter control sequences out of 15000+600000
  630714 words of font info for 44 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -280,9 +280,9 @@ Here is how much of TeX's memory you used:
 bx1000.pk> <C:\Users\KMK\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
 0\ecti1000.pk> <C:\Users\KMK\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/d
 pi600\ecrm1000.pk>
-Output written on cover_letter.pdf (1 page, 46723 bytes).
+Output written on cover_letter.pdf (1 page, 48526 bytes).
 PDF statistics:
- 152 PDF objects out of 1000 (max. 8388607)
+ 157 PDF objects out of 1000 (max. 8388607)
  2 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

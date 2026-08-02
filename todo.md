@@ -114,8 +114,13 @@ Editorial Manager item types.
 
 ## Blocking before submission — author action
 
-- [ ] **Fill the four suggested reviewers** into the boxed placeholder on page 2 of the information
-      sheet (`ML_Submission/src/information_sheet.tex`), then recompile and re-copy the PDF.
+- [x] Four suggested reviewers finalised in the information sheet, across four institutions:
+      Beytullah Yıldız (Turkish-Japanese Science and Technology University), Şeref Sağıroğlu
+      (Gazi), Murat Koyuncu (Çankaya), Arda Sezen (Atılım).
+      Gökhan Şengül was removed: the public record shows three co-authored IJSRISE 2017 papers
+      and a shared 2015 patent application with the author, which is a standard reviewer
+      exclusion. Affiliations for Yıldız and Koyuncu were corrected from Atılım to their
+      current institutions.
 - [ ] **Make the GitHub repository public.** It currently 404s anonymously. The Data and Code Availability
       statements and two inline citations point at it. This is the single largest gap between what the paper
       claims and what a referee can verify.
