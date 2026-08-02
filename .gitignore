@@ -105,3 +105,22 @@ datasets/*/analysis/*
 datasets/*/reports/batches/
 datasets/*/reports/timing_data_*.json
 batch_history.jsonl
+
+# Internal working files: kept on disk, not published. The public repo carries the
+# pipeline, datasets/, paper sources and figures only. ML_Submission holds the
+# suggested-reviewer list and other confidential submission correspondence.
+journal_paper/ML_Submission/
+review.md
+todo.md
+prompts.md
+journal_paper/how_to_write_paper.md
+journal_paper/publication_plan.md
+journal_paper/literature_blueprint.md
+journal_paper/literature_blueprint_round2.md
+journal_paper/literature_round1.md
+journal_paper/literature_round2.md
+journal_paper/codex_session_prompt.txt
+
+# Scratch and local build state
+tmp/
+.miktex-user/
