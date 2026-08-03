@@ -530,7 +530,11 @@ Copy-Item (Join-Path $TemplateDir "bst/$BstName") $BuildDir -Force
 # substitute: manuscript.tex already names sn-jnl directly.
 $masterText = Get-Content -Path $MasterTexPath -Raw
 $WrapperPath = Join-Path $BuildDir $WrapperName
-Set-Content -Path $WrapperPath -Value $masterText -Encoding UTF8
+# Write UTF-8 without a BOM. Windows PowerShell's -Encoding UTF8 emits one, and the
+# BOM then leads the submitted .tex file. Our pdflatex copes, but the publisher
+# compiles the submitted source on their own toolchain, so keep it pure ASCII.
+[System.IO.File]::WriteAllText(
+    $WrapperPath, $masterText, (New-Object System.Text.UTF8Encoding($false)))
 
 # Generate full/inlined wrapper for debugging and inspection.
 $env:BUILD_DIR = $BuildDir
@@ -570,7 +574,7 @@ def inline_inputs(tex_text: str, stack: list[str]) -> str:
 
     return input_re.sub(repl, tex_text)
 
-wrapper_text = (build / wrapper_name).read_text(encoding='utf-8')
+wrapper_text = (build / wrapper_name).read_text(encoding='utf-8-sig')
 full_text = inline_inputs(wrapper_text, [wrapper_name])
 (build / full_wrapper_name).write_text(full_text, encoding='utf-8')
 print(f"Wrote {wrapper_name} and {full_wrapper_name}")
