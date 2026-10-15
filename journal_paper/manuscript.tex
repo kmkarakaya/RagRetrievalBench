@@ -1,55 +1,65 @@
-%% Springer Nature LaTeX template (sn-jnl) for submission to
-%% Machine Learning (Springer, journal 10994).
+%% PeerJ Computer Science submission, built on the Overleaf/PeerJ template
+%% (wlpeerj class, copy in Peerj_template/).
 %%
-%% Reference style: sn-basic without the "Numbered" option => Springer Basic
-%% author-year. The class loads natbib[authoryear] and sets
-%% \bibliographystyle{sn-basic} itself, so this preamble must NOT load natbib
-%% and must NOT issue \bibliographystyle.
+%% Reference style: wlpeerj loads natbib and sets \bibliographystyle{apalike}
+%% (author-year) itself, so this preamble must NOT load natbib and must NOT
+%% issue \bibliographystyle.
 %%
-%% The "lineno" option prints line numbers in the margin for referees.
+%% The "lineno" option prints line numbers, which PeerJ requires for
+%% peer-review submissions. Remove it only for the camera-ready version.
 %%
-%% Submission note: Springer asks for a single .tex document. build.ps1 emits
-%% manuscript_sn_full.tex with every \input inlined; submit that file.
+%% PeerJ collects keywords, funding, competing interests, ethics, and author
+%% contributions in its submission form, not in the manuscript; their text is
+%% kept in "Peerj Submision/portal_statements.txt".
 %%
-%% The retired Elsevier CAS front matter is kept in archive_cas/ for reference.
-\documentclass[pdflatex,sn-basic,lineno]{sn-jnl}
+%% Submission note: build.ps1 emits manuscript_peerj_full.tex with every \input
+%% inlined and exports it, with the PDF and figures, to "Peerj Submision/".
+%%
+%% The retired Springer sn-jnl front matter is kept in archive_sn/ for reference.
+\documentclass[fleqn,10pt,lineno]{wlpeerj}
 
-%% Standard packages expected by sn-jnl (it calls \allowdisplaybreaks at
-%% \begin{document}, so amsmath must be present).
-\usepackage{graphicx}
-\usepackage{amsmath,amssymb,amsfonts}
-\usepackage{longtable,booktabs,array,calc}
+%% wlpeerj already loads graphicx, amsmath/amssymb/amsfonts, booktabs, and natbib.
+%% url is needed for the \url{...} fields of the @misc entries in refs.bib.
+%% T1 encoding gives Times/Courier a real underscore glyph (dataset identifiers such
+%% as education\_eng) and single-glyph accented letters.
+\usepackage[T1]{fontenc}
+\usepackage{longtable,array,url}
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 
-\raggedbottom
-
-%% Float placement. sn-jnl sets \textfraction to .13 and \floatpagefraction to
-%% .887. Between them the larger tables here fall into a gap: too tall to leave
-%% the required four lines of text on a column, too short to earn a float page.
-%% LaTeX then defers them indefinitely, and because floats are placed in order
-%% every later table is dragged to the end of the document with them. Relaxing
-%% both bounds restores in-place positioning.
+%% Float placement. Kept from the sn-jnl build: with the default fractions the
+%% larger tables fall between "too tall for a text page" and "too short for a
+%% float page", get deferred, and drag every later float to the end of the
+%% document. Relaxing these bounds keeps floats near their first reference.
 \renewcommand{\textfraction}{0.07}
 \renewcommand{\floatpagefraction}{0.75}
 \renewcommand{\topfraction}{0.92}
 \renewcommand{\bottomfraction}{0.85}
 
+%% The wlpeerj text block is narrower than sn-jnl's; long unbreakable \texttt{...}
+%% model names otherwise push a few lines into the margin. Allow a third pass of
+%% looser line breaking instead of overfull lines.
+\setlength{\emergencystretch}{8em}
+
+\title{Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty}
+
+\author[1]{Murat Karakaya}
+\affil[1]{Department of Software Engineering, TED University, Ankara, T\"urkiye}
+\corrauthor[1]{Murat Karakaya}{murat.karakaya@tedu.edu.tr}
+
+% \keywords{Local RAG benchmarking, Embedding-model selection, Corpus-specific evaluation, Retrieval evaluation, Synthetic queries, Relevance judgments}
+
+\begin{abstract}
+Practitioners who build retrieval-augmented generation (RAG) systems often possess the document corpus they want to use, but not the queries and relevance judgments required to benchmark candidate embedding models on that corpus. Without such resources, model choice falls back on public leaderboards or ad hoc trials, although an embedding model that suits one collection should not be transferred automatically to another. This paper presents a configurable local benchmarking pipeline that starts from such an unlabeled local corpus and constructs the benchmark resources needed for corpus-specific embedding-model selection. Each corpus is processed separately through document preparation, synthetic query generation, relevance-judgment construction, multi-model retrieval evaluation, and automated report generation. Each dataset-level report combines retrieval metrics, query-level bootstrap intervals, embedding/insertion throughput, query latency, and preserved artifacts; aggregate reporting is used only as secondary cross-corpus context.
+
+The pipeline is demonstrated through one frozen experimental instantiation on three corpora (English education, Turkish education, and Turkish law/regulation) with five sentence-transformer embedding candidates, 60 source documents, 1{,}914 chunks, 150 generated synthetic queries, and 9{,}296 judged query--chunk pairs, including 952 positive relevance judgments. The purpose of the demonstration is not to make these particular model rankings the main contribution, but to show that the same controlled workflow can expose corpus- and priority-dependent differences. The English corpus produced a different shortlist from the two Turkish corpora, where multilingual candidates led on retrieval quality. The query-level intervals, computed over the 148 scored queries, also showed that the quality gap between the two leading English candidates was not resolved, making operational cost the differentiating factor in that corpus. All evidence remains conditional on the reported snapshot: synthetic queries, unvalidated LLM-generated relevance judgments, a fixed retrieval geometry, a five-model roster, and single-run timing.
+\end{abstract}
+
 \begin{document}
 
-\title[Corpus-Specific Embedding-Model Selection]{Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty}
-
-\author*[1]{\fnm{Murat} \sur{Karakaya}}\email{murat.karakaya@tedu.edu.tr}
-
-\affil*[1]{\orgdiv{Department of Software Engineering}, \orgname{TED University}, \orgaddress{\city{Ankara}, \country{T\"urkiye}}}
-
-\abstract{Practitioners who operate retrieval-augmented generation (RAG) systems often manage several heterogeneous local corpora, and an embedding model that is suitable for one collection should not be transferred automatically to another. This paper presents a configurable local benchmarking pipeline for corpus-specific embedding-model selection. The completed workflow processes each corpus separately through document preparation, synthetic query generation, relevance-judgment construction, multi-model retrieval evaluation, and automated report generation. Each dataset-level report combines retrieval metrics, embedding/insertion throughput, query latency, and preserved artifacts; aggregate reporting is used only as secondary cross-corpus context.
-
-The pipeline is demonstrated through one frozen three-corpus experimental instantiation (education\_eng, education\_tr, law\_tr) with five sentence-transformer embedding candidates denoted M1--M5, 60 source documents, 1{,}914 chunks, 150 generated synthetic queries, and 9{,}296 judged query--chunk pairs, including 952 positive relevance judgments. The purpose of the demonstration is not to make these particular model rankings the main contribution, but to show that the same controlled workflow can expose substantial corpus- and priority-dependent differences across retrieval quality and operational metrics. In the snapshot, the dataset-level reports point to M1 for education\_eng when MAP@10 and latency are both considered, to M5 as the quality-first candidate for the two Turkish corpora, and to M3 as a lower-latency Turkish compromise. These different readings illustrate the practical need for a pipeline that lets practitioners evaluate candidate embeddings on their own datasets and application requirements instead of assuming one transferable winner. Each report also carries query-level bootstrap intervals over the 148 scored positive-bearing queries, so a reader can see which parts of a corpus ranking the benchmark actually resolves. All evidence remains conditional on the reported snapshot: synthetic queries, unvalidated LLM qrels, a fixed retrieval geometry, a five-model roster, and single-run timing.}
-
-\keywords{Local RAG benchmarking, Embedding-model selection, Corpus-specific evaluation, Retrieval evaluation, Synthetic queries, Relevance judgments}
-
+\flushbottom
 \maketitle
+\thispagestyle{empty}
 
 \input{intro.tex}
 \input{related.tex}

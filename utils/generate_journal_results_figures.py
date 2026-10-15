@@ -378,7 +378,7 @@ def save_bootstrap_forest(datasets: dict[str, Any], output_dir: Path) -> Path:
                     va="center", fontsize=8, color="#333333")
     ax.set_yticks(y)
     ax.set_yticklabels(order, fontsize=10)
-    ax.set_xlabel(f"Aggregate MAP@10 over {n_queries} scored queries (95% bootstrap CI)",
+    ax.set_xlabel(f"Aggregate MAP@10 over {n_queries} scored queries (95% bootstrap interval)",
                   fontsize=9)
     lo_all = min(ci[m]["lo"] for m in order)
     hi_all = max(ci[m]["hi"] for m in order)
@@ -387,7 +387,7 @@ def save_bootstrap_forest(datasets: dict[str, Any], output_dir: Path) -> Path:
     ax.grid(axis="x", linestyle=":", alpha=0.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.set_title("Query-level bootstrap confidence intervals (model-independent pooled qrels)",
+    ax.set_title("Query-level bootstrap intervals (roster-wide pooled qrels)",
                  fontsize=10)
     fig.tight_layout()
     output_path = output_dir / "results_bootstrap_forest.png"

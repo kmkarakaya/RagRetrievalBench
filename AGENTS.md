@@ -4,52 +4,51 @@ These rules apply to all Codex sessions in this repository.
 
 ## Primary Manuscript Workflow
 
-- Target journal: **Machine Learning** (Springer, journal 10994). Always follow Springer Nature
-  `sn-jnl` template conventions from `journal_paper/ML_Template/`.
-- The retired Elsevier CAS front matter is archived in `journal_paper/archive_cas/` for reference
-  only. Do not treat it as the active contract and do not build from it.
+- Target journal: **PeerJ Computer Science**. Always follow the `wlpeerj` template conventions
+  from `journal_paper/Peerj_template/` (`wlpeerj.cls`, `main.tex`).
+- The rejected Springer *Machine Learning* front matter is archived in `journal_paper/archive_sn/`
+  and the Elsevier CAS front matter in `journal_paper/archive_cas/`, for reference only. Do not
+  treat either as the active contract and do not build from them.
 - Use TeX-first sources only:
   - `journal_paper/manuscript.tex`
   - `journal_paper/*.tex` section files
   - `journal_paper/refs.bib`
 - Do not reintroduce markdown-to-latex manuscript assembly.
-- Do not edit generated files under `journal_paper/build/` as source content.
+- Do not edit generated files under `journal_paper/build/` or the exported package in
+  `journal_paper/Peerj Submision/` (except the hand-written `portal_statements.txt`) as source
+  content.
 
 ## Flat Folder Policy
 
 - Keep manuscript `.tex` files and image files in `journal_paper/` (flat source folder).
 - Do not use nested source paths in `\input{...}` or `\includegraphics{...}`.
 
-## Mandatory Springer Nature Front Matter
+## Mandatory PeerJ Front Matter
 
-`journal_paper/manuscript.tex` must keep all of the following (lint rules SN001–SN008):
+`journal_paper/manuscript.tex` must keep all of the following (lint rules PJ001–PJ008):
 
-- `\documentclass[pdflatex,sn-basic,lineno]{sn-jnl}`
-- `\title[Running Head]{Full Title}`
-- at least one `\author*[1]{\fnm{...} \sur{...}}\email{...}`
-- matching `\affil*[1]{\orgdiv{...}, \orgname{...}, \orgaddress{\city{...}, \country{...}}}`
-- `\abstract{...}` — a **command**, not an environment
-- `\keywords{comma, separated, list}`
+- `\documentclass[fleqn,10pt,lineno]{wlpeerj}` — `lineno` is required for peer review
+- `\title{Full Title}` — no running-head optional argument
+- at least one authblk `\author[1]{First Last}` with a matching `\affil[1]{Dept, University, City, Country}`
+- `\corrauthor[1]{First Last}{email}`
+- `\begin{abstract}...\end{abstract}` **before** `\begin{document}`, with no nested `\begin`/`\end`
 - `\maketitle`
 - `\bibliography{refs}`
 
-Must **not** appear in `manuscript.tex` (lint rules SN010–SN012); the class supplies all three:
+Must **not** appear (lint rules PJ010–PJ016):
 
-- `\usepackage{natbib}` — `sn-jnl` loads it, so a second load is an option clash
-- `\bibliographystyle{...}` — the class sets it from the documentclass option
-- `\begin{highlights}` — an Elsevier construct with no Springer equivalent
+- `\usepackage{natbib}` or `\bibliographystyle{...}` — `wlpeerj` loads natbib and sets `apalike`
+- an uncommented `\keywords{...}` — PeerJ collects keywords in the submission form
+- `\begin{highlights}` or sn-jnl-only commands (`\fnm`, `\sur`, `\orgdiv`, `\bmhead`, `\backmatter`)
+- `table*` / `figure*`
+- Funding, Competing interests, Author contributions, or Declarations headings in any `.tex` file
 
-`amsmath` must stay loaded: `sn-jnl` calls `\allowdisplaybreaks` at `\begin{document}`.
+## PeerJ Declarations
 
-## Mandatory Springer Declarations
-
-`journal_paper/declarations.tex` must keep (lint rules SN013–SN014, warning SN901):
-
-- `\backmatter` before any declaration content
-- `\section*{Declarations}`
-- `\bmhead{}` subheadings for Funding, Competing interests, Ethics approval and consent to
-  participate, Consent for publication, Data availability, Materials availability, Code
-  availability, and Author contributions — using `Not applicable` where a heading does not apply
+- Funding, competing interests, ethics/consent, author contributions, and keywords are entered
+  in the PeerJ submission form; their text lives in `journal_paper/Peerj Submision/portal_statements.txt`.
+- `journal_paper/declarations.tex` keeps only `\section*{Data availability}` and
+  `\section*{Code availability}` (warning PJ901).
 
 ## Table/Figure Rules
 
@@ -62,7 +61,7 @@ Must **not** appear in `manuscript.tex` (lint rules SN010–SN012); the class su
 - Reference tables and figures explicitly in the surrounding prose where they are methodologically relevant.
 - Keep figure captions, table captions, and row/column wording aligned with the section text; revise one or both sides if the artifact and prose drift apart.
 - Prefer regular `table` environments for short manuscript tables. Use `longtable` only when multi-page behavior is actually necessary; small `longtable` blocks have caused split-box failures in this repo.
-- `sn-jnl` is single-column. Do not introduce `table*` or `figure*`; size floats with `\linewidth`.
+- `wlpeerj` is single-column with a wide left margin. Do not introduce `table*` or `figure*`; size floats with `\linewidth`.
 
 ## Citation and Bibliography Rules
 
@@ -75,10 +74,9 @@ Must **not** appear in `manuscript.tex` (lint rules SN010–SN012); the class su
   - prefer concise fields instead of report-style metadata
 - For organizational or corporate authors in BibTeX, wrap the full name in double braces, for example `author = {{Sentence Transformers}}`, so BibTeX does not invert it into forms such as `Project, R.`.
 - Keep bibliography contract exactly:
-  - `\bibliography{refs}` and nothing else — the reference style is selected by the
-    `sn-basic` documentclass option, which resolves to Springer Basic author-year.
-  - Switching to numbered references is a documentclass change (add `Numbered`), never a
-    `\bibliographystyle` line.
+  - `\bibliography{refs}` and nothing else — `wlpeerj` sets `\bibliographystyle{apalike}`
+    (author-year) itself.
+  - `refs.bib` needs `\usepackage{url}` in `manuscript.tex` for its `\url{...}` fields.
 
 ## Section and Label Rules
 
@@ -125,11 +123,13 @@ Must **not** appear in `manuscript.tex` (lint rules SN010–SN012); the class su
   - `powershell -NoProfile -ExecutionPolicy Bypass -File journal_paper/build.ps1`
 - always use `-CompilePdf` flag to run full compile.
 - Do not report success if lint/build gates fail.
-- The build compiles with **pdflatex** (the `sn-jnl` class is pdflatex-oriented). All source is
+- The build compiles with **pdflatex** (`wlpeerj` loads inputenc/times/mathptmx). All source is
   ASCII with escaped accents, e.g. `T\"urkiye`; keep it that way rather than pasting UTF-8
   literals.
-- The submission artifact is `build/<timestamp>/manuscript_sn_full.tex`, the single-file wrapper
-  with every `\input` inlined. Springer requires one `.tex` document.
+- `-CompilePdf` exports the submission package to `journal_paper/Peerj Submision/`:
+  `manuscript.pdf`, `latex_source/` (single-file `manuscript.tex` with every `\input` inlined,
+  `refs.bib`, `.bbl`, `wlpeerj.cls`, images), `latex_source.zip`, and `figures/FigureN.png`
+  numbered in order of appearance for PeerJ's separate figure upload.
 
 ## Secondary Guidance Skill
 

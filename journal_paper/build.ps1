@@ -1,7 +1,11 @@
-# Builds the Springer Nature (sn-jnl) manuscript for Machine Learning (journal 10994).
+# Builds the PeerJ Computer Science manuscript (wlpeerj class, Peerj_template/).
 #
-# The retired Elsevier CAS build lives in archive_cas/build_cas.ps1 alongside the CAS
-# front matter; the section files (intro..conclusion) are format-agnostic and shared.
+# With -CompilePdf the compiled PDF, the single-file LaTeX source and the separately
+# numbered figure files are exported to "Peerj Submision/".
+#
+# The retired Springer sn-jnl build lives in archive_sn/build_sn.ps1 and the Elsevier CAS
+# build in archive_cas/build_cas.ps1; the section files (intro..conclusion) are
+# format-agnostic and shared.
 param(
     [switch]$CompilePdf
 )
@@ -30,21 +34,20 @@ function Invoke-CheckedExternal {
 
 $PaperDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BuildRoot = Join-Path $PaperDir "build"
-$TemplateDir = Join-Path $PaperDir "ML_Template"
-$WrapperName = "manuscript_sn.tex"
-$FullWrapperName = "manuscript_sn_full.tex"
+$TemplateDir = Join-Path $PaperDir "Peerj_template"
+$SubmissionDir = Join-Path $PaperDir "Peerj Submision"
+$WrapperName = "manuscript_peerj.tex"
+$FullWrapperName = "manuscript_peerj_full.tex"
 $MasterTexPath = Join-Path $PaperDir "manuscript.tex"
 $BibPath = Join-Path $PaperDir "refs.bib"
+$ClsName = "wlpeerj.cls"
 
-# sn-jnl selects its own .bst from the documentclass option; sn-basic (without the
-# "Numbered" option) is Springer Basic author-year, which is what Machine Learning uses.
-$BstName = "sn-basic.bst"
-
+# wlpeerj sets \bibliographystyle{apalike} itself; apalike.bst ships with every TeX
+# distribution, so only the class file is copied from the template folder.
 $requiredFiles = @(
     $MasterTexPath,
     $BibPath,
-    (Join-Path $TemplateDir "sn-jnl.cls"),
-    (Join-Path $TemplateDir "bst/$BstName")
+    (Join-Path $TemplateDir $ClsName)
 )
 
 $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
@@ -169,7 +172,7 @@ if not master.exists():
         "project root",
         "Required source file manuscript.tex is missing.",
         "Create manuscript.tex in journal_paper root.",
-        r"\documentclass[pdflatex,sn-basic,lineno]{sn-jnl}",
+        r"\documentclass[fleqn,10pt,lineno]{wlpeerj}",
     )
 if not refs.exists():
     add_finding(
@@ -207,80 +210,59 @@ def strip_comments(text: str) -> str:
 master_text = strip_comments(master.read_text(encoding="utf-8"))
 all_tex_text = strip_comments("\n".join(p.read_text(encoding="utf-8") for p in tex_files))
 
-# --- Springer Nature (sn-jnl) front-matter gates -------------------------------------
+# --- PeerJ (wlpeerj) front-matter gates ----------------------------------------------
 required_master_patterns = [
-    ("SN001", r"\\documentclass\[[^\]]*\bsn-basic\b[^\]]*\]\{sn-jnl\}", r"Missing sn-jnl class with the sn-basic reference style.", r"Machine Learning uses Springer Basic author-year; do not add the Numbered option.", r"\documentclass[pdflatex,sn-basic,lineno]{sn-jnl}"),
-    ("SN002", r"\\title(?:\[[^\]]*\])?\{", r"Missing \title{...}.", r"Add the manuscript title; the optional argument sets the running head.", r"\title[Short Title]{Full Manuscript Title}"),
-    ("SN003", r"\\author\*?\[[^\]]+\]\{", r"Missing Springer \author entry.", r"Add \author*[1]{\fnm{First} \sur{Last}} for the corresponding author.", r"\author*[1]{\fnm{Murat} \sur{Karakaya}}\email{a@b.c}"),
-    ("SN004", r"\\affil\*?\[[^\]]+\]\{", r"Missing Springer \affil entry.", r"Add \affil*[1]{...} matching each author affiliation index.", r"\affil*[1]{\orgdiv{Dept}, \orgname{University}, \orgaddress{\city{City}, \country{Country}}}"),
-    ("SN005", r"\\abstract\{", r"Missing \abstract{...}.", r"sn-jnl takes the abstract as a command argument, not an environment.", r"\abstract{Abstract text.}"),
-    ("SN006", r"\\keywords\{", r"Missing \keywords{...}.", r"Add a comma-separated keyword list after the abstract.", r"\keywords{keyword one, keyword two}"),
-    ("SN007", r"\\maketitle\b", r"Missing \maketitle.", r"Insert \maketitle after the front-matter blocks.", r"\maketitle"),
-    ("SN008", r"\\bibliography\{refs\}", r"Bibliography source must be refs.", r"Point the bibliography command at the refs.bib base name.", r"\bibliography{refs}"),
+    ("PJ001", r"\\documentclass\[[^\]]*\blineno\b[^\]]*\]\{wlpeerj\}", r"Missing wlpeerj class with the lineno option.", r"PeerJ requires line numbers on peer-review submissions.", r"\documentclass[fleqn,10pt,lineno]{wlpeerj}"),
+    ("PJ002", r"\\title\{", r"Missing \title{...} (wlpeerj takes no running-head optional argument).", r"Use the plain article form \title{...}.", r"\title{Full Manuscript Title}"),
+    ("PJ003", r"\\author\[[^\]]+\]\{", r"Missing authblk \author entry.", r"Add \author[1]{First Last} for each author.", r"\author[1]{Murat Karakaya}"),
+    ("PJ004", r"\\affil\[[^\]]+\]\{", r"Missing authblk \affil entry.", r"Add \affil[1]{...} matching each author affiliation index.", r"\affil[1]{Dept, University, City, Country}"),
+    ("PJ005", r"\\corrauthor\[[^\]]+\]\{[^}]+\}\{[^}]+@[^}]+\}", r"Missing \corrauthor with an email address.", r"wlpeerj v1.2 prints the corresponding author block from \corrauthor.", r"\corrauthor[1]{Murat Karakaya}{a@b.c}"),
+    ("PJ006", r"\\begin\{abstract\}.*?\\end\{abstract\}.*?\\begin\{document\}", r"Missing abstract environment before \begin{document}.", r"wlpeerj captures the abstract in the preamble; use the environment, not \abstract{...}, and do not nest \begin/\end inside it.", r"\begin{abstract} ... \end{abstract}"),
+    ("PJ007", r"\\maketitle\b", r"Missing \maketitle.", r"Insert \maketitle after \begin{document}.", r"\maketitle"),
+    ("PJ008", r"\\bibliography\{refs\}", r"Bibliography source must be refs.", r"Point the bibliography command at the refs.bib base name.", r"\bibliography{refs}"),
 ]
 for rule_id, pat, message, fix_hint, example_fix in required_master_patterns:
     if not re.search(pat, master_text, re.S):
         add_finding("ERROR", rule_id, master.name, 1, "front matter", message, fix_hint, example_fix)
 
-# sn-jnl loads natbib and sets the bibliography style from the class option. Doing either
-# in the preamble causes an option clash or silently overrides the journal style.
+# wlpeerj loads natbib and sets \bibliographystyle{apalike}. Doing either in the preamble
+# causes an option clash or a second style. Keywords go in the PeerJ submission form.
 forbidden_master_patterns = [
-    ("SN010", r"\\usepackage(?:\[[^\]]*\])?\{[^}]*\bnatbib\b[^}]*\}", r"sn-jnl already loads natbib; loading it again causes an option clash.", r"Delete the \usepackage{natbib} line and let the class load it.", r"% \usepackage[authoryear]{natbib}  <- remove"),
-    ("SN011", r"\\bibliographystyle\{", r"sn-jnl sets \bibliographystyle from the class option.", r"Delete \bibliographystyle; select the style via the documentclass option instead.", r"\documentclass[pdflatex,sn-basic]{sn-jnl}"),
-    ("SN012", r"\\begin\{highlights\}", r"Highlights are an Elsevier construct and are not supported by sn-jnl.", r"Remove the highlights environment; Springer has no equivalent.", r"% highlights removed"),
+    ("PJ010", r"\\usepackage(?:\[[^\]]*\])?\{[^}]*\bnatbib\b[^}]*\}", r"wlpeerj already loads natbib; loading it again causes an option clash.", r"Delete the \usepackage{natbib} line and let the class load it.", r"% \usepackage{natbib}  <- remove"),
+    ("PJ011", r"\\bibliographystyle\{", r"wlpeerj sets \bibliographystyle{apalike} itself.", r"Delete \bibliographystyle.", r"% \bibliographystyle{...}  <- remove"),
+    ("PJ012", r"\\keywords\{", r"wlpeerj has no \keywords; PeerJ collects keywords in the submission form.", r"Keep the keyword list as a comment and enter it in the form.", r"% \keywords{keyword one, keyword two}"),
+    ("PJ013", r"\\begin\{highlights\}", r"Highlights are an Elsevier construct and are not supported by wlpeerj.", r"Remove the highlights environment.", r"% highlights removed"),
 ]
 for rule_id, pat, message, fix_hint, example_fix in forbidden_master_patterns:
     m = re.search(pat, master_text, re.S)
     if m:
         add_finding("ERROR", rule_id, master.name, line_from_pos(master_text, m.start()), "preamble", message, fix_hint, example_fix)
 
-# Springer requires a Declarations block in the back matter.
-if not re.search(r"\\backmatter\b", all_tex_text):
-    add_finding(
-        "ERROR",
-        "SN013",
-        "declarations.tex",
-        1,
-        "back matter",
-        r"Missing \backmatter before the declarations.",
-        r"Open the back matter with \backmatter so trailing headings are unnumbered.",
-        r"\backmatter",
-    )
-if not re.search(r"\\section\*\{Declarations\}", all_tex_text):
-    add_finding(
-        "ERROR",
-        "SN014",
-        "declarations.tex",
-        1,
-        "back matter",
-        r"Missing \section*{Declarations}.",
-        r"Springer expects the declarations under a single 'Declarations' heading.",
-        r"\section*{Declarations}",
-    )
-for heading in ("Funding", "Competing interests", "Data availability", "Code availability", "Author contributions"):
-    if not re.search(r"\\bmhead\{" + re.escape(heading) + r"\}", all_tex_text):
+# Constructs that are undefined under wlpeerj, or that PeerJ wants outside the manuscript.
+forbidden_any_patterns = [
+    ("PJ014", r"\\(?:fnm|sur|orgdiv|orgname|orgaddress|bmhead|backmatter)\b", r"sn-jnl-only command is undefined under wlpeerj.", r"Use authblk \author/\affil and plain \section* headings.", r"\section*{Data availability}"),
+    ("PJ015", r"\\begin\{(?:table|figure)\*\}", r"Starred floats are not used in the single-column wlpeerj layout.", r"Use table/figure and size content with \linewidth.", r"\begin{table}"),
+    ("PJ016", r"\\(?:sub)*section\*?\{(?:Funding|Competing interests|Author contributions|Declarations)\}", r"PeerJ collects funding, competing interests and author contributions in the submission form.", r"Move the statement text to Peerj Submision/portal_statements.txt.", r"% entered in the PeerJ form"),
+]
+for tex_path in tex_files:
+    tex_text = strip_comments(tex_path.read_text(encoding="utf-8"))
+    for rule_id, pat, message, fix_hint, example_fix in forbidden_any_patterns:
+        m = re.search(pat, tex_text)
+        if m:
+            add_finding("ERROR", rule_id, tex_path.name, line_from_pos(tex_text, m.start()), m.group(0), message, fix_hint, example_fix)
+
+for heading in ("Data availability", "Code availability"):
+    if not re.search(r"\\section\*\{" + re.escape(heading) + r"\}", all_tex_text):
         add_finding(
             "WARN",
-            "SN901",
+            "PJ901",
             "declarations.tex",
             1,
-            "declarations",
-            f"Declaration subheading '{heading}' not found.",
-            "Springer asks for each declaration heading, using 'Not applicable' where it does not apply.",
-            rf"\bmhead{{{heading}}}",
+            "back matter",
+            f"Unnumbered section '{heading}' not found.",
+            "Keep the data and code availability statements at the end of the paper.",
+            rf"\section*{{{heading}}}",
         )
-
-if not re.search(r"\\email\{", master_text):
-    add_finding(
-        "WARN",
-        "SN902",
-        master.name,
-        first_line_of(r"\\author\*?\[[^\]]+\]\{", master_text),
-        "author metadata",
-        r"Optional metadata missing: no \email{...} found.",
-        r"Add the corresponding author email directly after the \author* entry.",
-        r"\author*[1]{\fnm{First} \sur{Last}}\email{first.last@example.com}",
-    )
 
 bib_text = refs.read_text(encoding="utf-8")
 bib_entry_count = len(re.findall(r"@\w+\s*\{", bib_text))
@@ -522,12 +504,11 @@ foreach ($ext in $imageExtensions) {
     }
 }
 
-# Copy required Springer Nature template assets.
-Copy-Item (Join-Path $TemplateDir "sn-jnl.cls") $BuildDir -Force
-Copy-Item (Join-Path $TemplateDir "bst/$BstName") $BuildDir -Force
+# Copy the PeerJ class file. apalike.bst is resolved from the TeX distribution.
+Copy-Item (Join-Path $TemplateDir $ClsName) $BuildDir -Force
 
-# Generate the build wrapper. Unlike the CAS build there is no class placeholder to
-# substitute: manuscript.tex already names sn-jnl directly.
+# Generate the build wrapper. There is no class placeholder to substitute:
+# manuscript.tex already names wlpeerj directly.
 $masterText = Get-Content -Path $MasterTexPath -Raw
 $WrapperPath = Join-Path $BuildDir $WrapperName
 # Write UTF-8 without a BOM. Windows PowerShell's -Encoding UTF8 emits one, and the
@@ -584,8 +565,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if ($CompilePdf) {
-    # sn-jnl is a pdflatex class (the "pdflatex" documentclass option selects its
-    # graphics path). All source is ASCII with escaped accents, so 8-bit TeX is safe.
+    # wlpeerj loads inputenc/times/mathptmx, i.e. it is a pdflatex class. All source is
+    # ASCII with escaped accents, so 8-bit TeX is safe.
     Assert-Command -Name "pdflatex"
     Assert-Command -Name "bibtex"
 
@@ -596,6 +577,16 @@ if ($CompilePdf) {
         Invoke-CheckedExternal -FilePath "bibtex" -ArgumentList @($texBaseName) -StepName "BibTeX pass"
         Invoke-CheckedExternal -FilePath "pdflatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "pdfLaTeX pass 2"
         Invoke-CheckedExternal -FilePath "pdflatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "pdfLaTeX pass 3"
+        # lastpage and lineno can shift labels on the third pass; rerun until stable.
+        $logName = "$texBaseName.log"
+        $extraPass = 4
+        while ((Select-String -Path $logName -Pattern "Rerun to get cross-references right" -Quiet) -and $extraPass -le 6) {
+            Invoke-CheckedExternal -FilePath "pdflatex" -ArgumentList @("-interaction=nonstopmode", "-halt-on-error", $WrapperName) -StepName "pdfLaTeX pass $extraPass"
+            $extraPass++
+        }
+        if (Select-String -Path $logName -Pattern "Rerun to get cross-references right" -Quiet) {
+            throw "Cross-references did not stabilise after $($extraPass - 1) pdfLaTeX passes."
+        }
     }
     finally {
         Pop-Location
@@ -604,14 +595,78 @@ if ($CompilePdf) {
 
 $pdfPath = Join-Path $BuildDir ($WrapperName -replace '\.tex$', '.pdf')
 
+if ($CompilePdf) {
+    # Export the PeerJ submission package. Only the generated items below are replaced;
+    # anything else in the folder (portal_statements.txt, cover letter) is left alone.
+    #   manuscript.pdf      compiled PDF with embedded figures/tables and line numbers
+    #   latex_source/       single-file manuscript.tex + refs.bib + .bbl + class + images
+    #   latex_source.zip    the same, zipped for upload
+    #   figures/FigureN.*   each figure as its own file, numbered in order of appearance
+    $env:SUBMISSION_DIR = $SubmissionDir
+    $env:PDF_PATH = $pdfPath
+    $env:CLS_NAME = $ClsName
+    @'
+from pathlib import Path
+import os
+import re
+import shutil
+
+build = Path(os.environ["BUILD_DIR"])
+out = Path(os.environ["SUBMISSION_DIR"])
+full_tex = build / os.environ["FULL_WRAPPER_NAME"]
+bbl = build / (Path(os.environ["WRAPPER_NAME"]).stem + ".bbl")
+pdf = Path(os.environ["PDF_PATH"])
+cls_name = os.environ["CLS_NAME"]
+
+out.mkdir(parents=True, exist_ok=True)
+src = out / "latex_source"
+figs = out / "figures"
+for d in (src, figs):
+    if d.exists():
+        shutil.rmtree(d)
+    d.mkdir()
+zip_path = out / "latex_source.zip"
+if zip_path.exists():
+    zip_path.unlink()
+
+full_text = full_tex.read_text(encoding="utf-8")
+uncommented = re.sub(r"(?<!\\)%.*?$", "", full_text, flags=re.M)
+images = re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", uncommented)
+
+shutil.copy2(pdf, out / "manuscript.pdf")
+(src / "manuscript.tex").write_text(full_text, encoding="utf-8")
+shutil.copy2(bbl, src / "manuscript.bbl")
+shutil.copy2(build / "refs.bib", src / "refs.bib")
+shutil.copy2(build / cls_name, src / cls_name)
+
+seen = []
+for name in images:
+    if name in seen:
+        continue
+    seen.append(name)
+    image = build / name
+    shutil.copy2(image, src / name)
+    shutil.copy2(image, figs / f"Figure{len(seen)}{image.suffix.lower()}")
+
+shutil.make_archive(str(zip_path.with_suffix("")), "zip", root_dir=src)
+print(f"Exported submission package to {out}")
+for i, name in enumerate(seen, 1):
+    print(f"  Figure{i}: {name}")
+'@ | python -
+    if ($LASTEXITCODE -ne 0) {
+        throw "Submission export step failed."
+    }
+}
+
 Write-Host "Build complete."
-Write-Host "  Journal: Machine Learning (Springer) - sn-jnl / sn-basic author-year"
+Write-Host "  Journal: PeerJ Computer Science - wlpeerj / apalike author-year"
 Write-Host "  Build folder: $BuildDir"
 Write-Host "  Wrapper: $(Join-Path $BuildDir $WrapperName)"
 Write-Host "  Submission file (single .tex, all inputs inlined): $(Join-Path $BuildDir $FullWrapperName)"
 Write-Host "  Bib: $(Join-Path $BuildDir 'refs.bib')"
 if ($CompilePdf) {
     Write-Host "  PDF: $pdfPath"
+    Write-Host "  Submission package: $SubmissionDir"
 } else {
     Write-Host "  PDF: not generated (use -CompilePdf)"
 }

@@ -319,8 +319,8 @@ def build_pair_comparison(datasets: dict, alias_map: dict, ds_a: str, ds_b: str,
 # ----------------------------------------------------------------------------------
 
 def build_per_corpus_ci(dataset_names: list[str]) -> str | None:
-    header = ["Model", "\\texttt{MAP@10} [95\\% CI]",
-              "Leader$-$model $\\Delta$ [95\\% CI]", "Sep."]
+    header = ["Model", "\\texttt{MAP@10} [95\\% bootstrap interval]",
+              "Leader$-$model $\\Delta$ [95\\% bootstrap interval]", "Sep."]
     rows: list[list[str]] = []
     groups: list[tuple[int, str]] = []
     for name in dataset_names:
@@ -351,8 +351,8 @@ def build_pooled_ci(dataset_names: list[str]) -> str | None:
     except FileNotFoundError:
         return None
     leader = pooled["leader"]
-    header = ["Model", "Mean \\texttt{MAP@10} [95\\% CI]",
-              f"\\texttt{{{leader}}}$-$model $\\Delta$ [95\\% CI]"]
+    header = ["Model", "Mean \\texttt{MAP@10} [95\\% bootstrap interval]",
+              f"\\texttt{{{leader}}}$-$model $\\Delta$ [95\\% bootstrap interval]"]
     order = sorted(pooled["ci_map"], key=lambda k: -pooled["ci_map"][k]["mean"])
     rows = []
     for lab in order:
