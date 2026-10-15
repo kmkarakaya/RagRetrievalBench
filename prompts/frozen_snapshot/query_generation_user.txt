@@ -1,0 +1,5 @@
+Generate a search query for the following document:
+
+{chunk_text}
+
+Query:

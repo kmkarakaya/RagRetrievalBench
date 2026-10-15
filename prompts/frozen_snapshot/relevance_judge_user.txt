@@ -1,0 +1,3 @@
+Question: {query_text}
+{position}. [{chunk_id}] "{chunk_text}"
+
