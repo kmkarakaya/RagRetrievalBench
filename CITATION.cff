@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software or its datasets, please cite it as below."
+title: "RagRetrievalBench: Local Benchmarking Pipeline for Corpus-Specific Embedding-Model Selection in RAG"
+type: software
+authors:
+  - family-names: Karakaya
+    given-names: Murat
+    email: murat.karakaya@tedu.edu.tr
+    affiliation: "Department of Software Engineering, TED University, Ankara, Türkiye"
+repository-code: "https://github.com/kmkarakaya/RagRetrievalBench"
+license: MIT
+version: 1.1.0
+date-released: "2026-10-29"
+keywords:
+  - retrieval-augmented generation
+  - embedding-model selection
+  - retrieval evaluation
+  - synthetic queries
+  - relevance judgments
+  - bootstrap confidence intervals
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Karakaya
+      given-names: Murat
+  title: "Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty"
+  journal: "PeerJ Computer Science"
+  year: 2026
+  notes: "Submitted"

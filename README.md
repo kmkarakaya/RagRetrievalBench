@@ -11,6 +11,99 @@
 
 A comprehensive evaluation framework for embedding models in Retrieval Augmented Generation (RAG) systems. This tool provides automated benchmarking of embedding models using real document collections, synthetic query generation, and standardized information retrieval metrics.
 
+## 📝 Description
+
+RAG practitioners usually have the document corpus they want to search, but not the queries and relevance judgments needed to compare embedding models on it. This repository contains a local benchmarking pipeline that starts from an unlabeled document collection and builds those resources itself: it chunks the documents, generates synthetic queries with a large language model (LLM), builds pooled relevance judgments (qrels) with the same LLM acting as a judge, indexes the corpus with every candidate embedding model, scores all models on the same queries, estimates query-level bootstrap confidence intervals, and writes a dataset-level report. Each corpus is processed in isolation; an optional aggregate report compares corpora.
+
+The repository is also the code and data release for the paper *Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty* (see [Citations](#-citations)). Every artifact of the frozen experimental snapshot reported there is tracked here.
+
+## 🗂 Dataset Information
+
+The snapshot covers three corpora of public institutional regulations. All source files were retrieved on 2026-01-01; the sources are web listings without DOIs and are revised over time, so the exact PDFs used are archived in `datasets/<dataset>/pdfs/`.
+
+| Dataset | Language / domain | Source | Documents | Chunks | Queries (scored) | Judged pairs | Positive qrels |
+|---|---|---|---:|---:|---:|---:|---:|
+| `education_eng` | English, university regulations | TED University, [Regulations and Guidelines: Education](https://www.tedu.edu.tr/en/regulations-and-guidelines-education) | 29 | 572 | 50 (48) | 2,117 | 312 |
+| `education_tr` | Turkish, university regulations | TED University, [Yönetmelik ve Yönergeler](https://www.tedu.edu.tr/yonetmelik-ve-yonergeler) (education, administrative and research subpages) | 29 | 619 | 50 (50) | 3,378 | 354 |
+| `law_tr` | Turkish, banking regulation | Banking Regulation and Supervision Agency of Türkiye (BDDK), [Mevzuat Listesi](https://www.bddk.org.tr/Mevzuat/Liste/49) | 2 | 723 | 50 (50) | 3,801 | 286 |
+| **Total** | | | **60** | **1,914** | **150 (148)** | **9,296** | **952** |
+
+Queries with no positive judgment are excluded before scoring, hence 148 scored queries.
+
+Files per dataset:
+
+| Path | Content |
+|---|---|
+| `pdfs/` | Source documents as downloaded |
+| `corpus.jsonl` | Chunked corpus: one JSON object per chunk (`doc_id`, `text`); `doc_id` is `<source file>_chunk<n>` |
+| `queries.jsonl` | Synthetic queries: one JSON object per query (`query_id`, `text`); `query_id` names the seed chunk |
+| `qrels.tsv` | Relevance judgments, tab-separated without header: query id, chunk id, label (1 = relevant, 0 = judged not relevant) |
+| `analysis/rankings_M*.jsonl` | Per-query ranked chunk ids and distances for each model (M1–M5) |
+| `analysis/bootstrap_frozen.json` | Bootstrap confidence intervals of the frozen snapshot |
+| `reports/raw_results_*.json` | Raw evaluation results, configuration and environment snapshot |
+| `reports/*.md`, `reports/*.pdf` | Generated dataset-level report |
+
+Vector indexes (`chromadb_collections/`) are not released; `--initialize` rebuilds them from `corpus.jsonl`. The source documents remain subject to the terms of their publishers (TED University, BDDK); the MIT license of this repository covers the code and the generated artifacts, not the source text. The exact LLM instructions that produced the queries and qrels are in [`prompts/frozen_snapshot/`](prompts/frozen_snapshot/).
+
+## 💻 Code Information
+
+The pipeline is a single command-line entry point, `rag_benchmark.py`, configured by `config.py`, with the stage logic in `utils/`:
+
+| Module | Role |
+|---|---|
+| `utils/document_loader.py`, `utils/text_splitter.py` | PDF text extraction (PyMuPDF) and chunking (LangChain recursive splitter) |
+| `utils/llm.py`, `utils/batch_manager.py` | Gemini query generation and relevance judging, interactive or through the Batch API |
+| `utils/chromadb_utils.py` | Per-model vector collections in ChromaDB |
+| `utils/bootstrap_utils.py` | Query-level bootstrap confidence intervals |
+| `utils/report_utils.py`, `utils/aggregate_report_utils.py` | Dataset-level and cross-dataset reports |
+| `utils/paper_artifacts.py`, `utils/generate_journal_results_figures.py`, `utils/generate_conceptual_overview_figure.py`, `utils/verify_paper_numbers.py` | Paper tables and results figures generated from the run artifacts, the pipeline overview figure, and a number-drift check |
+| `analysis/` | Provenance scripts for the frozen snapshot (not a pipeline stage) |
+
+The full layout is under [Project Structure](#-project-structure) and each stage is described under [Pipeline Components](#-pipeline-components).
+
+## 📦 Requirements
+
+- Python 3.10 (tested with 3.10.16 in a conda environment)
+- Python packages pinned in `requirements.txt`; the snapshot used `chromadb` 1.0.7, `sentence-transformers` 4.1.0, `torch` 2.7.0 (CPU build), `google-genai` 1.13.0
+- A Google Gemini API key in `.env` (`GEMINI_API_KEY`), needed only for query generation and relevance judging
+- Optional: Pandoc and a LaTeX distribution for PDF versions of the reports
+- No GPU is required; the reported snapshot ran CPU-only on a Windows 11 workstation
+
+See [Installation](#-installation) for setup steps.
+
+## 🔬 Methodology
+
+For each dataset, the pipeline runs these stages in order (`--build-all` runs them all):
+
+1. **Document preparation** (`--prepare-corpus`): extract page text from the PDFs, apply NFC Unicode normalization, split into 1000-character chunks with 200-character overlap.
+2. **Query generation** (`--generate-queries`): sample seed chunks with a fixed seed (42) and ask Gemini 2.5 Flash-Lite (temperature 0.1) for one source-language question per seed.
+3. **Relevance construction** (`--generate-qrels`): retrieve the top 20 chunks per query from every candidate model, pool and deduplicate them, and have the LLM judge each query–chunk pair as relevant (1) or not (0). Both labels are stored.
+4. **Multi-model indexing** (`--initialize`): embed the corpus with each candidate model into its own ChromaDB collection.
+5. **Retrieval evaluation** (`--evaluate`): retrieve the top 10 chunks per query for every model and compute MAP, Recall, Precision, NDCG, MRR and Success at 10 with the Sentence-Transformers `InformationRetrievalEvaluator`, together with embedding throughput and query latency.
+6. **Uncertainty estimation** (inside `--evaluate`, or `--bootstrap`): percentile bootstrap intervals over queries (10,000 resamples, 95% coverage), marginal per model and paired against the corpus's leading model.
+7. **Reporting**: a dataset-level report per corpus, and optionally `--generate-aggregate-report` across corpora.
+
+## 📚 Citations
+
+If you use this pipeline or its datasets, please cite:
+
+```bibtex
+@misc{Karakaya_RagRetrievalBench_2026,
+  author = {Karakaya, Murat},
+  title  = {Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation:
+            A Local Benchmarking Pipeline with Query-Level Uncertainty},
+  year   = {2026},
+  note   = {Submitted to PeerJ Computer Science},
+  howpublished = {\url{https://github.com/kmkarakaya/RagRetrievalBench}}
+}
+```
+
+The query generation and relevance-construction stages extend the preliminary workflow in:
+
+> Karakaya, M. (2025). Local Benchmarking of Sentence Embedding Models for Retrieval-Augmented Generation. *Proceedings of the International Conference on Computer Science and Intelligence Systems (ICCSIS)*, Madrid, Spain, 1–6.
+
+Citation metadata is also available in [`CITATION.cff`](CITATION.cff).
+
 ## 🚀 Features
 
 - **Automated PDF Processing**: Extract and chunk documents from PDF files
@@ -33,6 +126,12 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 
 ## 📋 Table of Contents
 
+- [Description](#-description)
+- [Dataset Information](#-dataset-information)
+- [Code Information](#-code-information)
+- [Requirements](#-requirements)
+- [Methodology](#-methodology)
+- [Citations](#-citations)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Configuration](#-configuration)
@@ -58,7 +157,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/RagRetrievalBench.git
+git clone https://github.com/kmkarakaya/RagRetrievalBench.git
 cd RagRetrievalBench
 ```
 
@@ -863,6 +962,7 @@ RagRetrievalBench/
 │   ├── bootstrap_utils.py        # Query-level uncertainty stage
 │   ├── chromadb_utils.py         # Vector database operations
 │   ├── document_loader.py        # PDF processing and corpus loading
+│   ├── generate_conceptual_overview_figure.py # Manuscript Figure 1 (pipeline overview)
 │   ├── generate_journal_results_figures.py # Manuscript figures
 │   ├── llm.py                    # Google Gemini LLM integration
 │   ├── pandoc_header.tex         # LaTeX preamble for markdown -> PDF conversion
@@ -921,7 +1021,7 @@ RagRetrievalBench/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. The license covers the code and the generated benchmark artifacts; the source PDFs in `datasets/*/pdfs/` remain subject to the terms of their publishers (see [Dataset Information](#-dataset-information)).
 
 ## 🙏 Acknowledgments
 
