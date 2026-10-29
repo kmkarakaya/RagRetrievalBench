@@ -598,12 +598,12 @@ $pdfPath = Join-Path $BuildDir ($WrapperName -replace '\.tex$', '.pdf')
 if ($CompilePdf) {
     # Export the PeerJ submission package. Only the generated items below are replaced;
     # anything else in the folder (portal_statements.txt, cover letter) is left alone.
-    #   manuscript.pdf      compiled PDF with embedded figures/tables and line numbers
-    #   latex_source/       single-file manuscript.tex + refs.bib + .bbl + class + images
-    #   latex_source.zip    the same, zipped for upload
-    #   figures/FigureN.*   each figure as its own file, numbered in order of appearance
+    #   latex_source/       single-file manuscript.tex + refs.bib + .bbl + class +
+    #                       Figure1..N images, numbered in order of appearance; these
+    #                       are the exact files uploaded to PeerJ one by one
+    #   latex_source.zip    the same, zipped
+    #   manuscript.pdf      compiled from latex_source/ itself, so PDF and sources match
     $env:SUBMISSION_DIR = $SubmissionDir
-    $env:PDF_PATH = $pdfPath
     $env:CLS_NAME = $ClsName
     @'
 from pathlib import Path
@@ -615,43 +615,79 @@ build = Path(os.environ["BUILD_DIR"])
 out = Path(os.environ["SUBMISSION_DIR"])
 full_tex = build / os.environ["FULL_WRAPPER_NAME"]
 bbl = build / (Path(os.environ["WRAPPER_NAME"]).stem + ".bbl")
-pdf = Path(os.environ["PDF_PATH"])
 cls_name = os.environ["CLS_NAME"]
+
+from PIL import Image
+import subprocess
 
 out.mkdir(parents=True, exist_ok=True)
 src = out / "latex_source"
-figs = out / "figures"
-for d in (src, figs):
+for d in (src, out / "figures"):  # figures/ is the retired second copy
     if d.exists():
         shutil.rmtree(d)
-    d.mkdir()
+src.mkdir()
 zip_path = out / "latex_source.zip"
 if zip_path.exists():
     zip_path.unlink()
 
 full_text = full_tex.read_text(encoding="utf-8")
 uncommented = re.sub(r"(?<!\\)%.*?$", "", full_text, flags=re.M)
-images = re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", uncommented)
+images = list(dict.fromkeys(
+    re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", uncommented)))
 
-shutil.copy2(pdf, out / "manuscript.pdf")
+# PeerJ rejects figure files smaller than 900 x 900 px. Wide workflow diagrams and
+# small plots fall short in height, so they are centered on a white canvas of at
+# least that size. The padded file is the only copy: the TEX, the PDF and the
+# upload all use it.
+MIN_SIDE = 900
+
+def export_figure(image, dest):
+    with Image.open(image) as im:
+        w, h = im.size
+        if w >= MIN_SIDE and h >= MIN_SIDE:
+            shutil.copy2(image, dest)
+            return
+        rgba = im.convert("RGBA")
+    canvas = Image.new("RGB", (max(w, MIN_SIDE), max(h, MIN_SIDE)), "white")
+    canvas.paste(rgba, ((canvas.width - w) // 2, (canvas.height - h) // 2), rgba)
+    canvas.save(dest)
+
+renamed = {}
+for i, name in enumerate(images, 1):
+    image = build / name
+    renamed[name] = f"Figure{i}{image.suffix.lower()}"
+    export_figure(image, src / renamed[name])
+
+full_text = re.sub(
+    r"(\\includegraphics(?:\[[^\]]*\])?\{)([^}]+)\}",
+    lambda m: m.group(1) + renamed.get(m.group(2), m.group(2)) + "}",
+    full_text)
 (src / "manuscript.tex").write_text(full_text, encoding="utf-8")
 shutil.copy2(bbl, src / "manuscript.bbl")
 shutil.copy2(build / "refs.bib", src / "refs.bib")
 shutil.copy2(build / cls_name, src / cls_name)
 
-seen = []
-for name in images:
-    if name in seen:
-        continue
-    seen.append(name)
-    image = build / name
-    shutil.copy2(image, src / name)
-    shutil.copy2(image, figs / f"Figure{len(seen)}{image.suffix.lower()}")
+# Compile the exported package on its own, so the submitted PDF is built from
+# exactly the files that are uploaded. The .bbl is shipped, so no BibTeX pass.
+check = build / "submission_check"
+if check.exists():
+    shutil.rmtree(check)
+shutil.copytree(src, check)
+for n in range(3):
+    r = subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "manuscript.tex"],
+        cwd=check, capture_output=True, text=True, errors="replace")
+    if r.returncode != 0:
+        raise SystemExit(f"Exported latex_source/ failed to compile (pass {n + 1}); see {check}")
+log = (check / "manuscript.log").read_text(encoding="latin-1")
+if re.search(r"undefined|File `[^']+' not found", log):
+    raise SystemExit(f"Exported latex_source/ has unresolved references or files; see {check}")
+shutil.copy2(check / "manuscript.pdf", out / "manuscript.pdf")
 
 shutil.make_archive(str(zip_path.with_suffix("")), "zip", root_dir=src)
-print(f"Exported submission package to {out}")
-for i, name in enumerate(seen, 1):
-    print(f"  Figure{i}: {name}")
+print(f"Exported submission package to {out} (PDF compiled from latex_source/)")
+for name, new in renamed.items():
+    print(f"  {new}: {name}")
 '@ | python -
     if ($LASTEXITCODE -ne 0) {
         throw "Submission export step failed."

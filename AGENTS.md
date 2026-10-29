@@ -127,9 +127,11 @@ Must **not** appear (lint rules PJ010–PJ016):
   ASCII with escaped accents, e.g. `T\"urkiye`; keep it that way rather than pasting UTF-8
   literals.
 - `-CompilePdf` exports the submission package to `journal_paper/Peerj Submision/`:
-  `manuscript.pdf`, `latex_source/` (single-file `manuscript.tex` with every `\input` inlined,
-  `refs.bib`, `.bbl`, `wlpeerj.cls`, images), `latex_source.zip`, and `figures/FigureN.png`
-  numbered in order of appearance for PeerJ's separate figure upload.
+  `latex_source/` (single-file `manuscript.tex` with every `\input` inlined, `refs.bib`, `.bbl`,
+  `wlpeerj.cls`, and `Figure1..N.png` numbered in order of appearance and padded to PeerJ's
+  900 x 900 px minimum), `latex_source.zip`, and `manuscript.pdf` compiled from `latex_source/`
+  itself. The same `FigureN.png` files are referenced by the TEX and uploaded to PeerJ; there is
+  no second figure copy.
 
 ## Secondary Guidance Skill
 
