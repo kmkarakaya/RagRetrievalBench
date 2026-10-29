@@ -40,9 +40,10 @@ Files per dataset:
 | `queries.jsonl` | Synthetic queries: one JSON object per query (`query_id`, `text`); `query_id` names the seed chunk |
 | `qrels.tsv` | Relevance judgments, tab-separated without header: query id, chunk id, label (1 = relevant, 0 = judged not relevant) |
 | `analysis/rankings_M*.jsonl` | Per-query ranked chunk ids and distances for each model (M1–M5) |
-| `analysis/bootstrap_frozen.json` | Bootstrap confidence intervals of the frozen snapshot |
 | `reports/raw_results_*.json` | Raw evaluation results, configuration and environment snapshot |
-| `reports/*.md`, `reports/*.pdf` | Generated dataset-level report |
+| `reports/*.md`, `reports/*.pdf` | Generated dataset-level report, including the per-corpus bootstrap interval tables |
+
+The bootstrap intervals of all three corpora are also released together in machine-readable form in `results_reanalysis/bootstrap_frozen.json`; the per-corpus `analysis/bootstrap_frozen.json` written by the pipeline is not tracked. The aggregate cross-dataset report is in `aggregated_reports/2026-07-31_15-49-35/`.
 
 Vector indexes (`chromadb_collections/`) are not released; `--initialize` rebuilds them from `corpus.jsonl`. The source documents remain subject to the terms of their publishers (TED University, BDDK); the MIT license of this repository covers the code and the generated artifacts, not the source text. The exact LLM instructions that produced the queries and qrels are in [`prompts/frozen_snapshot/`](prompts/frozen_snapshot/).
 
