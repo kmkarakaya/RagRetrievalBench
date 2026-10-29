@@ -3,6 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](<https://img.shields.io/badge/code%20style-black-000000.svg>)](https://github.com/psf/black)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23765980.svg)](https://doi.org/10.5281/zenodo.23765980)
 
 **Owner: Murat Karakaya**
 
@@ -97,6 +98,8 @@ If you use this pipeline or its datasets, please cite:
   howpublished = {\url{https://github.com/kmkarakaya/RagRetrievalBench}}
 }
 ```
+
+The code and the frozen snapshot used in the paper are archived on Zenodo as release v1.1.0: [doi:10.5281/zenodo.23765981](https://doi.org/10.5281/zenodo.23765981). The concept DOI [10.5281/zenodo.23765980](https://doi.org/10.5281/zenodo.23765980) always resolves to the latest release.
 
 The query generation and relevance-construction stages extend the preliminary workflow in:
 

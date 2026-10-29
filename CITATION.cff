@@ -8,6 +8,14 @@ authors:
     email: murat.karakaya@tedu.edu.tr
     affiliation: "Department of Software Engineering, TED University, Ankara, Türkiye"
 repository-code: "https://github.com/kmkarakaya/RagRetrievalBench"
+doi: 10.5281/zenodo.23765981
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23765980
+    description: "Concept DOI for all versions"
+  - type: doi
+    value: 10.5281/zenodo.23765981
+    description: "Version v1.1.0, the snapshot reported in the paper"
 license: MIT
 version: 1.1.0
 date-released: "2026-10-29"
