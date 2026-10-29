@@ -1,7 +1,7 @@
 {
   "title": "RagRetrievalBench: Local Benchmarking Pipeline for Corpus-Specific Embedding-Model Selection in RAG",
   "upload_type": "software",
-  "description": "Code and benchmark artifacts for the paper 'Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty' (submitted to PeerJ Computer Science). The pipeline builds synthetic queries and LLM-judged relevance judgments from an unlabeled local document collection, evaluates multiple sentence-embedding models under one controlled protocol, estimates query-level bootstrap confidence intervals, and writes dataset-level reports. The release includes the source PDFs, chunked corpora, generated queries, qrels, per-model rankings, raw results and reports for the three corpora of the reported snapshot (education_eng, education_tr, law_tr).",
+  "description": "Code and benchmark artifacts for the paper 'Corpus-specific embedding-model selection for retrieval-augmented generation: A local benchmarking pipeline with query-level uncertainty' (submitted to PeerJ Computer Science). The pipeline builds synthetic queries and LLM-judged relevance judgments from an unlabeled local document collection, evaluates multiple sentence-embedding models under one controlled protocol, estimates query-level bootstrap confidence intervals, and writes dataset-level reports. The release includes the source PDFs, chunked corpora, generated queries, qrels, per-model rankings, raw results and reports for the three corpora of the reported snapshot (education_eng, education_tr, law_tr).",
   "creators": [
     {
       "name": "Karakaya, Murat",

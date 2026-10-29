@@ -31,7 +31,7 @@ preferred-citation:
   authors:
     - family-names: Karakaya
       given-names: Murat
-  title: "Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty"
+  title: "Corpus-specific embedding-model selection for retrieval-augmented generation: A local benchmarking pipeline with query-level uncertainty"
   journal: "PeerJ Computer Science"
   year: 2026
   notes: "Submitted"

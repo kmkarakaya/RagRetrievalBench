@@ -16,7 +16,7 @@ A comprehensive evaluation framework for embedding models in Retrieval Augmented
 
 RAG practitioners usually have the document corpus they want to search, but not the queries and relevance judgments needed to compare embedding models on it. This repository contains a local benchmarking pipeline that starts from an unlabeled document collection and builds those resources itself: it chunks the documents, generates synthetic queries with a large language model (LLM), builds pooled relevance judgments (qrels) with the same LLM acting as a judge, indexes the corpus with every candidate embedding model, scores all models on the same queries, estimates query-level bootstrap confidence intervals, and writes a dataset-level report. Each corpus is processed in isolation; an optional aggregate report compares corpora.
 
-The repository is also the code and data release for the paper *Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation: A Local Benchmarking Pipeline with Query-Level Uncertainty* (see [Citations](#-citations)). Every artifact of the frozen experimental snapshot reported there is tracked here.
+The repository is also the code and data release for the paper *Corpus-specific embedding-model selection for retrieval-augmented generation: A local benchmarking pipeline with query-level uncertainty* (see [Citations](#-citations)). Every artifact of the frozen experimental snapshot reported there is tracked here.
 
 ## 🗂 Dataset Information
 
@@ -91,8 +91,8 @@ If you use this pipeline or its datasets, please cite:
 ```bibtex
 @misc{Karakaya_RagRetrievalBench_2026,
   author = {Karakaya, Murat},
-  title  = {Corpus-Specific Embedding-Model Selection for Retrieval-Augmented Generation:
-            A Local Benchmarking Pipeline with Query-Level Uncertainty},
+  title  = {Corpus-specific embedding-model selection for retrieval-augmented generation:
+            A local benchmarking pipeline with query-level uncertainty},
   year   = {2026},
   note   = {Submitted to PeerJ Computer Science},
   howpublished = {\url{https://github.com/kmkarakaya/RagRetrievalBench}}
